@@ -1,4 +1,5 @@
 name: Test All
+on:
   # still run checks on every PR *before* the merge
   pull_request:
 

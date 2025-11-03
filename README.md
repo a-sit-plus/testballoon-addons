@@ -15,10 +15,12 @@ This project provides addons for [TestBalloon](https://infix-de.github.io/testBa
 test
 framework, built from the ground up for Kotlin Multiplatform and coroutines.
 
-The code here started as a shim to make migration from Kotest easier, after being dissatisfied with the _framework's_
+The code here started as a shim to make migration from Kotest easier, after being dissatisfied with the Kotest
+_framework's_
 second-class KMP, and third-class Android support.
-At the same time, **the Kotest _libraries_ are still unrivaled** and don't suffer from the framework's shortcomings.
-Paired with TestBalloons flexibility and its small API surface, we can get the best of both worlds.
+At the same time, **the Kotest _libraries_, like its assertions, the way it models property testing, etc. are still
+unrivaled** and don't suffer from the framework's shortcomings. Paired with TestBalloon's flexibility and its small API
+surface, we can get the best of both worlds.
 
 ## Modules
 

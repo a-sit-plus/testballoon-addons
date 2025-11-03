@@ -114,10 +114,13 @@ publishing {
         }
     }
     repositories {
-        mavenLocal()
+        mavenLocal {
+            signing.isRequired = false
+        }
         maven {
-            url = uri(rootProject.layout.projectDirectory.dir("..").dir("repo"))
-            name = "GitHub"
+            url = uri(layout.projectDirectory.dir("..").dir("repo"))
+            name = "local"
+            signing.isRequired = false
         }
     }
 }

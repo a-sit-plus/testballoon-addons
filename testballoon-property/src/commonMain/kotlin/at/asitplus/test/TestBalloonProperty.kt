@@ -6,6 +6,14 @@ import de.infix.testBalloon.framework.TestSuite
 import io.kotest.property.*
 
 
+/**
+ * Executes property-based tests with generated values.
+ *
+ * @param iterations Number of test iterations to perform
+ * @param genA Generator for test values
+ * @param testConfig Optional test configuration
+ * @param content Test execution block receiving generated values
+ */
 fun <Value> TestSuite.checkAll(
     iterations: Int,
     genA: Gen<Value>,
@@ -24,6 +32,14 @@ fun <Value> TestSuite.checkAll(
     }
 }
 
+/**
+ * Creates test suites for property-based testing with specified iterations.
+ *
+ * @param iterations Number of test iterations to perform
+ * @param genA Generator for test values
+ * @param testConfig Optional test configuration
+ * @param content Test suite block receiving generated values
+ */
 fun <Value> TestSuite.checkAllSuites(
     iterations: Int,
     genA: Gen<Value>,
@@ -46,12 +62,26 @@ fun <Value> TestSuite.checkAllSuites(
     }
 }
 
+/**
+ * Creates test suites for property-based testing using default iteration count.
+ *
+ * @param genA Generator for test values
+ * @param testConfig Optional test configuration
+ * @param content Test suite block receiving generated values
+ */
 fun <A> TestSuite.checkAllSuites(
     genA: Gen<A>,
     testConfig: TestConfig = TestConfig,
     content: context(PropertyContext) TestSuite.(A) -> Unit
 ) = checkAllSuites(PropertyTesting.defaultIterationCount, genA, testConfig, content)
 
+/**
+ * Internal function to handle series of property-based test executions.
+ *
+ * @param iterations Number of test iterations to perform
+ * @param genA Generator for test values
+ * @param series Block to execute for each generated value
+ */
 private inline fun <Value> checkAllSeries(iterations: Int, genA: Gen<Value>, series: (Value, PropertyContext) -> Unit) {
     val constraints = Constraints.iterations(iterations)
 
