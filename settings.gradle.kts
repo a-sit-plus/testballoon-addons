@@ -4,7 +4,6 @@ rootProject.name = "testballoon-addons"
 
 pluginManagement {
     repositories {
-        mavenLocal()
         google()
         mavenCentral()
         gradlePluginPortal()
@@ -17,6 +16,6 @@ pluginManagement {
     }
 }
 
-include("testballoon-freespec")
-include("testballoon-property")
-include("testballoon-datatest")
+include("freespec")
+include("property")
+include("datatest")

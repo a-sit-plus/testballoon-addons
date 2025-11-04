@@ -19,7 +19,6 @@ val artifactVersion: String by extra
 version = artifactVersion
 
 repositories {
-    mavenLocal()
     mavenCentral()
     gradlePluginPortal()
     google()
@@ -88,8 +87,8 @@ publishing {
         withType<MavenPublication> {
             artifact(javadocJar)
             pom {
-                name.set("Testballoon Datatest")
-                description.set("Testballoon Data-Driven Testing")
+                name.set("TestBalloon Datatest")
+                description.set("TestBalloon Data-Driven Testing")
                 url.set("https://github.com/a-sit-plus/testballoon-addons")
                 licenses {
                     license {

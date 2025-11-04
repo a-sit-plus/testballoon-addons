@@ -45,9 +45,10 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=8192
         if: success() || failure()
         with:
-          name: iOS Tests
+          name: Tests
           path: '**/build/test-results/**/TEST*.xml'
           reporter: java-junit
           list-suites: failed
           list-tests: failed
           use-actions-summary: true
+          fail-on-error: false

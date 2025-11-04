@@ -1,17 +1,14 @@
-@file:OptIn(ExperimentalWasmDsl::class)
-
 import at.asitplus.gradle.kotest
 import at.asitplus.gradle.publishVersionCatalog
 import at.asitplus.gradle.setupDokka
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
-import java.util.*
 
 System.setProperty("KOTEST_NO_ASP_HELPER", "true")
 
 plugins {
     id("com.android.kotlin.multiplatform.library")
-        kotlin("multiplatform")
-        id("signing")
+    kotlin("multiplatform")
+    id("signing")
     id("at.asitplus.gradle.conventions")
     id("de.infix.testBalloon") version libs.versions.testballoon.get()
 }
@@ -20,21 +17,19 @@ group = "at.asitplus.testballoon"
 val artifactVersion: String by extra
 version = artifactVersion
 
-
-
 repositories {
-    mavenLocal()
     mavenCentral()
     gradlePluginPortal()
     google()
 }
 
+
 publishVersionCatalog = false
 
 kotlin {
     jvm()
-    androidLibrary{
-        namespace = "at.asitplus.testballoon.freespec"
+    androidLibrary {
+        namespace = "at.asitplus.testballoon.property"
     }
     macosArm64()
     macosX64()
@@ -73,6 +68,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
+                api(kotest("property"))
                 api("de.infix.testBalloon:testBalloon-framework-core:${libs.versions.testballoon.get()}")
             }
         }
@@ -86,13 +82,14 @@ val javadocJar = setupDokka(
     baseUrl = "https://github.com/a-sit-plus/testballoon-addons/tree/main/",
     multiModuleDoc = true
 )
+
 publishing {
     publications {
         withType<MavenPublication> {
             artifact(javadocJar)
             pom {
-                name.set("Testballoon FreeSpec")
-                description.set("Testballoon FreeSpec Test Style")
+                name.set("TestBalloon Property")
+                description.set("TestBalloon Property Testing")
                 url.set("https://github.com/a-sit-plus/testballoon-addons")
                 licenses {
                     license {

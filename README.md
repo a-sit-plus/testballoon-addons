@@ -26,17 +26,38 @@ surface, we can get the best of both worlds.
 
 This project consists of three modules:
 
-* `testballoon-freespec` emulating Kotest's `FreeSpec` test style for TestBalloon
-* `testballoon-datatest` replicates Kotest's data-driven testing features for TestBalloon
-* `testballoon-property` bringing Kotest's property testing to TestBalloon
+* `freespec` emulating Kotest's `FreeSpec` test style for TestBalloon
+* `datatest` replicates Kotest's data-driven testing features for TestBalloon
+* `property` bringing Kotest's property testing to TestBalloon
+
+> [!IMPORTANT]  
+> Always explicitly add `de.infix.testBalloon:testBalloon-framework-core` **&ge; 0.7.0** to your test dependencies!
+> You will run into an unresolved dependency error otherwise!
 
 ### FreeSpec
+
+| Maven Coordinates | `at.asitplus.testballoon:freespec:$version` |
+|-------------------|---------------------------------------------|
+
 
 At A-SIT Plus, we've been using Kotest's [FreeSpec](https://kotest.io/docs/framework/testing-styles.html#free-spec) for
 its expressiveness, as it allows modeling tests and test dependencies close to natural language.
 
 TestBalloon is flexible enough to emulate FreeSpec with very little code, **if** you have
 [context parameters](https://kotlinlang.org/docs/context-parameters.html) enabled for your codebase:
+
+<details>
+<summary>Setting up context parameters</summary>
+
+```kotlin
+// build.gradle.kts
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xcontext-parameters")
+    }
+}
+```
+</details>
 
 ```kotlin
 import at.asitplus.testballoon.invoke
@@ -64,6 +85,10 @@ val aFreeSpecSuite by testSuite {
 
 ### Data-Driven Testing
 
+| Maven Coordinates | `at.asitplus.testballoon:datatest:$version` |
+|-------------------|---------------------------------------------|
+
+
 TestBalloon makes it ridiculously easy to roll your own data-driven testing wrapper with just a couple of lines of code.
 So we did, by replicating Kotest's data-driven testing API:
 
@@ -82,6 +107,10 @@ val aDataDrivenSuite by testSuite {
 ```
 
 ### Property Testing
+
+| Maven Coordinates | `at.asitplus.testballoon:property:$version` |
+|-------------------|---------------------------------------------|
+
 
 Although it comes with some warts, `kotest-property` is still extremely helpful to generate a large corpus of test data,
 especially as it covers many edge cases out of the box. Again, since TestBalloon has been specifically crafted to be
