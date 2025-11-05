@@ -2,6 +2,7 @@ package at.asitplus.testballoon
 
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuite
+import de.infix.testBalloon.framework.shared.TestRegistering
 
 /**
  * Executes a test for each provided data parameter.

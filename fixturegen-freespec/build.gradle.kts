@@ -1,4 +1,4 @@
-import at.asitplus.gradle.kotest
+import at.asitplus.gradle.modulator.carrier
 import at.asitplus.gradle.publishVersionCatalog
 import at.asitplus.gradle.setupDokka
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -11,6 +11,7 @@ plugins {
     alias(libs.plugins.agp)
     alias(libs.plugins.asp)
     alias(libs.plugins.testballoon)
+    alias(libs.plugins.modulator)
     id("signing")
 }
 group = "at.asitplus.testballoon"
@@ -30,7 +31,7 @@ publishVersionCatalog = false
 kotlin {
     jvm()
     androidLibrary {
-        namespace = "at.asitplus.testballoon.property"
+        namespace = "at.asitplus.testballoon.fixturegen.freespec"
     }
     macosArm64()
     macosX64()
@@ -69,8 +70,8 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                api(kotest("property"))
-                api("de.infix.testBalloon:testBalloon-framework-core:${libs.versions.testballoon.get()}")
+                carrier(project(":freespec"))
+                carrier(project(":fixturegen"))
             }
         }
         commonTest.dependencies {
@@ -89,8 +90,8 @@ publishing {
         withType<MavenPublication> {
             artifact(javadocJar)
             pom {
-                name.set("TestBalloon Property")
-                description.set("TestBalloon Property Testing")
+                name.set("TestBalloon FixtureGen FreepSpec Style")
+                description.set("TestBalloon FreeSpec Style <-> FixtureGen Bridge")
                 url.set("https://github.com/a-sit-plus/testballoon-addons")
                 licenses {
                     license {

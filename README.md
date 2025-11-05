@@ -22,23 +22,32 @@ At the same time, **the Kotest _libraries_, like its assertions, the way it mode
 unrivaled** and don't suffer from the framework's shortcomings. Paired with TestBalloon's flexibility and its small API
 surface, we can get the best of both worlds.
 
-## Modules
 
-This project consists of three modules:
-
-* `freespec` emulating Kotest's `FreeSpec` test style for TestBalloon
-* `datatest` replicates Kotest's data-driven testing features for TestBalloon
-* `property` bringing Kotest's property testing to TestBalloon
 
 > [!IMPORTANT]  
 > Always explicitly add `de.infix.testBalloon:testBalloon-framework-core` **&ge; 0.7.0** to your test dependencies!
 > You will run into an unresolved dependency error otherwise!
 
+## Modules
+
+This project consists of the following modules:
+
+* `freespec` emulating Kotest's `FreeSpec` test style for TestBalloon
+* `datatest` replicates Kotest's data-driven testing features for TestBalloon
+* `property` bringing Kotest's property testing to TestBalloon
+* `fixturegen` introducing per-test fixture generation for TestBalloon without boilerplate
+
+> [!TIP]  
+> `freespec` and `fixturegen` are [modulated](https://github.com/a-sit-plus/modulator) into the `fixturegen-freespec` module, meaning that if you add the
+> `at.asitplus.modulator` gradle plugin to any project that uses both, you can automagically combine FreeSpec syntax
+> and per-test fixture generation! If you don't want to use modulator, you can just add the `at.asitplus.testballoon:fixturegen-freespec:$version`
+> dependency manually to your project.
+
+
 ### FreeSpec
 
 | Maven Coordinates | `at.asitplus.testballoon:freespec:$version` |
 |-------------------|---------------------------------------------|
-
 
 At A-SIT Plus, we've been using Kotest's [FreeSpec](https://kotest.io/docs/framework/testing-styles.html#free-spec) for
 its expressiveness, as it allows modeling tests and test dependencies close to natural language.
@@ -57,6 +66,7 @@ kotlin {
     }
 }
 ```
+
 </details>
 
 ```kotlin
@@ -94,7 +104,6 @@ val aFreeSpecSuite by testSuite {
 | Maven Coordinates | `at.asitplus.testballoon:datatest:$version` |
 |-------------------|---------------------------------------------|
 
-
 TestBalloon makes it ridiculously easy to roll your own data-driven testing wrapper with just a couple of lines of code.
 So we did, by replicating Kotest's data-driven testing API:
 
@@ -116,7 +125,6 @@ val aDataDrivenSuite by testSuite {
 
 | Maven Coordinates | `at.asitplus.testballoon:property:$version` |
 |-------------------|---------------------------------------------|
-
 
 Although it comes with some warts, `kotest-property` is still extremely helpful to generate a large corpus of test data,
 especially as it covers many edge cases out of the box. Again, since TestBalloon has been specifically crafted to be
@@ -140,6 +148,169 @@ val propertySuite by testSuite {
     }
 }
 ```
+
+### Per-Test Fixture Generation
+
+| Maven Coordinates | `at.asitplus.testballoon:fixturegen:$version` |
+|-------------------|-----------------------------------------------|
+
+TestBalloon enforces a strict separation between blue code and green code. This is a good thing, especially for deeply
+nested
+test suites, and it supports deep concurrency,
+Hence, ye olde JUnit4-style `@Before` and `@After` hacks mutating global state are deliberately not supported.
+Sometimes, though, you really want fresh test data for every test&mdash;in effect, **you want to generate a fresh test
+fixture
+for every test**.
+
+Look no further , **if** you have [context parameters](https://kotlinlang.org/docs/context-parameters.html) enabled for
+your codebase:
+
+<details>
+<summary>Setting up context parameters</summary>
+
+```kotlin
+// build.gradle.kts
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xcontext-parameters")
+    }
+}
+```
+
+</details>
+
+```kotlin
+import at.asitplus.testballoon.generatingFixtureFor //<- Look ma, only a single import!
+import de.infix.testBalloon.framework.core.testSuite
+import kotlin.random.Random
+
+val aGeneratingSuite by testSuite {
+
+    //seed the RNG for reproducible tests
+    val random = Random(42)
+
+    //reference function to be called for each test inside generatingFixtureFor
+    random::nextFloat.generatingFixtureFor {
+        repeat(10) {
+            test("Generated test with random float") {
+                //test something floaty!
+            }
+        }
+    }
+
+
+    //seed before the generator function, not inside!
+    val byteRNG = Random(42);
+    //We want to test with fresh randomness, so we generate a fresh fixture for each test
+    { byteRNG.nextBytes(32) }.generatingFixtureFor {
+
+        repeat(5) {
+            test("Generated test with fresh randomness") { freshFixture ->
+                //your test logic here
+            }
+        }
+
+        repeat(5) {
+            //✨ it ✨ just ✨ werks ✨
+            test("Test with implicit fixture name `it`") {
+                //do something with `it`, it contains fresh randomness!
+            }
+        }
+    }; //<- semicolon needed, because what follows is a bare lambda
+
+
+    //always-the-same fixtures also work, of course
+    {
+        object {
+            var a: Int = 1
+            val b: Int = 2
+        }
+    }.generatingFixtureFor {
+        test("one") {
+            it.a++ //and we can even modify them in one test
+            println("a=${it.a}, b=${it.b}") //a=2, b=2
+        }
+        test("two") {
+            //without affecting the other!
+            println("a=${it.a}, b=${it.b}") //a=1, b=2
+        }
+    }
+
+
+    //Let's test some nasty bug that shows itself only sometimes functionality
+    val ageRNG = Random(seed = 26); //<- semicolon needed, because what follows is a bare lambda
+    {
+        class ABuggyImplementation(val age: Int) {
+            fun restrictedAction(): Boolean =
+                if (age < 18) false
+                else if (age > 18) true
+                else Random.nextBoolean() //introduce jitter to simulate a faulty implementation
+        }
+
+        //create new object for each test
+        ABuggyImplementation(ageRNG.nextInt(0, 99))
+    }.generatingFixtureFor {
+        repeat(1000) {
+            test("Generated test accessing restricted resources") {
+               //test `restrictedAction` across a wide age range 
+               //a thousand times to unveil the bug
+            }
+        }
+    }
+}
+
+```
+
+<details>
+<summary>Combining with FreeSpec</summary> 
+
+
+| Maven Coordinates (if not using [modulator](https://github.com/a-sit-plus/modulator)) | `at.asitplus.testballoon:fixturegen-freespec:$version` |
+|---------------------------------------------------------------------------------------|--------------------------------------------------------|
+
+
+
+```kotlin
+import at.asitplus.testballoon.generatingFixtureFor //<- Look ma, only regular generatingFixtureFor import!
+import at.asitplus.testballoon.invoke //              <- Look ma, only regular freespec import!
+import at.asitplus.testballoon.minus  //              <- Look ma, only regular freespec import!
+import de.infix.testBalloon.framework.core.testSuite
+import kotlin.random.Random
+
+val aGeneratingFreeSpecSuite by testSuite {
+
+    //any lambda with any return type is a fixture generator. Type is reified.
+    { Random.nextBytes(32) }.generatingFixtureFor {
+
+        "A Test with fresh randomness" { freshFixture ->
+            //your test logic here
+        }
+
+        repeat(100) {
+            "Generated test with fresh randomness" { freshFixture ->
+                //some more test logic; each call gets fresh randomness
+            }
+        }
+
+        //✨it ✨just ✨werks ✨
+        "Test with implicit fixture name `it`" {
+            //no need for an explicit parameter name here, just use `it`
+        }
+
+        "And we can even nest!" - {
+            { Random.nextBytes(16) }.generatingFixtureFor {
+                repeat(10) {
+                    "pure, high-octane magic going on" {
+                        //Woohoo! more randomness each run
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+</details>
 
 ## Contributing
 
