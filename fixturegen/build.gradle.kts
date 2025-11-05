@@ -1,4 +1,3 @@
-import at.asitplus.gradle.kotest
 import at.asitplus.gradle.publishVersionCatalog
 import at.asitplus.gradle.setupDokka
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -30,7 +29,7 @@ publishVersionCatalog = false
 kotlin {
     jvm()
     androidLibrary {
-        namespace = "at.asitplus.testballoon.property"
+        namespace = "at.asitplus.testballoon.fixturegen"
     }
     macosArm64()
     macosX64()
@@ -69,7 +68,6 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                api(kotest("property"))
                 api("de.infix.testBalloon:testBalloon-framework-core:${libs.versions.testballoon.get()}")
             }
         }
@@ -89,8 +87,8 @@ publishing {
         withType<MavenPublication> {
             artifact(javadocJar)
             pom {
-                name.set("TestBalloon Property")
-                description.set("TestBalloon Property Testing")
+                name.set("TestBalloon Moving Fixture")
+                description.set("TestBalloon addon to provide fresh state to each test")
                 url.set("https://github.com/a-sit-plus/testballoon-addons")
                 licenses {
                     license {

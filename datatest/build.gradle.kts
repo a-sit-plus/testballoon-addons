@@ -5,6 +5,7 @@ import at.asitplus.gradle.setupDokka
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 System.setProperty("KOTEST_NO_ASP_HELPER", "true")
+System.setProperty("TESTBALLOON_NO_ASP_HELPER","true")
 
 plugins {
     alias(libs.plugins.kmp)

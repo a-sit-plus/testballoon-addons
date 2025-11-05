@@ -13,6 +13,8 @@ context(suite: TestSuite)
  * @param testConfig Optional test configuration
  * @param nested The test body to execute.
  */
+@Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
+@kotlin.internal.LowPriorityInOverloadResolution
 operator fun String.invoke(testConfig: TestConfig = TestConfig, nested: suspend TestExecutionScope.() -> Unit) {
     suite.test(testName(this), testConfig = testConfig.disableByName(this)) { nested() }
 }

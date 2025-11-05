@@ -2,6 +2,7 @@ import org.jetbrains.dokka.gradle.DokkaMultiModuleTask
 import java.time.Duration
 
 System.setProperty("KOTEST_NO_ASP_HELPER", "true")
+System.setProperty("TESTBALLOON_NO_ASP_HELPER","true")
 plugins {
     alias(libs.plugins.asp)
     alias(libs.plugins.agp) apply false

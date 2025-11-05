@@ -1,4 +1,5 @@
 System.setProperty("KOTEST_NO_ASP_HELPER","true")
+System.setProperty("TESTBALLOON_NO_ASP_HELPER","true")
 
 rootProject.name = "testballoon-addons"
 
@@ -19,3 +20,5 @@ pluginManagement {
 include("freespec")
 include("property")
 include("datatest")
+include("fixturegen")
+include("fixturegen-freespec")
