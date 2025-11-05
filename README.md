@@ -62,21 +62,27 @@ kotlin {
 ```kotlin
 import at.asitplus.testballoon.invoke
 import at.asitplus.testballoon.minus
-import de.infix.testBalloon.framework.testSuite
+import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.TestInvocation
+import de.infix.testBalloon.framework.core.invocation
+import de.infix.testBalloon.framework.core.singleThreaded
+import de.infix.testBalloon.framework.core.testSuite
 
 val aFreeSpecSuite by testSuite {
-    "The outermost blue code" - {
+    //testConfigs are supported for suites
+    "The outermost blue code"(testConfig = TestConfig.singleThreaded()) - {
         "contains some more blue code" - {
             ", some green code inside the lambda" {
-                //your test logic here
+                // your test logic here
             }
-            ", and some more green code inside the second lambda" {
-                //more test logic
+            //testConfigs are supported for Tests
+            ", and some more green code inside the second lambda"(testConfig = TestConfig.invocation(TestInvocation.SEQUENTIAL)) {
+                // more test logic here
             }
         }
         "And finally some more blue code" - {
-            "With some final green code in this lambda" {
-                //an more test logic here
+            "!With some final disabled green code in this lambda" {
+                //additional, disabled test logic here
             }
         }
     }
@@ -95,7 +101,7 @@ So we did, by replicating Kotest's data-driven testing API:
 ```kotlin
 import at.asitplus.testballoon.withData
 import at.asitplus.testballoon.withDataSuites
-import de.infix.testBalloon.framework.testSuite
+import de.infix.testBalloon.framework.core.testSuite
 
 val aDataDrivenSuite by testSuite {
     withDataSuites(1, 2, 3, 4) { number ->
@@ -119,7 +125,7 @@ flexible and extensible, we did just that:
 ```kotlin
 import at.asitplus.testballoon.checkAll
 import at.asitplus.testballoon.checkAllSuites
-import de.infix.testBalloon.framework.testSuite
+import de.infix.testBalloon.framework.core.testSuite
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.byte
 import io.kotest.property.arbitrary.byteArray

@@ -1,5 +1,12 @@
 [versions]
 kotlin = "2.2.21"
-testballoon = "0.6.3-K2.2.20-SNAPSHOT"
+testballoon = "0.7.0-K2.2.21"
 agp = "8.12.3"
+asp = "20251023"
 kotest = "6.0.4"
+
+[plugins]
+asp = { id = "at.asitplus.gradle.conventions", version.ref = "asp" }
+agp = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+kmp = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+testballoon = { id = "de.infix.testBalloon", version.ref = "testballoon" }

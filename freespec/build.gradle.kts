@@ -7,12 +7,13 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 System.setProperty("KOTEST_NO_ASP_HELPER", "true")
 
 plugins {
-    id("com.android.kotlin.multiplatform.library")
-        kotlin("multiplatform")
-        id("signing")
-    id("at.asitplus.gradle.conventions")
-    id("de.infix.testBalloon") version libs.versions.testballoon.get()
+    alias(libs.plugins.kmp)
+    alias(libs.plugins.agp)
+    alias(libs.plugins.asp)
+    alias(libs.plugins.testballoon)
+    id("signing")
 }
+
 group = "at.asitplus.testballoon"
 
 val artifactVersion: String by extra

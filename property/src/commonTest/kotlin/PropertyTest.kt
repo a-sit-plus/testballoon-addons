@@ -1,6 +1,6 @@
 import at.asitplus.testballoon.checkAll
 import at.asitplus.testballoon.checkAllSuites
-import de.infix.testBalloon.framework.testSuite
+import de.infix.testBalloon.framework.core.testSuite
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.byte

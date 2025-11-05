@@ -1,13 +1,11 @@
 import org.jetbrains.dokka.gradle.DokkaMultiModuleTask
 import java.time.Duration
 
-System.setProperty("KOTEST_NO_ASP_HELPER","true")
-
+System.setProperty("KOTEST_NO_ASP_HELPER", "true")
 plugins {
-    id("at.asitplus.gradle.conventions") version "20251023"
-    kotlin("multiplatform") version libs.versions.kotlin.get() apply false
-    kotlin("plugin.serialization") version libs.versions.kotlin.get() apply false
-    id("com.android.kotlin.multiplatform.library") version "8.12.3" apply (false)
+    alias(libs.plugins.asp)
+    alias(libs.plugins.agp) apply false
+    alias(libs.plugins.kmp) apply false
 }
 group = "at.asitplus.testballoon"
 

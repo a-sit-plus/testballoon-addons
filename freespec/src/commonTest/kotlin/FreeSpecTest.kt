@@ -1,6 +1,10 @@
 import at.asitplus.testballoon.invoke
 import at.asitplus.testballoon.minus
-import de.infix.testBalloon.framework.*
+import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.TestInvocation
+import de.infix.testBalloon.framework.core.invocation
+import de.infix.testBalloon.framework.core.singleThreaded
+import de.infix.testBalloon.framework.core.testSuite
 import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.shouldBe
@@ -16,7 +20,7 @@ val aFreeSpecSuite by testSuite {
             }
         }
         "And finally some more blue code" - {
-            "!With some final green code in this lambda" {
+            "!With some final disabled green code in this lambda" {
                 true.shouldBeFalse()
             }
         }

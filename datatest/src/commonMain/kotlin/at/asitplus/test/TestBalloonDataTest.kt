@@ -1,7 +1,7 @@
 package at.asitplus.testballoon
 
-import de.infix.testBalloon.framework.TestConfig
-import de.infix.testBalloon.framework.TestSuite
+import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.TestSuite
 
 /**
  * Executes a test for each provided data parameter.

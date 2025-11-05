@@ -1,8 +1,8 @@
 package at.asitplus.testballoon
 
-import de.infix.testBalloon.framework.TestConfig
-import de.infix.testBalloon.framework.TestExecutionScope
-import de.infix.testBalloon.framework.TestSuite
+import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.TestExecutionScope
+import de.infix.testBalloon.framework.core.TestSuite
 import io.kotest.property.*
 
 

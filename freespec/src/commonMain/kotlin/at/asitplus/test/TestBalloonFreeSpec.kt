@@ -1,9 +1,10 @@
 package at.asitplus.testballoon
 
-import de.infix.testBalloon.framework.TestConfig
-import de.infix.testBalloon.framework.TestExecutionScope
-import de.infix.testBalloon.framework.TestSuite
-import de.infix.testBalloon.framework.disable
+import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.TestExecutionScope
+import de.infix.testBalloon.framework.core.TestSuite
+import de.infix.testBalloon.framework.core.disable
+
 
 context(suite: TestSuite)
 /**
@@ -13,7 +14,7 @@ context(suite: TestSuite)
  * @param nested The test body to execute.
  */
 operator fun String.invoke(testConfig: TestConfig = TestConfig, nested: suspend TestExecutionScope.() -> Unit) {
-    suite.test(this, testConfig = testConfig.disableByName(this)) { nested() }
+    suite.test(testName(this), testConfig = testConfig.disableByName(this)) { nested() }
 }
 
 
@@ -53,7 +54,7 @@ infix operator fun String.minus(suiteBody: TestSuite.() -> Unit) {
  * @param suiteBody The body of the test suite.
  */
 infix operator fun ConfiguredSuite.minus(suiteBody: TestSuite.() -> Unit) {
-    parent.testSuite(name, testConfig = config.disableByName(name), content = fun TestSuite.() {
+    parent.testSuite(testName(name), testConfig = config.disableByName(name), content = fun TestSuite.() {
         suiteBody()
     })
 }
