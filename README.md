@@ -38,11 +38,12 @@ This project consists of the following modules:
 * `fixturegen` introducing per-test fixture generation for TestBalloon without boilerplate
 
 > [!TIP]  
-> `freespec` and `fixturegen` are [modulated](https://github.com/a-sit-plus/modulator) into the `fixturegen-freespec` module, meaning that if you add the
+> `freespec` and `fixturegen` are [modulated](https://github.com/a-sit-plus/modulator) into the `fixturegen-freespec`
+> module, meaning that if you add the
 > `at.asitplus.modulator` gradle plugin to any project that uses both, you can automagically combine FreeSpec syntax
-> and per-test fixture generation! If you don't want to use modulator, you can just add the `at.asitplus.testballoon:fixturegen-freespec:$version`
+> and per-test fixture generation! If you don't want to use modulator, you can just add the
+`at.asitplus.testballoon:fixturegen-freespec:$version`
 > dependency manually to your project.
-
 
 ### FreeSpec
 
@@ -99,6 +100,11 @@ val aFreeSpecSuite by testSuite {
 }
 ```
 
+> [!NOTE]  
+> Running individual tests from the gutter is not (yet) possible, due to the intricacies of how code analysis works.
+> Hence, you must run the entire suite (but you can manually filter using wildcards).  
+> (You can, of course, just migrate off FreeSpec and use TestBalloon's native functions to create suites and tests.)
+
 ### Data-Driven Testing
 
 | Maven Coordinates | `at.asitplus.testballoon:datatest:$version` |
@@ -118,8 +124,21 @@ val aDataDrivenSuite by testSuite {
             //your test logic being run 16 times
         }
     }
+
+    //Alternative syntax for withDataSuites
+    // -> NOTE the minus ↙↙↙
+    withData(1, 2, 3, 4) - { number ->
+        withData("one", "two", "three", "four") { word ->
+            //your test logic being run 16 times
+        }
+    }
 }
 ```
+
+> [!NOTE]  
+> Running individual tests from the gutter is not possible, as the test suite structure and the names of
+> suites and tests are computed at runtime.
+> Hence, you must run the entire suite (but you can manually filter using wildcards)
 
 ### Property Testing
 
@@ -142,12 +161,25 @@ import io.kotest.property.arbitrary.uLong
 
 val propertySuite by testSuite {
     checkAllSuites(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte())) { byteArray ->
-        checkAll(iterations = 1000, Arb.uLong()) { number ->
+        checkAll(iterations = 10, Arb.uLong()) { number ->
+            //test with byte arrays and number for fun and profit
+        }
+    }
+
+    //Alternative syntax for checkAllSuites
+    // --> NOTE THE MINUS HERE >->-->--------------------------------------↘↘↘
+    checkAll(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte())) - { byteArray ->
+        checkAll(iterations = 10, Arb.uLong()) { number ->
             //test with byte arrays and number for fun and profit
         }
     }
 }
 ```
+
+> [!NOTE]  
+> Running individual tests from the gutter is not possible, as the test suite structure and the names of
+> suites and tests are computed at runtime.
+> Hence, you must run the entire suite (but you can manually filter using wildcards)
 
 ### Per-Test Fixture Generation
 
@@ -252,8 +284,8 @@ val aGeneratingSuite by testSuite {
     }.generatingFixtureFor {
         repeat(1000) {
             test("Generated test accessing restricted resources") {
-               //test `restrictedAction` across a wide age range 
-               //a thousand times to unveil the bug
+                //test `restrictedAction` across a wide age range 
+                //a thousand times to unveil the bug
             }
         }
     }
@@ -264,11 +296,8 @@ val aGeneratingSuite by testSuite {
 <details>
 <summary>Combining with FreeSpec</summary> 
 
-
 | Maven Coordinates (if not using [modulator](https://github.com/a-sit-plus/modulator)) | `at.asitplus.testballoon:fixturegen-freespec:$version` |
 |---------------------------------------------------------------------------------------|--------------------------------------------------------|
-
-
 
 ```kotlin
 import at.asitplus.testballoon.generatingFixtureFor //<- Look ma, only regular generatingFixtureFor import!
