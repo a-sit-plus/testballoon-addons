@@ -5,6 +5,18 @@ import de.infix.testBalloon.framework.core.TestExecutionScope
 import de.infix.testBalloon.framework.core.TestSuite
 import io.kotest.property.*
 
+/**
+ * Executes property-based tests with generated values.
+ *
+ * @param genA Generator for test values
+ * @param testConfig Optional test configuration
+ * @param content Test execution block receiving generated values
+ */
+fun <Value> TestSuite.checkAll(
+    genA: Gen<Value>,
+    testConfig: TestConfig = TestConfig,
+    content: suspend context(PropertyContext) TestExecutionScope.(Value) -> Unit
+) = checkAll(PropertyTesting.defaultIterationCount, genA, testConfig, content)
 
 /**
  * Executes property-based tests with generated values.
@@ -31,6 +43,33 @@ fun <Value> TestSuite.checkAll(
         }
     }
 }
+
+data class ConfiguredPropertyScope<Value>(
+    val testSuite: TestSuite,
+    val iterations: Int,
+    val genA: Gen<Value>,
+    val testConfig: TestConfig = TestConfig
+) {
+    /**
+     * @param content Test suite block receiving generated values
+     */
+    operator fun minus(content: context(PropertyContext) TestSuite.(Value) -> Unit) {
+        testSuite.checkAllSuites(iterations, genA, testConfig, content)
+    }
+}
+
+/**
+ * Creates a configured property scope for property-based testing with specified iterations.
+ *
+ * @param iterations Number of test iterations to perform
+ * @param genA Generator for test values
+ * @param testConfig Optional test configuration
+ */
+fun <Value> TestSuite.checkAll(
+    iterations: Int,
+    genA: Gen<Value>,
+    testConfig: TestConfig = TestConfig
+) = ConfiguredPropertyScope(this, iterations, genA, testConfig)
 
 /**
  * Creates test suites for property-based testing with specified iterations.
@@ -61,6 +100,18 @@ fun <Value> TestSuite.checkAllSuites(
             })
     }
 }
+
+/**
+ * Creates a configured property scope for property-based testing using default iteration count.
+ *
+ * @param genA Generator for test values
+ * @param testConfig Optional test configuration
+ * @param content Test suite block receiving generated values
+ */
+fun <A> TestSuite.checkAll(
+    genA: Gen<A>,
+    testConfig: TestConfig = TestConfig,
+) = ConfiguredPropertyScope(this, PropertyTesting.defaultIterationCount, genA, testConfig)
 
 /**
  * Creates test suites for property-based testing using default iteration count.

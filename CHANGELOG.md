@@ -2,6 +2,9 @@
 
 ## 0.x
 
+### 0.1.2
+* More migration helpers and alternative syntax for nesting suites
+
 ### 0.1.x
 
 #### 0.1.1

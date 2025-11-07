@@ -10,4 +10,13 @@ val aDataDrivenSuite by testSuite {
             word shouldBe "three"
         }
     }
+
+    //Alternative syntax for withDataSuites
+    // -> NOTE the minus ↙↙↙
+    withData(1, 2, 3, 4) - { number ->
+        withData("one", "two", "three", "four") { word ->
+            number shouldBe number
+            word shouldBe "three"
+        }
+    }
 }

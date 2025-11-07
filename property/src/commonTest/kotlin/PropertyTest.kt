@@ -15,4 +15,13 @@ val propertySuite by testSuite {
             number shouldBe byteArray.size
         }
     }
+
+    //Alternative syntax for checkAllSuites
+    // --> NOTE THE MINUS HERE >->-->--------------------------------------↘↘↘
+    checkAll(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte())) - { byteArray ->
+        checkAll(iterations = 10, Arb.uLong()) { number ->
+            byteArray shouldBe byteArray
+            number shouldBe byteArray.size
+        }
+    }
 }
