@@ -15,6 +15,10 @@ This project provides addons for [TestBalloon](https://infix-de.github.io/testBa
 test
 framework, built from the ground up for Kotlin Multiplatform and coroutines.
 
+> [!IMPORTANT]  
+> Always explicitly add `de.infix.testBalloon:testBalloon-framework-core` **&ge; 0.7.0** to your test dependencies!
+> You will run into an unresolved dependency error otherwise!
+
 The code here started as a shim to make migration from Kotest easier, after being dissatisfied with the Kotest
 _framework's_
 second-class KMP, and third-class Android support.
@@ -23,10 +27,12 @@ unrivaled** and don't suffer from the framework's shortcomings. Paired with Test
 surface, we can get the best of both worlds.
 
 
-
-> [!IMPORTANT]  
-> Always explicitly add `de.infix.testBalloon:testBalloon-framework-core` **&ge; 0.7.0** to your test dependencies!
-> You will run into an unresolved dependency error otherwise!
+> [!CAUTION]  
+> On Android (JVM, not native), forward slashed in test names and display names are **always** replaced
+> with the `⧸` character because the android test runner cannot deal with slashes in test names. This can bite you whan
+> using base64-encoded data inside test names.
+> 
+> In addition, test names are truncated to 64 characters and ellipsised in the middle (which does not affect display names).
 
 ## Modules
 

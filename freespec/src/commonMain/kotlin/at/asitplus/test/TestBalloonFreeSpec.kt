@@ -3,7 +3,6 @@ package at.asitplus.testballoon
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestExecutionScope
 import de.infix.testBalloon.framework.core.TestSuite
-import de.infix.testBalloon.framework.core.disable
 
 
 context(suite: TestSuite)
@@ -21,7 +20,7 @@ operator fun String.invoke(
     testConfig: TestConfig = TestConfig,
     nested: suspend TestExecutionScope.() -> Unit
 ) {
-    suite.test(testName(this), displayName = displayName, testConfig = testConfig.disableByName(this)) { nested() }
+    suite.test(freeSpecName(this).truncated(), displayName = displayName.escaped, testConfig = testConfig.disableByName(this)) { nested() }
 }
 
 
@@ -46,8 +45,8 @@ data class ConfiguredSuite(
      */
     infix operator fun minus(suiteBody: TestSuite.() -> Unit) {
         parent.testSuite(
-            testName(testName),
-            displayName = displayName,
+            freeSpecName(testName).truncated(),
+            displayName = displayName.escaped,
             testConfig = config.disableByName(displayName),
             content = fun TestSuite.() {
                 suiteBody()
@@ -75,13 +74,8 @@ context(suite: TestSuite)
  * @param suiteBody The body of the test suite.
  */
 infix operator fun String.minus(suiteBody: TestSuite.() -> Unit) {
-    suite.testSuite(name = testName(this), testConfig = TestConfig.disableByName(this), content = fun TestSuite.() {
+    suite.testSuite(name = freeSpecName(this).truncated(), displayName = freeSpecName(this).escaped, testConfig = TestConfig.disableByName(this), content = fun TestSuite.() {
         suiteBody()
     })
 }
 
-
-private fun TestConfig.disableByName(name: String) =
-    if (name.startsWith("!")) TestConfig.disable() else this
-
-private fun testName(name: String) = if (name.startsWith("!")) name.substring(1) else name

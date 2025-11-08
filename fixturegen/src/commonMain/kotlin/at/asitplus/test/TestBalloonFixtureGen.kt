@@ -34,7 +34,7 @@ class MutatingFixtureScope<T> @PublishedApi internal constructor(
         testConfig: TestConfig = TestConfig,
         action: suspend TestExecutionScope.(T) -> Unit
     ) {
-        testSuite.test(name, displayName, testConfig = testConfig) { action(generator()) }
+        testSuite.test(name.truncated(), displayName.escaped, testConfig = testConfig) { action(generator()) }
     }
 }
 

@@ -35,8 +35,9 @@ fun <Value> TestSuite.checkAll(
     var count = 0
     checkAllSeries(iterations, genA) { value, context ->
         count++
-        val name = "$count of $iterations ${if (value == null) "null" else value::class.simpleName}: $value"
-        this@checkAll.test(name, testConfig = testConfig) {
+        val valueStr = if(value is Iterable<*>) value.joinToString() else value.toString()
+        val name = "$count of $iterations ${if (value == null) "null" else value::class.simpleName}: $valueStr"
+        this@checkAll.test(name = name.truncated(), displayName = name.escaped, testConfig = testConfig) {
             with(context) {
                 content(value)
             }
@@ -89,9 +90,12 @@ fun <Value> TestSuite.checkAllSuites(
     var count = 0
     checkAllSeries(iterations, genA) { value, context ->
         count++
+        val valueStr = if(value is Iterable<*>) value.joinToString() else value.toString()
         val prefix = if (value == null) "null" else value::class.simpleName
+        val name= "$count-${iterations}_${prefix}_${valueStr}"
         this@checkAllSuites.testSuite(
-            name = "$count-${iterations}_${prefix}_${value.toString()}",
+            name = name.truncated(),
+            displayName = name.escaped,
             testConfig = testConfig,
             content = fun TestSuite.() {
                 with(context) {
