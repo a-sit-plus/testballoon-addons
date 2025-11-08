@@ -18,8 +18,8 @@ fun <Data> TestSuite.withData(
     action: suspend (Data) -> Unit
 ) {
     for (data in parameters) {
-        val name = "$data"
-        test(name, testConfig = testConfig) {
+        val name = "$data".escaped
+        test(name= name.truncated(), displayName = name, testConfig = testConfig) {
             action(data)
         }
     }
@@ -38,8 +38,8 @@ fun <Data> TestSuite.withData(
     action: suspend (Data) -> Unit
 ) {
     for (d in data) {
-        val name = "$d"
-        test(name, testConfig = testConfig) { action(d) }
+        val name = "$d".escaped
+        test(name= name.truncated(), displayName = name, testConfig = testConfig) { action(d) }
     }
 }
 
@@ -57,7 +57,7 @@ fun <Data> TestSuite.withData(
     action: suspend (Data) -> Unit
 ) {
     for (d in map) {
-        test(d.key, testConfig = testConfig) { action(d.value) }
+        test(name= d.key.truncated(), displayName = d.key.escaped, testConfig = testConfig) { action(d.value) }
     }
 }
 
@@ -76,8 +76,8 @@ fun <Data> TestSuite.withData(
     action: suspend (Data) -> Unit
 ) {
     for (d in data) {
-        val name = nameFn(d)
-        test(name, testConfig = testConfig) { action(d) }
+        val name = nameFn(d).escaped
+        test(name= name.truncated(), displayName = name, testConfig = testConfig) { action(d) }
     }
 }
 
@@ -98,8 +98,8 @@ fun <Data> TestSuite.withData(
     action: suspend (Data) -> Unit
 ) {
     for (d in arguments) {
-        val name = nameFn(d)
-        test(name, testConfig = testConfig) { action(d) }
+        val name = nameFn(d).escaped
+        test(name= name.truncated(), displayName = name, testConfig = testConfig) { action(d) }
     }
 }
 
@@ -116,8 +116,8 @@ fun <Data> TestSuite.withData(
     action: suspend (Data) -> Unit
 ) {
     for (d in data) {
-        val name = "$d"
-        test(name, testConfig = testConfig) { action(d) }
+        val name = "$d".escaped
+        test(name= name.truncated(), displayName = name, testConfig = testConfig) { action(d) }
     }
 }
 
@@ -136,8 +136,8 @@ fun <Data> TestSuite.withData(
     action: suspend (Data) -> Unit
 ) {
     for (d in data) {
-        val name = nameFn(d)
-        test(name, testConfig = testConfig) { action(d) }
+        val name = nameFn(d).escaped
+        test(name= name.truncated(), displayName = name, testConfig = testConfig) { action(d) }
     }
 }
 
@@ -264,7 +264,8 @@ fun <Data> TestSuite.withDataSuites(
     action: TestSuite.(Data) -> Unit
 ) {
     for (d in parameters) {
-        testSuite(name = d.toString(), testConfig = testConfig, content = fun TestSuite.() {
+        val name = d.toString().escaped
+        testSuite(name= name.truncated(), displayName = name, testConfig = testConfig, content = fun TestSuite.() {
             action(d)
         })
     }
@@ -283,7 +284,8 @@ fun <Data> TestSuite.withDataSuites(
     action: TestSuite.(Data) -> Unit
 ) {
     for (d in data) {
-        testSuite(name = d.toString(), testConfig = testConfig, content = fun TestSuite.() {
+        val name = d.toString().escaped
+        testSuite(name= name.truncated(), displayName = name, testConfig = testConfig, content = fun TestSuite.() {
             action(d)
         })
     }
@@ -303,7 +305,8 @@ fun <Data> TestSuite.withDataSuites(
     action: TestSuite.(Data) -> Unit
 ) {
     for (d in map) {
-        testSuite(d.key, testConfig = testConfig, content = fun TestSuite.() {
+        val name = d.key.escaped
+        testSuite(name= name.truncated(), displayName = name, testConfig = testConfig, content = fun TestSuite.() {
             action(d.value)
         })
     }
@@ -322,7 +325,8 @@ fun <Data> TestSuite.withDataSuites(
     action: TestSuite.(Data) -> Unit
 ) {
     for (d in data) {
-        testSuite(name = d.toString(), testConfig = testConfig, content = fun TestSuite.() {
+        val name = d.toString().escaped
+        testSuite(name= name.truncated(), displayName = name, testConfig = testConfig, content = fun TestSuite.() {
             action(d)
         })
     }
@@ -362,7 +366,8 @@ fun <Data> TestSuite.withDataSuites(
     action: TestSuite.(Data) -> Unit
 ) {
     for (d in data) {
-        testSuite(nameFn(d), testConfig = testConfig, content = fun TestSuite.() {
+        val name = nameFn(d).escaped
+        testSuite(name= name.truncated(), displayName = name, testConfig = testConfig, content = fun TestSuite.() {
             action(d)
         })
     }
@@ -384,7 +389,8 @@ fun <Data> TestSuite.withDataSuites(
     action: TestSuite.(Data) -> Unit
 ) {
     for (d in data) {
-        testSuite(nameFn(d), testConfig = testConfig, content = fun TestSuite.() {
+        val name = nameFn(d).escaped
+        testSuite(name= name.truncated(), displayName = name, testConfig = testConfig, content = fun TestSuite.() {
             action(d)
         })
     }

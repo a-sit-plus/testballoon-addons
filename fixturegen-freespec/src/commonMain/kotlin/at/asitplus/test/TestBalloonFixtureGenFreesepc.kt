@@ -3,7 +3,6 @@ package at.asitplus.testballoon
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestExecutionScope
 import de.infix.testBalloon.framework.core.TestSuite
-import de.infix.testBalloon.framework.core.disable
 
 
 context(fixture: MutatingFixtureScope<T>)
@@ -35,10 +34,5 @@ internal fun String.freespec(
     testConfig: TestConfig = TestConfig,
     nested: suspend TestExecutionScope.() -> Unit
 ) {
-    suite.test(testName2(this), displayName = displayName, testConfig = testConfig.disableByName2(this)) { nested() }
+    suite.test(freeSpecName(this).truncated(), displayName = displayName.escaped, testConfig = testConfig.disableByName(this)) { nested() }
 }
-
-private fun TestConfig.disableByName2(name: String) =
-    if (name.startsWith("!")) TestConfig.disable() else this
-
-private inline fun testName2(name: String) = if (name.startsWith("!")) name.substring(1) else name

@@ -3,7 +3,7 @@ import at.asitplus.gradle.setupDokka
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 System.setProperty("KOTEST_NO_ASP_HELPER", "true")
-System.setProperty("TESTBALLOON_NO_ASP_HELPER","true")
+System.setProperty("TESTBALLOON_NO_ASP_HELPER", "true")
 
 plugins {
     alias(libs.plugins.kmp)
@@ -29,7 +29,7 @@ publishVersionCatalog = false
 kotlin {
     jvm()
     androidLibrary {
-        namespace = "at.asitplus.testballoon.fixturegen"
+        namespace = "at.asitplus.testballoon.commons"
     }
     macosArm64()
     macosX64()
@@ -68,13 +68,21 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(project(":commons"))
                 api("de.infix.testBalloon:testBalloon-framework-core:${libs.versions.testballoon.get()}")
             }
         }
-        commonTest.dependencies {
-            implementation("de.infix.testBalloon:testBalloon-integration-kotest-assertions:${libs.versions.testballoon.get()}")
+
+        sourceSets.filterNot {
+            it.name.startsWith("common") || it.name.startsWith("android") || it.name.startsWith("tv") || it.name.startsWith(
+                "watch"
+            ) || it.name.startsWith("ios") || it.name.startsWith("apple")|| it.name.startsWith("mac")
+                    || it.name.startsWith("webMain")
+                    || it.name.startsWith("linux")
+                    || it.name.startsWith("min")
         }
+            .filter { it.name.endsWith("Main") }.forEach { srcSet ->
+                srcSet.kotlin.srcDir("$projectDir/src/nonAndroidMain/kotlin")
+            }
     }
 }
 
@@ -88,8 +96,8 @@ publishing {
         withType<MavenPublication> {
             artifact(javadocJar)
             pom {
-                name.set("TestBalloon Moving Fixture")
-                description.set("TestBalloon addon to provide fresh state to each test")
+                name.set("TestBalloon Addons Commons")
+                description.set("TestBalloon Addons common functionality")
                 url.set("https://github.com/a-sit-plus/testballoon-addons")
                 licenses {
                     license {

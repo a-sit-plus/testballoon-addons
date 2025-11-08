@@ -69,6 +69,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
+                implementation(project(":commons"))
                 api(kotest("property"))
                 api("de.infix.testBalloon:testBalloon-framework-core:${libs.versions.testballoon.get()}")
             }

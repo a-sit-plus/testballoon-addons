@@ -2,6 +2,9 @@
 
 ## 0.x
 
+### 0.1.3
+* Work around test name issues
+
 ### 0.1.2
 * More migration helpers and alternative syntax for nesting suites
 

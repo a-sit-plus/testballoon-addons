@@ -17,6 +17,7 @@ pluginManagement {
     }
 }
 
+include("commons")
 include("freespec")
 include("property")
 include("datatest")
