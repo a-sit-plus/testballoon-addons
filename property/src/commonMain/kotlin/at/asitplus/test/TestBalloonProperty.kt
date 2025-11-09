@@ -9,7 +9,6 @@ import io.kotest.property.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.reflect.KClass
-import kotlin.test.fail
 
 /**
  * Executes property-based tests with generated values.
@@ -48,12 +47,12 @@ inline fun <reified Value : Any> TestSuite.checkAll(
  * @param content Test execution block receiving generated values
  */
 @PublishedApi
-internal inline fun <Value : Any> TestSuite.checkAll(
+internal fun <Value : Any> TestSuite.checkAll(
     clazz: KClass<Value>,
     iterations: Int,
     genA: Gen<Value?>,
     testConfig: TestConfig = TestConfig,
-    crossinline content: suspend context(PropertyContext) TestExecutionScope.(Value?) -> Unit
+    content: suspend context(PropertyContext) TestExecutionScope.(Value?) -> Unit
 ) {
 
     val testName = "$iterations ${clazz.simpleName ?: "<Anonymous>"}s"
@@ -63,22 +62,34 @@ internal inline fun <Value : Any> TestSuite.checkAll(
         checkAllSeries(iterations, genA) { iter, value, context ->
             with(context) {
                 val valueStr = if (value is Iterable<*>) value.joinToString() else value.toString()
-                val name = "$iter of $iterations ${if (value == null) "null" else value::class.simpleName}: $valueStr"
+                val name = "${iter+1} of $iterations ${if (value == null) "null" else value::class.simpleName}: $valueStr"
                 catchingUnwrapped {
                     content(value)
                 }.onFailure {
                     mutex.withLock {
                         when (it) {
-                            is AssertionError -> errors += AssertionErrorBuilder("${it.message}", it.cause, null, null).build()
-                            else -> errors += RuntimeException(name+": ${it.message}", it)
+                            is AssertionError -> errors += AssertionErrorBuilder(
+                                "$name: ${it.message}",
+                                it.cause,
+                                null,
+                                null
+                            ).build()
+
+                            else -> errors += RuntimeException(name + ": ${it.message}", it)
                         }
                     }
                 }
             }
         }
         if (errors.isNotEmpty()) {
-            throw (if (errors.count { it is AssertionError } == errors.size) AssertionErrorBuilder(testName, null, null, null).build() else RuntimeException(
-                testName
+            val messages = errors.map { it.message }.filterNotNull().joinToString("\n")
+            throw (if (errors.count { it is AssertionError } == errors.size) AssertionErrorBuilder(
+                testName + "\n$messages",
+                null,
+                null,
+                null
+            ).build() else RuntimeException(
+                testName + "\n$messages"
             )).also { errors.forEach(it::addSuppressed) }
         }
     }

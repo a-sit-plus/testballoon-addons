@@ -73,7 +73,6 @@ kotlin {
             dependencies {
                 implementation(project(":commons"))
                 api(kotest("property"))
-                api("at.asitplus:kmmresult:1.9.3")
                 implementation("org.jetbrains.kotlin:kotlin-test")
                 api("de.infix.testBalloon:testBalloon-framework-core:${libs.versions.testballoon.get()}")
             }

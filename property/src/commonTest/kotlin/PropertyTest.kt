@@ -11,18 +11,36 @@ import io.kotest.property.arbitrary.uLong
 val propertySuite by testSuite {
 
     checkAllSuites(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte())) { byteArray ->
-        checkAll(iterations = 10, Arb.uLong()) { number ->
+        checkAll(iterations = 10, Arb.uLong(100u,200u)) { number ->
             byteArray shouldBe byteArray
-            number shouldBe byteArray.size
+            number shouldBe byteArray.size.toULong()
         }
     }
 
     //Alternative syntax for checkAllSuites
     // --> NOTE THE MINUS HERE >->-->--------------------------------------↘↘↘
     checkAll(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte())) - { byteArray ->
-        checkAll(iterations = 10, Arb.uLong()) { number ->
+        checkAll(iterations = 10, Arb.uLong(100u,200u)) { number ->
             byteArray shouldBe byteArray
-            number shouldBe byteArray.size
+            number shouldBe byteArray.size.toULong()
         }
     }
+
+    checkAll(iterations = 2, Arb.byteArray(Arb.int(100, 200), Arb.byte())) - { byteArray ->
+        checkAll(iterations = 2, Arb.uLong(100u, 200u)) { number ->
+            byteArray shouldBe byteArray
+            number shouldBe byteArray.size.toULong()
+        }
+        checkAll(iterations = 2, Arb.byteArray(Arb.int(100, 200), Arb.byte())) - { byteArray ->
+            checkAll(iterations = 2, Arb.uLong(100u, 200u)) { number ->
+                byteArray shouldBe byteArray
+                number shouldBe byteArray.size.toULong()
+            }
+            checkAll(iterations = 2, Arb.byteArray(Arb.int(100, 200), Arb.byte())) - { byteArray ->
+                checkAll(iterations = 2, Arb.uLong(100u, 200u)) { number ->
+                    byteArray shouldBe byteArray
+                    number shouldBe byteArray.size.toULong()
+                }
+            }}}
+
 }

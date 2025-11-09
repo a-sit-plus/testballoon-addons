@@ -16,14 +16,8 @@ fun <Data> TestSuite.withData(
     vararg parameters: Data,
     testConfig: TestConfig = TestConfig,
     action: suspend (Data) -> Unit
-) {
-    for (data in parameters) {
-        val name = "$data".escaped
-        test(name= name.truncated(), displayName = name, testConfig = testConfig) {
-            action(data)
-        }
-    }
-}
+) = withDataInternal(parameters.asSequence().map { it.toString() to it }, testConfig, action)
+
 
 /**
  * Executes a test for each item in the provided iterable data.
@@ -36,12 +30,8 @@ fun <Data> TestSuite.withData(
     data: Iterable<Data>,
     testConfig: TestConfig = TestConfig,
     action: suspend (Data) -> Unit
-) {
-    for (d in data) {
-        val name = "$d".escaped
-        test(name= name.truncated(), displayName = name, testConfig = testConfig) { action(d) }
-    }
-}
+) = withDataInternal(data.asSequence().map { it.toString() to it }, testConfig, action)
+
 
 /**
  * Executes a test for each entry in the provided map.
@@ -55,11 +45,8 @@ fun <Data> TestSuite.withData(
     map: Map<String, Data>,
     testConfig: TestConfig = TestConfig,
     action: suspend (Data) -> Unit
-) {
-    for (d in map) {
-        test(name= d.key.truncated(), displayName = d.key.escaped, testConfig = testConfig) { action(d.value) }
-    }
-}
+) = withDataInternal(map.asSequence().map { (k, v) -> k to v }, testConfig, action)
+
 
 /**
  * Executes a test for each item in the provided iterable data.
@@ -74,12 +61,8 @@ fun <Data> TestSuite.withData(
     nameFn: (Data) -> String, data: Iterable<Data>,
     testConfig: TestConfig = TestConfig,
     action: suspend (Data) -> Unit
-) {
-    for (d in data) {
-        val name = nameFn(d).escaped
-        test(name= name.truncated(), displayName = name, testConfig = testConfig) { action(d) }
-    }
-}
+) = withDataInternal(data.asSequence().map { nameFn(it) to it }, testConfig, action)
+
 
 /**
  * Executes a test for each provided data parameter.
@@ -96,12 +79,7 @@ fun <Data> TestSuite.withData(
     nameFn: (Data) -> String, vararg arguments: Data,
     testConfig: TestConfig = TestConfig,
     action: suspend (Data) -> Unit
-) {
-    for (d in arguments) {
-        val name = nameFn(d).escaped
-        test(name= name.truncated(), displayName = name, testConfig = testConfig) { action(d) }
-    }
-}
+) = withDataInternal(arguments.asSequence().map { nameFn(it) to it }, testConfig, action)
 
 /**
  * Executes a test for each item in the provided sequence.
@@ -114,12 +92,7 @@ fun <Data> TestSuite.withData(
     data: Sequence<Data>,
     testConfig: TestConfig = TestConfig,
     action: suspend (Data) -> Unit
-) {
-    for (d in data) {
-        val name = "$d".escaped
-        test(name= name.truncated(), displayName = name, testConfig = testConfig) { action(d) }
-    }
-}
+) = withDataInternal(data.map { it.toString() to it }, testConfig, action)
 
 /**
  * Executes a test for each item in the provided sequence.
@@ -134,25 +107,13 @@ fun <Data> TestSuite.withData(
     nameFn: (Data) -> String, data: Sequence<Data>,
     testConfig: TestConfig = TestConfig,
     action: suspend (Data) -> Unit
-) {
-    for (d in data) {
-        val name = nameFn(d).escaped
-        test(name= name.truncated(), displayName = name, testConfig = testConfig) { action(d) }
-    }
-}
+) = withDataInternal(data.map { nameFn(it) to it }, testConfig, action)
 
 data class ConfiguredDataTestScope<Data>(
-    val testSuite: TestSuite, val nameFn: (Data) -> String, val data: Iterable<Data>,
+    val testSuite: TestSuite, val map: Sequence<Pair<String, Data>>,
     val testConfig: TestConfig = TestConfig,
 ) {
-    operator fun minus(action: TestSuite.(Data) -> Unit) = testSuite.withDataSuites(nameFn, data, testConfig, action)
-}
-
-data class ConfiguredMapDataTestScope<Data>(
-    val testSuite: TestSuite, val map: Map<String, Data>,
-    val testConfig: TestConfig = TestConfig,
-) {
-    operator fun minus(action: TestSuite.(Data) -> Unit) = testSuite.withDataSuites(map, testConfig, action)
+    operator fun minus(action: TestSuite.(Data) -> Unit) = testSuite.withDataSuitesInternal(map, testConfig, action)
 }
 
 /**
@@ -166,7 +127,7 @@ data class ConfiguredMapDataTestScope<Data>(
 fun <Data> TestSuite.withData(
     vararg parameters: Data,
     testConfig: TestConfig = TestConfig
-) = ConfiguredDataTestScope<Data>(this, { "$it" }, parameters.asIterable(), testConfig)
+) = ConfiguredDataTestScope<Data>(this, parameters.asSequence().map { it.toString() to it }, testConfig)
 
 /**
  * Creates a configured test suite scope to generate test suites for each item in the provided iterable data.
@@ -177,7 +138,7 @@ fun <Data> TestSuite.withData(
 fun <Data> TestSuite.withData(
     data: Iterable<Data>,
     testConfig: TestConfig = TestConfig,
-) = ConfiguredDataTestScope<Data>(this, { "$it" }, data, testConfig)
+) = ConfiguredDataTestScope<Data>(this, data.asSequence().map { it.toString() to it }, testConfig)
 
 /**
  * Creates a configured test suite scope to generate test suites for each entry in the provided map.
@@ -189,7 +150,7 @@ fun <Data> TestSuite.withData(
 fun <Data> TestSuite.withData(
     map: Map<String, Data>,
     testConfig: TestConfig = TestConfig,
-) = ConfiguredMapDataTestScope<Data>(this, map, testConfig)
+) = ConfiguredDataTestScope<Data>(this, map.asSequence().map { (k, v) -> k to v }, testConfig)
 
 /**
  * Creates a configured test suite scope to generate test suites for each item in the provided sequence.
@@ -200,7 +161,7 @@ fun <Data> TestSuite.withData(
 fun <Data> TestSuite.withData(
     data: Sequence<Data>,
     testConfig: TestConfig = TestConfig
-) = ConfiguredDataTestScope<Data>(this, { "$it" }, data.asIterable(), testConfig)
+) = ConfiguredDataTestScope<Data>(this, data.map { it.toString() to it }, testConfig)
 
 
 /**
@@ -217,7 +178,7 @@ fun <Data> TestSuite.withDataSuites(
     nameFn: (Data) -> String,
     vararg arguments: Data,
     testConfig: TestConfig = TestConfig
-): ConfiguredDataTestScope<Data> = withData(nameFn = nameFn, data = arguments.asIterable(), testConfig = testConfig)
+) = ConfiguredDataTestScope<Data>(this, arguments.asSequence().map { nameFn(it) to it }, testConfig)
 
 
 /**
@@ -232,7 +193,7 @@ fun <Data> TestSuite.withData(
     nameFn: (Data) -> String,
     data: Iterable<Data>,
     testConfig: TestConfig = TestConfig,
-) = ConfiguredDataTestScope<Data>(this, nameFn, data, testConfig)
+) = ConfiguredDataTestScope<Data>(this, data.asSequence().map { nameFn(it) to it }, testConfig)
 
 
 /**
@@ -247,7 +208,7 @@ fun <Data> TestSuite.withData(
     nameFn: (Data) -> String,
     data: Sequence<Data>,
     testConfig: TestConfig = TestConfig,
-) = ConfiguredDataTestScope<Data>(this, nameFn, data.asIterable(), testConfig)
+) = ConfiguredDataTestScope<Data>(this, data.map { nameFn(it) to it }, testConfig)
 
 /**
  * Creates a test suite for each provided data parameter.
@@ -262,14 +223,7 @@ fun <Data> TestSuite.withDataSuites(
     vararg parameters: Data,
     testConfig: TestConfig = TestConfig,
     action: TestSuite.(Data) -> Unit
-) {
-    for (d in parameters) {
-        val name = d.toString().escaped
-        testSuite(name= name.truncated(), displayName = name, testConfig = testConfig, content = fun TestSuite.() {
-            action(d)
-        })
-    }
-}
+) = withDataSuitesInternal(parameters.map { it.toString() to it }.asSequence(), testConfig, action)
 
 /**
  * Creates a test suite for each item in the provided iterable data.
@@ -282,14 +236,7 @@ fun <Data> TestSuite.withDataSuites(
     data: Iterable<Data>,
     testConfig: TestConfig = TestConfig,
     action: TestSuite.(Data) -> Unit
-) {
-    for (d in data) {
-        val name = d.toString().escaped
-        testSuite(name= name.truncated(), displayName = name, testConfig = testConfig, content = fun TestSuite.() {
-            action(d)
-        })
-    }
-}
+) = withDataSuitesInternal(data.map { it.toString() to it }.asSequence(), testConfig, action)
 
 /**
  * Creates a test suite for each entry in the provided map.
@@ -303,14 +250,7 @@ fun <Data> TestSuite.withDataSuites(
     map: Map<String, Data>,
     testConfig: TestConfig = TestConfig,
     action: TestSuite.(Data) -> Unit
-) {
-    for (d in map) {
-        val name = d.key.escaped
-        testSuite(name= name.truncated(), displayName = name, testConfig = testConfig, content = fun TestSuite.() {
-            action(d.value)
-        })
-    }
-}
+) = withDataSuitesInternal(map.map { (k, v) -> k to v }.asSequence(), testConfig, action)
 
 /**
  * Creates a test suite for each item in the provided sequence.
@@ -323,14 +263,7 @@ fun <Data> TestSuite.withDataSuites(
     data: Sequence<Data>,
     testConfig: TestConfig = TestConfig,
     action: TestSuite.(Data) -> Unit
-) {
-    for (d in data) {
-        val name = d.toString().escaped
-        testSuite(name= name.truncated(), displayName = name, testConfig = testConfig, content = fun TestSuite.() {
-            action(d)
-        })
-    }
-}
+) = withDataSuitesInternal(data.map { it.toString() to it }, testConfig, action)
 
 /**
  * Creates a test suite for each provided data parameter.
@@ -348,7 +281,7 @@ fun <Data> TestSuite.withDataSuites(
     vararg arguments: Data,
     testConfig: TestConfig = TestConfig,
     action: TestSuite.(Data) -> Unit
-) = withDataSuites(nameFn, arguments.asIterable(), testConfig, action)
+) = withDataSuitesInternal(arguments.map { nameFn(it) to it }.asSequence(), testConfig, action)
 
 /**
  * Creates a test suite for each item in the provided iterable data.
@@ -364,14 +297,7 @@ fun <Data> TestSuite.withDataSuites(
     data: Iterable<Data>,
     testConfig: TestConfig = TestConfig,
     action: TestSuite.(Data) -> Unit
-) {
-    for (d in data) {
-        val name = nameFn(d).escaped
-        testSuite(name= name.truncated(), displayName = name, testConfig = testConfig, content = fun TestSuite.() {
-            action(d)
-        })
-    }
-}
+) = withDataSuitesInternal(data.map { nameFn(it) to it }.asSequence(), testConfig, action)
 
 /**
  * Creates a test suite for each item in the provided sequence.
@@ -387,11 +313,49 @@ fun <Data> TestSuite.withDataSuites(
     data: Sequence<Data>,
     testConfig: TestConfig = TestConfig,
     action: TestSuite.(Data) -> Unit
+) = withDataSuitesInternal(data.map { nameFn(it) to it }, testConfig, action)
+
+/**
+ * Creates a test suite for each item in the provided sequence.
+ * Uses provided function to generate suite names.
+ *
+ * @param data The sequence of test data
+ * @param testConfig Optional test configuration
+ * @param action Test suite configuration action for each data item
+ */
+@PublishedApi
+internal fun <Data> TestSuite.withDataSuitesInternal(
+    data: Sequence<Pair<String, Data>>,
+    testConfig: TestConfig = TestConfig,
+    action: TestSuite.(Data) -> Unit
 ) {
     for (d in data) {
-        val name = nameFn(d).escaped
-        testSuite(name= name.truncated(), displayName = name, testConfig = testConfig, content = fun TestSuite.() {
-            action(d)
-        })
+        val name = d.first.escaped
+        testSuite(
+            name = name.truncated(),
+            displayName = name.escaped,
+            testConfig = testConfig,
+            content = fun TestSuite.() {
+                action(d.second)
+            })
+    }
+}
+
+
+/**
+ * Executes a test for each entry in the provided map.
+ * Uses map keys as test names.
+ *
+ * @param map Map of test names to test data
+ * @param testConfig Optional test configuration
+ * @param action Test action to execute for each map value
+ */
+internal fun <Data> TestSuite.withDataInternal(
+    map: Sequence<Pair<String, Data>>,
+    testConfig: TestConfig = TestConfig,
+    action: suspend (Data) -> Unit
+) {
+    for (d in map) {
+        test(name = d.first.truncated(), displayName = d.first.escaped, testConfig = testConfig) { action(d.second) }
     }
 }
