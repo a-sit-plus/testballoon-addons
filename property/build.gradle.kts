@@ -1,3 +1,5 @@
+import at.asitplus.gradle.coroutines
+import at.asitplus.gradle.kmmresult
 import at.asitplus.gradle.kotest
 import at.asitplus.gradle.publishVersionCatalog
 import at.asitplus.gradle.setupDokka
@@ -71,6 +73,7 @@ kotlin {
             dependencies {
                 implementation(project(":commons"))
                 api(kotest("property"))
+                api("at.asitplus:kmmresult:1.9.3")
                 api("de.infix.testBalloon:testBalloon-framework-core:${libs.versions.testballoon.get()}")
             }
         }

@@ -1,3 +1,4 @@
+import at.asitplus.gradle.kmmresult
 import at.asitplus.gradle.publishVersionCatalog
 import at.asitplus.gradle.setupDokka
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl

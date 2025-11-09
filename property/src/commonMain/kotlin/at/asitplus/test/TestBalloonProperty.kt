@@ -1,9 +1,13 @@
 package at.asitplus.testballoon
 
+import at.asitplus.catchingUnwrapped
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestExecutionScope
 import de.infix.testBalloon.framework.core.TestSuite
 import io.kotest.property.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlin.reflect.KClass
 
 /**
  * Executes property-based tests with generated values.
@@ -12,10 +16,10 @@ import io.kotest.property.*
  * @param testConfig Optional test configuration
  * @param content Test execution block receiving generated values
  */
-fun <Value> TestSuite.checkAll(
-    genA: Gen<Value>,
+inline fun <reified Value : Any> TestSuite.checkAll(
+    genA: Gen<Value?>,
     testConfig: TestConfig = TestConfig,
-    content: suspend context(PropertyContext) TestExecutionScope.(Value) -> Unit
+    crossinline content: suspend context(PropertyContext) TestExecutionScope.(Value?) -> Unit
 ) = checkAll(PropertyTesting.defaultIterationCount, genA, testConfig, content)
 
 /**
@@ -26,24 +30,58 @@ fun <Value> TestSuite.checkAll(
  * @param testConfig Optional test configuration
  * @param content Test execution block receiving generated values
  */
-fun <Value> TestSuite.checkAll(
+inline fun <reified Value : Any> TestSuite.checkAll(
     iterations: Int,
-    genA: Gen<Value>,
+    genA: Gen<Value?>,
     testConfig: TestConfig = TestConfig,
-    content: suspend context(PropertyContext) TestExecutionScope.(Value) -> Unit
+    crossinline content: suspend context(PropertyContext) TestExecutionScope.(Value?) -> Unit
+) = checkAll(Value::class, iterations, genA, testConfig) { content(it) }
+
+/**
+ * Executes property-based tests with generated values.
+ *
+ * @param iterations Number of test iterations to perform
+ * @param genA Generator for test values
+ * @param testConfig Optional test configuration
+ * @param content Test execution block receiving generated values
+ */
+@PublishedApi
+internal fun <Value : Any> TestSuite.checkAll(
+    clazz: KClass<Value>,
+    iterations: Int,
+    genA: Gen<Value?>,
+    testConfig: TestConfig = TestConfig,
+    content: suspend context(PropertyContext) TestExecutionScope.(Value?) -> Unit
 ) {
-    var count = 0
-    checkAllSeries(iterations, genA) { value, context ->
-        count++
-        val valueStr = if(value is Iterable<*>) value.joinToString() else value.toString()
-        val name = "$count of $iterations ${if (value == null) "null" else value::class.simpleName}: $valueStr"
-        this@checkAll.test(name = name.truncated(), displayName = name.escaped, testConfig = testConfig) {
+
+    val testName = "$iterations ${clazz.simpleName ?: "<Anonymous>"}s"
+    this@checkAll.test(name = testName.truncated(), displayName = testName.escaped, testConfig = testConfig) {
+        val mutex = Mutex()
+        val errors = mutableListOf<Throwable>()
+        checkAllSeries(iterations, genA) { iter, value, context ->
             with(context) {
-                content(value)
+                val valueStr = if (value is Iterable<*>) value.joinToString() else value.toString()
+                val name = "$iter of $iterations ${if (value == null) "null" else value::class.simpleName}: $valueStr"
+                catchingUnwrapped {
+                    content(value)
+                }.onFailure {
+                    mutex.withLock {
+                        when (it) {
+                            is AssertionError -> errors += AssertionError(name, it)
+                            else -> errors += RuntimeException(name, it)
+                        }
+                    }
+                }
             }
+        }
+        if (errors.isNotEmpty()) {
+            throw (if (errors.find { it is RuntimeException } != null) AssertionError(testName) else RuntimeException(
+                testName
+            )).also { errors.forEach(it::addSuppressed) }
         }
     }
 }
+
 
 data class ConfiguredPropertyScope<Value>(
     val testSuite: TestSuite,
@@ -88,11 +126,11 @@ fun <Value> TestSuite.checkAllSuites(
 ) {
 
     var count = 0
-    checkAllSeries(iterations, genA) { value, context ->
+    checkAllSeries(iterations, genA) { iter, value, context ->
         count++
-        val valueStr = if(value is Iterable<*>) value.joinToString() else value.toString()
+        val valueStr = if (value is Iterable<*>) value.joinToString() else value.toString()
         val prefix = if (value == null) "null" else value::class.simpleName
-        val name= "$count-${iterations}_${prefix}_${valueStr}"
+        val name = "$count-${iterations}_${prefix}_${valueStr}"
         this@checkAllSuites.testSuite(
             name = name.truncated(),
             displayName = name.escaped,
@@ -137,7 +175,11 @@ fun <A> TestSuite.checkAllSuites(
  * @param genA Generator for test values
  * @param series Block to execute for each generated value
  */
-private inline fun <Value> checkAllSeries(iterations: Int, genA: Gen<Value>, series: (Value, PropertyContext) -> Unit) {
+private inline fun <Value> checkAllSeries(
+    iterations: Int,
+    genA: Gen<Value>,
+    series: (Int, Value, PropertyContext) -> Unit
+) {
     val constraints = Constraints.iterations(iterations)
 
     @Suppress("OPT_IN_USAGE")
@@ -145,9 +187,9 @@ private inline fun <Value> checkAllSeries(iterations: Int, genA: Gen<Value>, ser
     val context = PropertyContext(config)
     genA.generate(RandomSource.default(), config.edgeConfig)
         .takeWhile { constraints.evaluate(context) }
-        .forEach { sample ->
+        .forEachIndexed { iter, sample ->
             context.markEvaluation()
-            series(sample.value, context)
+            series(iter, sample.value, context)
             context.markSuccess()
         }
 }
