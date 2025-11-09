@@ -1,5 +1,7 @@
 package at.asitplus.testballoon
 
+import at.asitplus.testballoon.escaped
+import at.asitplus.testballoon.truncated
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestExecutionScope
 import de.infix.testBalloon.framework.core.TestSuite

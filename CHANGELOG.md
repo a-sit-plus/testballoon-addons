@@ -2,6 +2,9 @@
 
 ## 0.x
 
+### 0.2.0
+* Optionally compacted data driven tests and property tests
+
 ### 0.1.3
 * Work around test name issues
 
