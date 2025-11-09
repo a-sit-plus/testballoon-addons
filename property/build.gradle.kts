@@ -1,3 +1,5 @@
+import at.asitplus.gradle.coroutines
+import at.asitplus.gradle.kmmresult
 import at.asitplus.gradle.kotest
 import at.asitplus.gradle.publishVersionCatalog
 import at.asitplus.gradle.setupDokka
@@ -77,6 +79,12 @@ kotlin {
         commonTest.dependencies {
             implementation("de.infix.testBalloon:testBalloon-integration-kotest-assertions:${libs.versions.testballoon.get()}")
         }
+    }
+}
+
+afterEvaluate {
+    tasks.withType<Test>().configureEach {
+        maxHeapSize = "10G"
     }
 }
 

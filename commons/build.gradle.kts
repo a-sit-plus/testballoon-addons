@@ -1,3 +1,4 @@
+import at.asitplus.gradle.kmmresult
 import at.asitplus.gradle.publishVersionCatalog
 import at.asitplus.gradle.setupDokka
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -68,6 +69,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
+                api("at.asitplus:kmmresult:1.9.3")
                 api("de.infix.testBalloon:testBalloon-framework-core:${libs.versions.testballoon.get()}")
             }
         }

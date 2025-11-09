@@ -31,8 +31,9 @@ surface, we can get the best of both worlds.
 > On Android (JVM, not native), forward slashed in test names and display names are **always** replaced
 > with the `⧸` character because the android test runner cannot deal with slashes in test names. This can bite you whan
 > using base64-encoded data inside test names.
-> 
-> In addition, test names are truncated to 64 characters and ellipsised in the middle (which does not affect display names).
+>
+> In addition, test names are truncated to 64 characters and ellipsised in the middle (which does not affect display
+> names).
 
 ## Modules
 
@@ -116,6 +117,11 @@ val aFreeSpecSuite by testSuite {
 | Maven Coordinates | `at.asitplus.testballoon:datatest:$version` |
 |-------------------|---------------------------------------------|
 
+> [!NOTE]  
+> Deep nesting will produce a large number of tests, making the heap explode. Either manually compact tests as in the
+> second example below (works for both `withData` and `withDataSuites`), or set the global
+> `DataTest.compactByDefault = true` to automatically compact all data-driven tests.
+
 TestBalloon makes it ridiculously easy to roll your own data-driven testing wrapper with just a couple of lines of code.
 So we did, by replicating Kotest's data-driven testing API:
 
@@ -134,7 +140,8 @@ val aDataDrivenSuite by testSuite {
     //Alternative syntax for withDataSuites
     // -> NOTE the minus ↙↙↙
     withData(1, 2, 3, 4) - { number ->
-        withData("one", "two", "three", "four") { word ->
+        // Will create only a single test, but the error will contain all failed inputs
+        withData("one", "two", "three", "four", compact = true) { word ->
             //your test logic being run 16 times
         }
     }
@@ -151,6 +158,11 @@ val aDataDrivenSuite by testSuite {
 | Maven Coordinates | `at.asitplus.testballoon:property:$version` |
 |-------------------|---------------------------------------------|
 
+> [!NOTE]  
+> Deep nesting will produce a large number of tests, making the heap explode. Either manually compact tests as in the
+> second example below (works for both `checkAll` and `checkAllSuites`), or set the global
+> `PropertyTest.compactByDefault = true` to automatically compact all data-driven tests.
+
 Although it comes with some warts, `kotest-property` is still extremely helpful to generate a large corpus of test data,
 especially as it covers many edge cases out of the box. Again, since TestBalloon has been specifically crafted to be
 flexible and extensible, we did just that:
@@ -166,7 +178,8 @@ import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.uLong
 
 val propertySuite by testSuite {
-    checkAllSuites(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte())) { byteArray ->
+    // DON'T Generate a suite for each item. Instead: aggregate >->-->------------↘↘↘↘↘↘↘↘↘↘↘↘
+    checkAllSuites(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte()), compact = true) { byteArray ->
         checkAll(iterations = 10, Arb.uLong()) { number ->
             //test with byte arrays and number for fun and profit
         }
