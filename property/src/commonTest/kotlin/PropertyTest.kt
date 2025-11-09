@@ -9,6 +9,7 @@ import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.uLong
 
 val propertySuite by testSuite {
+
     checkAllSuites(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte())) { byteArray ->
         checkAll(iterations = 10, Arb.uLong()) { number ->
             byteArray shouldBe byteArray

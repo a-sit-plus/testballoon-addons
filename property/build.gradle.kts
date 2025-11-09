@@ -74,12 +74,19 @@ kotlin {
                 implementation(project(":commons"))
                 api(kotest("property"))
                 api("at.asitplus:kmmresult:1.9.3")
+                implementation("org.jetbrains.kotlin:kotlin-test")
                 api("de.infix.testBalloon:testBalloon-framework-core:${libs.versions.testballoon.get()}")
             }
         }
         commonTest.dependencies {
             implementation("de.infix.testBalloon:testBalloon-integration-kotest-assertions:${libs.versions.testballoon.get()}")
         }
+    }
+}
+
+afterEvaluate {
+    tasks.withType<Test>().configureEach {
+        maxHeapSize = "10G"
     }
 }
 

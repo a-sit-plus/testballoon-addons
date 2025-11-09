@@ -4,10 +4,12 @@ import at.asitplus.catchingUnwrapped
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestExecutionScope
 import de.infix.testBalloon.framework.core.TestSuite
+import io.kotest.assertions.AssertionErrorBuilder
 import io.kotest.property.*
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.reflect.KClass
+import kotlin.test.fail
 
 /**
  * Executes property-based tests with generated values.
@@ -46,12 +48,12 @@ inline fun <reified Value : Any> TestSuite.checkAll(
  * @param content Test execution block receiving generated values
  */
 @PublishedApi
-internal fun <Value : Any> TestSuite.checkAll(
+internal inline fun <Value : Any> TestSuite.checkAll(
     clazz: KClass<Value>,
     iterations: Int,
     genA: Gen<Value?>,
     testConfig: TestConfig = TestConfig,
-    content: suspend context(PropertyContext) TestExecutionScope.(Value?) -> Unit
+    crossinline content: suspend context(PropertyContext) TestExecutionScope.(Value?) -> Unit
 ) {
 
     val testName = "$iterations ${clazz.simpleName ?: "<Anonymous>"}s"
@@ -67,15 +69,15 @@ internal fun <Value : Any> TestSuite.checkAll(
                 }.onFailure {
                     mutex.withLock {
                         when (it) {
-                            is AssertionError -> errors += AssertionError(name, it)
-                            else -> errors += RuntimeException(name, it)
+                            is AssertionError -> errors += AssertionErrorBuilder("${it.message}", it.cause, null, null).build()
+                            else -> errors += RuntimeException(name+": ${it.message}", it)
                         }
                     }
                 }
             }
         }
         if (errors.isNotEmpty()) {
-            throw (if (errors.find { it is RuntimeException } != null) AssertionError(testName) else RuntimeException(
+            throw (if (errors.count { it is AssertionError } == errors.size) AssertionErrorBuilder(testName, null, null, null).build() else RuntimeException(
                 testName
             )).also { errors.forEach(it::addSuppressed) }
         }
@@ -175,7 +177,8 @@ fun <A> TestSuite.checkAllSuites(
  * @param genA Generator for test values
  * @param series Block to execute for each generated value
  */
-private inline fun <Value> checkAllSeries(
+@PublishedApi
+internal inline fun <Value> checkAllSeries(
     iterations: Int,
     genA: Gen<Value>,
     series: (Int, Value, PropertyContext) -> Unit
