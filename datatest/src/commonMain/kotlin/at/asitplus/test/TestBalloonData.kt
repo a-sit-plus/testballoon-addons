@@ -132,7 +132,7 @@ inline fun <reified Data> TestSuite.withData(
  */
 inline fun <reified Data> TestSuite.withData(
     crossinline nameFn: (Data) -> String, data: Sequence<Data>,
-    compact: Boolean,
+    compact: Boolean = DataTest.compactByDefault,
     testConfig: TestConfig = TestConfig,
     crossinline action: suspend (Data) -> Unit
 ) = withDataInternal(data.map { nameFn(it) to it }, testConfig, compact, action)
