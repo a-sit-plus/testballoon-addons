@@ -213,25 +213,10 @@ Sometimes, though, you really want fresh test data for every test&mdash;in effec
 fixture
 for every test**.
 
-Look no further , **if** you have [context parameters](https://kotlinlang.org/docs/context-parameters.html) enabled for
-your codebase:
-
-<details>
-<summary>Setting up context parameters</summary>
+Look no further:
 
 ```kotlin
-// build.gradle.kts
-kotlin {
-    compilerOptions {
-        freeCompilerArgs.add("-Xcontext-parameters")
-    }
-}
-```
-
-</details>
-
-```kotlin
-import at.asitplus.testballoon.generatingFixture //<- Look ma, only a single import!
+import at.asitplus.testballoon.withFixtureGenerator //<- Look ma, only a single import!
 import de.infix.testBalloon.framework.core.testSuite
 import kotlin.random.Random
 import kotlinx.coroutines.delay //just to get some suspending demo generator
@@ -241,7 +226,7 @@ val aGeneratingSuite by testSuite {
     //seed before the generator function, not inside!
     val byteRNG = Random(42);
     //We want to test with fresh randomness, so we generate a fresh fixture for each test
-    generatingFixture { byteRNG.nextBytes(32) } - {
+    withFixtureGenerator { byteRNG.nextBytes(32) } - {
 
         repeat(5) {
             test("Generated test with fresh randomness") { freshFixture ->
@@ -261,8 +246,8 @@ val aGeneratingSuite by testSuite {
     //seed the RNG for reproducible tests
     val random = Random(42)
 
-    //reference function to be called for each test inside generatingFixtureFor
-    generatingFixture(random::nextFloat) - {
+    //reference function to be called for each test inside withFixtureGenerator
+    withFixtureGenerator(random::nextFloat) - {
         repeat(10) {
             test("Generated test with random float") {
                 //test something floaty!
@@ -276,7 +261,7 @@ val aGeneratingSuite by testSuite {
 
 
     //always-the-same fixtures also work, of course
-    generatingFixture {
+    withFixtureGenerator {
         object {
             var a: Int = 1
             val b: Int = 2
@@ -295,7 +280,7 @@ val aGeneratingSuite by testSuite {
 
     //Let's test some nasty bug that shows itself only sometimes functionality
     val ageRNG = Random(seed = 26)
-    generatingFixture {
+    withFixtureGenerator {
         class ABuggyImplementation(val age: Int) {
             fun restrictedAction(): Boolean =
                 if (age < 18) false
@@ -324,7 +309,7 @@ val aGeneratingSuite by testSuite {
 |---------------------------------------------------------------------------------------|--------------------------------------------------------|
 
 ```kotlin
-import at.asitplus.testballoon.generatingFixture //   <- Look ma, only regular generatingFixture import!
+import at.asitplus.testballoon.withFixtureGenerator //   <- Look ma, only regular generatingFixture import!
 import at.asitplus.testballoon.invoke //              <- Look ma, only regular freespec import!
 import at.asitplus.testballoon.minus  //              <- Look ma, only regular freespec import!
 import de.infix.testBalloon.framework.core.testSuite
@@ -333,7 +318,7 @@ import kotlin.random.Random
 val aGeneratingFreeSpecSuite by testSuite {
 
     //any lambda with any return type is a fixture generator. Type is reified.
-    generatingFixture { Random.nextBytes(32) } - {
+    withFixtureGenerator { Random.nextBytes(32) } - {
 
         "A Test with fresh randomness" { freshFixture ->
             //your test logic here
@@ -351,7 +336,7 @@ val aGeneratingFreeSpecSuite by testSuite {
         }
 
         "And we can even nest!" - {
-            generatingFixture { Random.nextBytes(16) } - {
+            withFixtureGenerator { Random.nextBytes(16) } - {
                 repeat(10) {
                     "pure, high-octane magic going on" {
                         //Woohoo! more randomness each run

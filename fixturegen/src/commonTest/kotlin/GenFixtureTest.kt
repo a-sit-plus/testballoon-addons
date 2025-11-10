@@ -1,4 +1,4 @@
-import at.asitplus.testballoon.generatingFixture
+import at.asitplus.testballoon.withFixtureGenerator
 import de.infix.testBalloon.framework.core.testSuite
 import io.kotest.matchers.floats.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
@@ -11,8 +11,8 @@ val firstGeneratingSuite by testSuite {
     //seed the RNG for reproducible tests
     val random = Random(42)
 
-    //reference function to be called for each test inside generatingFixtureFor
-    generatingFixture(random::nextFloat) - {
+    //reference function to be called for each test inside withFixtureGenerator
+    withFixtureGenerator(random::nextFloat) - {
         repeat(10) {
             test("Generated test with random float") {
                 it shouldBeGreaterThan 0.5f /*~50% success rate*/
@@ -24,7 +24,7 @@ val firstGeneratingSuite by testSuite {
         }
     }
     //even suspending generators work!
-    generatingFixture(suspend { delay(100); Random.nextFloat() }) - {
+    withFixtureGenerator(suspend { delay(100); Random.nextFloat() }) - {
 
         repeat(10) {
             test("Generated from suspending generator") {
@@ -38,7 +38,7 @@ val firstGeneratingSuite by testSuite {
     //seed before the generator function, not inside!
     val byteRNG = Random(42);
     //We want to test with fresh randomness, so we generate a fresh fixture for each test
-    generatingFixture { byteRNG.nextBytes(32) } - {
+    withFixtureGenerator { byteRNG.nextBytes(32) } - {
 
         repeat(5) {
             test("Generated test with fresh randomness") { freshFixture ->
@@ -56,7 +56,7 @@ val firstGeneratingSuite by testSuite {
 
 
     //always-the-same fixtures also work, of course
-    generatingFixture {
+    withFixtureGenerator {
         object {
             var a: Int = 1
             val b: Int = 2
@@ -75,7 +75,7 @@ val firstGeneratingSuite by testSuite {
 
     //Let's test some nasty bug that shows itself only sometimes functionality
     val ageRNG = Random(seed = 26)
-    generatingFixture {
+    withFixtureGenerator {
         class ABuggyImplementation(val age: Int) {
             fun restrictedAction(): Boolean =
                 if (age < 18) false
@@ -102,7 +102,7 @@ val aGeneratingSuite by testSuite {
     //seed before the generator function, not inside!
     val byteRNG = Random(42);
     //We want to test with fresh randomness, so we generate a fresh fixture for each test
-    generatingFixture { byteRNG.nextBytes(32) } - {
+    withFixtureGenerator { byteRNG.nextBytes(32) } - {
 
         repeat(5) {
             test("Generated test with fresh randomness") { freshFixture ->
@@ -122,8 +122,8 @@ val aGeneratingSuite by testSuite {
     //seed the RNG for reproducible tests
     val random = Random(42)
 
-    //reference function to be called for each test inside generatingFixtureFor
-    generatingFixture(random::nextFloat) - {
+    //reference function to be called for each test inside withFixtureGenerator
+    withFixtureGenerator(random::nextFloat) - {
         repeat(10) {
             test("Generated test with random float") {
                 //test something floaty!
@@ -137,7 +137,7 @@ val aGeneratingSuite by testSuite {
 
 
     //always-the-same fixtures also work, of course
-    generatingFixture {
+    withFixtureGenerator {
         object {
             var a: Int = 1
             val b: Int = 2
@@ -156,7 +156,7 @@ val aGeneratingSuite by testSuite {
 
     //Let's test some nasty bug that shows itself only sometimes functionality
     val ageRNG = Random(seed = 26)
-    generatingFixture {
+    withFixtureGenerator {
         class ABuggyImplementation(val age: Int) {
             fun restrictedAction(): Boolean =
                 if (age < 18) false

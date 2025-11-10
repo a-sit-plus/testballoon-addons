@@ -59,7 +59,7 @@ value class GeneratingSuspendFixtureScopHolder<T>(val scope: GeneratingFixtureSc
  * Use as follows:
  * ```kotlin
  * val aGeneratingSuite by testSuite {
- *     generatingFixture { Random.nextBytes(32) } - {
+ *     withFixtureGenerator { Random.nextBytes(32) } - {
  *
  *         test("A Test with fresh Randomness") { freshFixture ->
  *             //your test logic here
@@ -77,7 +77,7 @@ value class GeneratingSuspendFixtureScopHolder<T>(val scope: GeneratingFixtureSc
  * @param T The type of fixture object being managed
  * @param generator The generator function invoked to provide fresh state fo each test
  */
-inline fun <reified T> TestSuite.generatingFixture(noinline generator: (() -> T)) = GeneratingFixtureScopHolder(
+inline fun <reified T> TestSuite.withFixtureGenerator(noinline generator: (() -> T)) = GeneratingFixtureScopHolder(
     GeneratingFixtureScope(this, generator)
 )
 
@@ -87,7 +87,7 @@ inline fun <reified T> TestSuite.generatingFixture(noinline generator: (() -> T)
  * Use as follows:
  * ```kotlin
  * val aGeneratingSuite by testSuite {
- *     generatingFixture suspend { Random.nextBytes(32) } - {
+ *     withFixtureGenerator(suspend { Random.nextBytes(32) }) - {
  *
  *         test("A Test with fresh Randomness") { freshFixture ->
  *             //your test logic here
@@ -107,7 +107,7 @@ inline fun <reified T> TestSuite.generatingFixture(noinline generator: (() -> T)
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-inline fun <reified T> TestSuite.generatingFixture(noinline generator: suspend (() -> T)) =
+inline fun <reified T> TestSuite.withFixtureGenerator(noinline generator: suspend (() -> T)) =
     GeneratingSuspendFixtureScopHolder(GeneratingFixtureScope(this, generator))
 
 

@@ -1,4 +1,4 @@
-import at.asitplus.testballoon.generatingFixture
+import at.asitplus.testballoon.withFixtureGenerator
 import at.asitplus.testballoon.invoke
 import at.asitplus.testballoon.minus
 import de.infix.testBalloon.framework.core.testSuite
@@ -6,7 +6,7 @@ import io.kotest.matchers.string.shouldContain
 import kotlin.random.Random
 
 val aGeneratingFreeSpecSuite by testSuite {
-    generatingFixture { Random.nextBytes(32) } - {
+    withFixtureGenerator { Random.nextBytes(32) } - {
 
         "A Test with fresh randomness" { freshFixture ->
             freshFixture.toHexString() shouldContain "16"
@@ -24,7 +24,7 @@ val aGeneratingFreeSpecSuite by testSuite {
         }
 
         "And we can even nest!" - {
-            generatingFixture { Random.nextBytes(16) } - {
+            withFixtureGenerator { Random.nextBytes(16) } - {
                 repeat(10) {
                     "pure, high-octane magic going on" {
                         it.toHexString() shouldContain "42"
