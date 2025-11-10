@@ -2,6 +2,11 @@
 
 ## 0.x
 
+### 0.3.0
+* Revised fixture generation
+  * Use explicit function instead of bare lambdas; no more context params needed
+  * Deprecate old bare lambdas
+
 ### 0.2.0
 * Optionally compacted data driven tests and property tests
 
