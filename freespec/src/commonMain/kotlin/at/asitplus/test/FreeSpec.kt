@@ -1,9 +1,5 @@
 package at.asitplus.testballoon
 
-import at.asitplus.testballoon.disableByName
-import at.asitplus.testballoon.escaped
-import at.asitplus.testballoon.freeSpecName
-import at.asitplus.testballoon.truncated
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestExecutionScope
 import de.infix.testBalloon.framework.core.TestSuite
@@ -24,7 +20,11 @@ operator fun String.invoke(
     testConfig: TestConfig = TestConfig,
     nested: suspend TestExecutionScope.() -> Unit
 ) {
-    suite.test(freeSpecName(this).truncated(), displayName = displayName.escaped, testConfig = testConfig.disableByName(this)) { nested() }
+    suite.test(
+        freeSpecName(this).truncated(),
+        displayName = displayName.escaped,
+        testConfig = testConfig.disableByName(this)
+    ) { nested() }
 }
 
 
@@ -78,8 +78,12 @@ context(suite: TestSuite)
  * @param suiteBody The body of the test suite.
  */
 infix operator fun String.minus(suiteBody: TestSuite.() -> Unit) {
-    suite.testSuite(name = freeSpecName(this).truncated(), displayName = freeSpecName(this).escaped, testConfig = TestConfig.disableByName(this), content = fun TestSuite.() {
-        suiteBody()
-    })
+    suite.testSuite(
+        name = freeSpecName(this).truncated(),
+        displayName = freeSpecName(this).escaped,
+        testConfig = TestConfig.disableByName(this),
+        content = fun TestSuite.() {
+            suiteBody()
+        })
 }
 

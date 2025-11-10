@@ -231,29 +231,17 @@ kotlin {
 </details>
 
 ```kotlin
-import at.asitplus.testballoon.generatingFixtureFor //<- Look ma, only a single import!
+import at.asitplus.testballoon.generatingFixture //<- Look ma, only a single import!
 import de.infix.testBalloon.framework.core.testSuite
 import kotlin.random.Random
+import kotlinx.coroutines.delay //just to get some suspending demo generator
 
 val aGeneratingSuite by testSuite {
-
-    //seed the RNG for reproducible tests
-    val random = Random(42)
-
-    //reference function to be called for each test inside generatingFixtureFor
-    random::nextFloat.generatingFixtureFor {
-        repeat(10) {
-            test("Generated test with random float") {
-                //test something floaty!
-            }
-        }
-    }
-
-
+    
     //seed before the generator function, not inside!
     val byteRNG = Random(42);
     //We want to test with fresh randomness, so we generate a fresh fixture for each test
-    { byteRNG.nextBytes(32) }.generatingFixtureFor {
+    generatingFixture { byteRNG.nextBytes(32) } - {
 
         repeat(5) {
             test("Generated test with fresh randomness") { freshFixture ->
@@ -267,16 +255,33 @@ val aGeneratingSuite by testSuite {
                 //do something with `it`, it contains fresh randomness!
             }
         }
-    }; //<- semicolon needed, because what follows is a bare lambda
+    }
+
+
+    //seed the RNG for reproducible tests
+    val random = Random(42)
+
+    //reference function to be called for each test inside generatingFixtureFor
+    generatingFixture(random::nextFloat) - {
+        repeat(10) {
+            test("Generated test with random float") {
+                //test something floaty!
+            }
+        }
+        test("And some other test that des not conform to the shema from the loop") {
+            //test something different, with a fresh float
+        }
+    }
+
 
 
     //always-the-same fixtures also work, of course
-    {
+    generatingFixture {
         object {
             var a: Int = 1
             val b: Int = 2
         }
-    }.generatingFixtureFor {
+    } - {
         test("one") {
             it.a++ //and we can even modify them in one test
             println("a=${it.a}, b=${it.b}") //a=2, b=2
@@ -289,8 +294,8 @@ val aGeneratingSuite by testSuite {
 
 
     //Let's test some nasty bug that shows itself only sometimes functionality
-    val ageRNG = Random(seed = 26); //<- semicolon needed, because what follows is a bare lambda
-    {
+    val ageRNG = Random(seed = 26)
+    generatingFixture {
         class ABuggyImplementation(val age: Int) {
             fun restrictedAction(): Boolean =
                 if (age < 18) false
@@ -300,7 +305,7 @@ val aGeneratingSuite by testSuite {
 
         //create new object for each test
         ABuggyImplementation(ageRNG.nextInt(0, 99))
-    }.generatingFixtureFor {
+    } - {
         repeat(1000) {
             test("Generated test accessing restricted resources") {
                 //test `restrictedAction` across a wide age range 
@@ -319,7 +324,7 @@ val aGeneratingSuite by testSuite {
 |---------------------------------------------------------------------------------------|--------------------------------------------------------|
 
 ```kotlin
-import at.asitplus.testballoon.generatingFixtureFor //<- Look ma, only regular generatingFixtureFor import!
+import at.asitplus.testballoon.generatingFixture //   <- Look ma, only regular generatingFixture import!
 import at.asitplus.testballoon.invoke //              <- Look ma, only regular freespec import!
 import at.asitplus.testballoon.minus  //              <- Look ma, only regular freespec import!
 import de.infix.testBalloon.framework.core.testSuite
@@ -328,7 +333,7 @@ import kotlin.random.Random
 val aGeneratingFreeSpecSuite by testSuite {
 
     //any lambda with any return type is a fixture generator. Type is reified.
-    { Random.nextBytes(32) }.generatingFixtureFor {
+    generatingFixture { Random.nextBytes(32) } - {
 
         "A Test with fresh randomness" { freshFixture ->
             //your test logic here
@@ -346,7 +351,7 @@ val aGeneratingFreeSpecSuite by testSuite {
         }
 
         "And we can even nest!" - {
-            { Random.nextBytes(16) }.generatingFixtureFor {
+            generatingFixture { Random.nextBytes(16) } - {
                 repeat(10) {
                     "pure, high-octane magic going on" {
                         //Woohoo! more randomness each run

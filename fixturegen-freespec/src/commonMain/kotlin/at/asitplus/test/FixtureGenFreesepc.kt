@@ -1,15 +1,11 @@
 package at.asitplus.testballoon
 
-import at.asitplus.testballoon.disableByName
-import at.asitplus.testballoon.escaped
-import at.asitplus.testballoon.freeSpecName
-import at.asitplus.testballoon.truncated
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestExecutionScope
 import de.infix.testBalloon.framework.core.TestSuite
 
 
-context(fixture: MutatingFixtureScope<T>)
+context(fixture: GeneratingFixtureScope<T>)
 /**
  * Creates a test case with the specified name and configuration.
  *
