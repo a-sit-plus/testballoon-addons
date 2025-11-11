@@ -10,10 +10,11 @@ fun TestConfig.disableByName(name: String) =
 
 fun freeSpecName(name: String) = if (name.startsWith("!")) name.substring(1) else name
 
-fun String.truncated(limit: Int = DEFAULT_TEST_NAME_MAX_LEN) = ellipsizeMiddle(limit).escaped
+fun String.truncated(limit: Int) = ellipsizeMiddle(limit).escaped
 
-private fun String.ellipsizeMiddle(maxLength: Int, ellipsis: String = "…"): String {
-    if (length <= maxLength || maxLength <= ellipsis.length + 1) return this
+private fun String.ellipsizeMiddle(maxLength: Int): String {
+    val ellipsis = "…"
+    if (maxLength !in 3..<length) return this
     val keep = maxLength - ellipsis.length
     val left = keep / 2
     val right = keep - left

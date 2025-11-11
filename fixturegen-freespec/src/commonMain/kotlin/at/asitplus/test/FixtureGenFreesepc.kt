@@ -2,7 +2,6 @@ package at.asitplus.testballoon
 
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestExecutionScope
-import de.infix.testBalloon.framework.core.TestSuite
 
 
 context(fixture: GeneratingFixtureScope<T>)
@@ -11,28 +10,22 @@ context(fixture: GeneratingFixtureScope<T>)
  *
  * @param testConfig Optional test configuration
  * @property displayName optional display name override
+ * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param nested The test body to execute.
  */
 inline operator fun <reified T> String.invoke(
     displayName: String = this,
+    maxLength: Int = FreeSpec.defaultMaxLength,
+    displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     crossinline nested: suspend TestExecutionScope.(T) -> Unit
 ) {
-    fixture.testSuite.apply {
-        this@invoke.freespec(displayName, fixture.testSuite, testConfig) {
-            nested(fixture.generator())
-        }
+    fixture.testSuite.test(
+        freeSpecName(this@invoke).truncated(maxLength).escaped,
+        displayName = displayName.truncated(displayNameMaxLength).escaped,
+        testConfig = testConfig.disableByName(this@invoke)
+    ) {
+        nested(fixture.generator())
     }
-}
-
-
-//need to replicate freespec leaf functionality here to disambiguate
-@PublishedApi
-internal fun String.freespec(
-    displayName: String = this,
-    suite: TestSuite,
-    testConfig: TestConfig = TestConfig,
-    nested: suspend TestExecutionScope.() -> Unit
-) {
-    suite.test(freeSpecName(this).truncated(), displayName = displayName.escaped, testConfig = testConfig.disableByName(this)) { nested() }
 }

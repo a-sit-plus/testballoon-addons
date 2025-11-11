@@ -23,7 +23,15 @@ object PropertyTest {
     /**
      * The default maximum length of test element names (not display name). Default ? 64
      */
-    var maxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
+    var defaultMaxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
+
+    @Deprecated("to be removed", replaceWith = ReplaceWith("defaultMaxLength"))
+    var maxLength = defaultMaxLength
+
+    /**
+     * The default maximum length of test element names (not display name). Default = 64
+     */
+    var defaultDisplayNameMaxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
 }
 
 
@@ -34,12 +42,14 @@ object PropertyTest {
  * @param testConfig Optional test configuration
  * @param compact whether to compact all generated child test elements into one
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param content Test execution block receiving generated values
  */
 inline fun <reified Value> TestSuite.checkAll(
     genA: Gen<Value>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.maxLength,
+    maxLength: Int = PropertyTest.defaultMaxLength,
+    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     crossinline content: suspend context(PropertyContext) TestExecutionScope.(Value) -> Unit
 ) = checkAll(
@@ -47,6 +57,7 @@ inline fun <reified Value> TestSuite.checkAll(
     genA,
     compact,
     maxLength,
+    displayNameMaxLength,
     testConfig,
     content
 )
@@ -59,13 +70,15 @@ inline fun <reified Value> TestSuite.checkAll(
  * @param testConfig Optional test configuration
  * @param compact whether to compact all generated child test elements into one
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param content Test execution block receiving generated values
  */
 inline fun <reified Value> TestSuite.checkAll(
     iterations: Int,
     genA: Gen<Value>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.maxLength,
+    maxLength: Int = PropertyTest.defaultMaxLength,
+    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     crossinline content: suspend context(PropertyContext) TestExecutionScope.(Value) -> Unit
 ) = checkAllInternal(
@@ -73,6 +86,7 @@ inline fun <reified Value> TestSuite.checkAll(
     genA,
     if (compact) Value::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength,
     testConfig,
 ) { content(it) }
 
@@ -83,6 +97,7 @@ inline fun <reified Value> TestSuite.checkAll(
  * @param genA Generator for test values
  * @param testConfig Optional test configuration
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param content Test execution block receiving generated values
  */
 @PublishedApi
@@ -91,6 +106,7 @@ internal fun <Value> TestSuite.checkAllInternal(
     genA: Gen<Value>,
     compactName: String?,
     maxLength: Int,
+    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     content: suspend context(PropertyContext) TestExecutionScope.(Value) -> Unit
 ) {
@@ -98,8 +114,8 @@ internal fun <Value> TestSuite.checkAllInternal(
     if (compactName != null) {
         val testName = "$iterations ${compactName}s"
         this@checkAllInternal.test(
-            name = testName.truncated(maxLength),
-            displayName = testName.escaped,
+            name = testName.truncated(maxLength).escaped,
+            displayName = testName.truncated(displayNameMaxLength).escaped,
             testConfig = testConfig
         ) {
             val mutex = Mutex()
@@ -134,8 +150,8 @@ internal fun <Value> TestSuite.checkAllInternal(
             val valueStr = if (value is Iterable<*>) value.joinToString() else value.toString()
             val name = "${iter + 1} of $iterations ${if (value == null) "null" else value::class.simpleName}: $valueStr"
             this@checkAllInternal.test(
-                name = name.truncated(maxLength),
-                displayName = name.escaped,
+                name = name.truncated(maxLength).escaped,
+                displayName = name.truncated(displayNameMaxLength).escaped,
                 testConfig = testConfig
             ) {
                 with(context) {
@@ -150,6 +166,7 @@ internal fun <Value> TestSuite.checkAllInternal(
 data class ConfiguredPropertyScope<Value>(
     private val compactName: String?,
     private val maxLength: Int,
+    private val displayNameMaxLength: Int,
     val testSuite: TestSuite,
     val iterations: Int,
     val genA: Gen<Value>,
@@ -159,7 +176,7 @@ data class ConfiguredPropertyScope<Value>(
      * @param content Test suite block receiving generated values
      */
     operator fun minus(content: context(PropertyContext) TestSuite.(Value) -> Unit) {
-        testSuite.checkAllSuitesInternal(iterations, genA, compactName, maxLength, testConfig, content)
+        testSuite.checkAllSuitesInternal(iterations, genA, compactName, maxLength, displayNameMaxLength,testConfig, content)
     }
 }
 
@@ -170,17 +187,20 @@ data class ConfiguredPropertyScope<Value>(
  * @param genA Generator for test values
  * @param compact whether to compact all generated child test elements into one
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
 inline fun <reified Value> TestSuite.checkAll(
     iterations: Int,
     genA: Gen<Value>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.maxLength,
+    maxLength: Int = PropertyTest.defaultMaxLength,
+    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredPropertyScope(
     if (compact) Value::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength,
     this,
     iterations,
     genA,
@@ -194,6 +214,7 @@ inline fun <reified Value> TestSuite.checkAll(
  * @param genA Generator for test values
  * @param compact whether to compact all generated child test elements into one
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  * @param content Test suite block receiving generated values
  */
@@ -201,7 +222,8 @@ inline fun <reified Value> TestSuite.checkAllSuites(
     iterations: Int,
     genA: Gen<Value>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.maxLength,
+    maxLength: Int = PropertyTest.defaultMaxLength,
+    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     crossinline content: context(PropertyContext) TestSuite.(Value) -> Unit
 ) = checkAllSuitesInternal(
@@ -209,6 +231,7 @@ inline fun <reified Value> TestSuite.checkAllSuites(
     genA,
     if (compact) Value::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength,
     testConfig
 ) { content(it) }
 
@@ -218,6 +241,7 @@ fun <Value> TestSuite.checkAllSuitesInternal(
     genA: Gen<Value>,
     compactName: String?,
     maxLength: Int,
+    displayNameMaxLength: Int,
     testConfig: TestConfig = TestConfig,
     content: context(PropertyContext) TestSuite.(Value) -> Unit
 ) {
@@ -225,10 +249,10 @@ fun <Value> TestSuite.checkAllSuitesInternal(
         checkAllSeries(iterations, genA) { iter, value, context ->
             val valueStr = if (value is Iterable<*>) value.joinToString() else value.toString()
             val prefix = if (value == null) "null" else value::class.simpleName
-            val name = "${iter + 1} of ${iterations} ${prefix}s (${valueStr})"
+            val name = "${iter + 1} of $iterations ${prefix}s (${valueStr})"
             this@checkAllSuitesInternal.testSuite(
-                name = name.truncated(maxLength),
-                displayName = name.escaped,
+                name = name.truncated(maxLength).escaped,
+                displayName = name.truncated(displayNameMaxLength).escaped,
                 testConfig = testConfig,
                 content = fun TestSuite.() {
                     with(context) {
@@ -239,8 +263,8 @@ fun <Value> TestSuite.checkAllSuitesInternal(
     } else {
         val testName = "$iterations ${compactName}s"
         this@checkAllSuitesInternal.testSuite(
-            name = testName.truncated(maxLength),
-            displayName = testName.escaped,
+            name = testName.truncated(maxLength).escaped,
+            displayName = testName.truncated(displayNameMaxLength).escaped,
             testConfig = testConfig
         ) {
             val errors = mutableMapOf<String, Throwable?>()
@@ -278,17 +302,20 @@ fun <Value> TestSuite.checkAllSuitesInternal(
  * @param genA Generator for test values
  * @param compact whether to compact all generated child test elements into one
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  * @param content Test suite block receiving generated values
  */
 inline fun <reified A> TestSuite.checkAll(
     genA: Gen<A>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.maxLength,
+    maxLength: Int = PropertyTest.defaultMaxLength,
+    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredPropertyScope(
     if (compact) A::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength,
     this,
     PropertyTesting.defaultIterationCount,
     genA,
@@ -301,13 +328,15 @@ inline fun <reified A> TestSuite.checkAll(
  * @param genA Generator for test values
  * @param compact whether to compact all generated child test elements into one
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  * @param content Test suite block receiving generated values
  */
 inline fun <reified A> TestSuite.checkAllSuites(
     genA: Gen<A>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.maxLength,
+    maxLength: Int = PropertyTest.defaultMaxLength,
+    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     noinline content: context(PropertyContext) TestSuite.(A) -> Unit
 ) = checkAllSuitesInternal(
@@ -315,6 +344,7 @@ inline fun <reified A> TestSuite.checkAllSuites(
     genA,
     if (compact) A::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength,
     testConfig,
     content
 )

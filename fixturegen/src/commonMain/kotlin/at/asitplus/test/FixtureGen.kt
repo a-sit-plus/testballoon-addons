@@ -25,6 +25,7 @@ class GeneratingFixtureScope<T> @PublishedApi internal constructor(
      *
      * @param name The name of the test
      * @param displayName The display name of the test
+     * @param maxLength maximum length of test element name (not display name)
      * @param testConfig Configuration for test execution
      * @param content Test block that receives a newly generated fixture instance
      */
@@ -32,10 +33,11 @@ class GeneratingFixtureScope<T> @PublishedApi internal constructor(
     fun test(
         @TestElementName name: String,
         @TestDisplayName displayName: String = name,
+        maxLength: Int = DEFAULT_TEST_NAME_MAX_LEN,
         testConfig: TestConfig = TestConfig,
         content: suspend TestExecutionScope.(T) -> Unit
     ) {
-        testSuite.test(name.truncated(), displayName.escaped, testConfig = testConfig) { content(generator()) }
+        testSuite.test(name.truncated(maxLength), displayName.escaped, testConfig = testConfig) { content(generator()) }
     }
 }
 

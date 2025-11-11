@@ -20,7 +20,15 @@ object DataTest {
     /**
      * The default maximum length of test element names (not display name). Default = 64
      */
-    var maxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
+    var defaultTestNameMaxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
+
+    /**
+     * The default maximum length of test element names (not display name). Default = 64
+     */
+    var defaultDisplayNameMaxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
+
+    @Deprecated("to be removed", replaceWith = ReplaceWith("defaultMaxLength"))
+    var maxLength = defaultTestNameMaxLength
 }
 
 
@@ -30,6 +38,7 @@ object DataTest {
  * @param parameters The data parameters to test with
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each parameter
  */
@@ -38,10 +47,18 @@ object DataTest {
 inline fun <reified Data> TestSuite.withData(
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     crossinline action: suspend (Data) -> Unit
-) = withDataInternal(parameters.asSequence().map { it.toString() to it }, testConfig, compact, maxLength, action)
+) = withDataInternal(
+    parameters.asSequence().map { it.toString() to it },
+    testConfig,
+    compact,
+    maxLength,
+    displayNameMaxLength,
+    action
+)
 
 
 /**
@@ -54,10 +71,18 @@ inline fun <reified Data> TestSuite.withData(
 inline fun <reified Data> TestSuite.withData(
     data: Iterable<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     crossinline action: suspend (Data) -> Unit
-) = withDataInternal(data.asSequence().map { it.toString() to it }, testConfig, compact, maxLength, action)
+) = withDataInternal(
+    data.asSequence().map { it.toString() to it },
+    testConfig,
+    compact,
+    maxLength,
+    displayNameMaxLength,
+    action
+)
 
 
 /**
@@ -67,16 +92,25 @@ inline fun <reified Data> TestSuite.withData(
  * @param map Map of test names to test data
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each map value
  */
 inline fun <reified Data> TestSuite.withData(
     map: Map<String, Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     crossinline action: suspend (Data) -> Unit
-) = withDataInternal(map.asSequence().map { (k, v) -> k to v }, testConfig, compact, maxLength, action)
+) = withDataInternal(
+    map.asSequence().map { (k, v) -> k to v },
+    testConfig,
+    compact,
+    maxLength,
+    displayNameMaxLength,
+    action
+)
 
 
 /**
@@ -87,16 +121,25 @@ inline fun <reified Data> TestSuite.withData(
  * @param data The iterable collection of test data
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each data item
  */
 inline fun <reified Data> TestSuite.withData(
     crossinline nameFn: (Data) -> String, data: Iterable<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     crossinline action: suspend (Data) -> Unit
-) = withDataInternal(data.asSequence().map { nameFn(it) to it }, testConfig, compact, maxLength, action)
+) = withDataInternal(
+    data.asSequence().map { nameFn(it) to it },
+    testConfig,
+    compact,
+    maxLength,
+    displayNameMaxLength,
+    action
+)
 
 
 /**
@@ -107,6 +150,7 @@ inline fun <reified Data> TestSuite.withData(
  * @param arguments The data parameters to test with
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each parameter
  */
@@ -115,10 +159,18 @@ inline fun <reified Data> TestSuite.withData(
 inline fun <reified Data> TestSuite.withData(
     crossinline nameFn: (Data) -> String, vararg arguments: Data,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     crossinline action: suspend (Data) -> Unit
-) = withDataInternal(arguments.asSequence().map { nameFn(it) to it }, testConfig, compact, maxLength, action)
+) = withDataInternal(
+    arguments.asSequence().map { nameFn(it) to it },
+    testConfig,
+    compact,
+    maxLength,
+    displayNameMaxLength,
+    action
+)
 
 /**
  * Executes a test for each item in the provided sequence.
@@ -126,16 +178,18 @@ inline fun <reified Data> TestSuite.withData(
  * @param data The sequence of test data
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each sequence item
  */
 inline fun <reified Data> TestSuite.withData(
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     crossinline action: suspend (Data) -> Unit
-) = withDataInternal(data.map { it.toString() to it }, testConfig, compact, maxLength, action)
+) = withDataInternal(data.map { it.toString() to it }, testConfig, compact, maxLength, displayNameMaxLength, action)
 
 /**
  * Executes a test for each item in the provided sequence.
@@ -145,25 +199,28 @@ inline fun <reified Data> TestSuite.withData(
  * @param data The sequence of test data
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each sequence item
  */
 inline fun <reified Data> TestSuite.withData(
     crossinline nameFn: (Data) -> String, data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     crossinline action: suspend (Data) -> Unit
-) = withDataInternal(data.map { nameFn(it) to it }, testConfig, compact, maxLength, action)
+) = withDataInternal(data.map { nameFn(it) to it }, testConfig, compact, maxLength, displayNameMaxLength, action)
 
 data class ConfiguredDataTestScope<Data>(
     private val compactName: String?,
-    private val maxLength: Int = DataTest.maxLength,
+    private val maxLength: Int = DataTest.defaultTestNameMaxLength,
+    private val displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     val testSuite: TestSuite, val map: Sequence<Pair<String, Data>>,
     val testConfig: TestConfig = TestConfig,
 ) {
     operator fun minus(action: TestSuite.(Data) -> Unit) =
-        testSuite.withDataSuitesInternal(map, compactName, maxLength, testConfig, action)
+        testSuite.withDataSuitesInternal(map, compactName, maxLength, displayNameMaxLength, testConfig, action)
 }
 
 /**
@@ -172,6 +229,7 @@ data class ConfiguredDataTestScope<Data>(
  * @param parameters The data parameters to create suites for
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
@@ -179,10 +237,13 @@ data class ConfiguredDataTestScope<Data>(
 inline fun <reified Data> TestSuite.withData(
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig
 ) = ConfiguredDataTestScope<Data>(
-    if (compact) Data::class.simpleName ?: "<Anonymous>" else null, maxLength,
+    if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
+    maxLength,
+    displayNameMaxLength = displayNameMaxLength,
     this,
     parameters.asSequence().map { it.toString() to it },
     testConfig
@@ -194,16 +255,19 @@ inline fun <reified Data> TestSuite.withData(
  * @param data The iterable collection of test data
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
 inline fun <reified Data> TestSuite.withData(
     data: Iterable<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredDataTestScope<Data>(
     if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength = displayNameMaxLength,
     this,
     data.asSequence().map { it.toString() to it },
     testConfig
@@ -216,16 +280,19 @@ inline fun <reified Data> TestSuite.withData(
  * @param map Map of suite names to test data
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
 inline fun <reified Data> TestSuite.withData(
     map: Map<String, Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredDataTestScope<Data>(
     if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength = displayNameMaxLength,
     this,
     map.asSequence().map { (k, v) -> k to v },
     testConfig
@@ -237,16 +304,19 @@ inline fun <reified Data> TestSuite.withData(
  * @param data The sequence of test data
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
 inline fun <reified Data> TestSuite.withData(
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig
 ) = ConfiguredDataTestScope<Data>(
     if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength = displayNameMaxLength,
     this,
     data.map { it.toString() to it },
     testConfig
@@ -261,6 +331,7 @@ inline fun <reified Data> TestSuite.withData(
  * @param arguments The data parameters to create suites for
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
@@ -269,11 +340,13 @@ inline fun <reified Data> TestSuite.withDataSuites(
     crossinline nameFn: (Data) -> String,
     vararg arguments: Data,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig
 ) = ConfiguredDataTestScope<Data>(
     if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength = displayNameMaxLength,
     this,
     arguments.asSequence().map { nameFn(it) to it },
     testConfig
@@ -288,17 +361,20 @@ inline fun <reified Data> TestSuite.withDataSuites(
  * @param data The iterable collection of test data
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
 inline fun <reified Data> TestSuite.withData(
     crossinline nameFn: (Data) -> String,
     data: Iterable<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredDataTestScope<Data>(
     if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength = displayNameMaxLength,
     this,
     data.asSequence().map { nameFn(it) to it },
     testConfig
@@ -313,17 +389,20 @@ inline fun <reified Data> TestSuite.withData(
  * @param data The sequence of test data
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
 inline fun <reified Data> TestSuite.withData(
     crossinline nameFn: (Data) -> String,
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredDataTestScope<Data>(
     if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength = displayNameMaxLength,
     this,
     data.map { nameFn(it) to it },
     testConfig
@@ -336,6 +415,7 @@ inline fun <reified Data> TestSuite.withData(
  * @param testConfig Optional test configuration
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each parameter
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
@@ -343,13 +423,15 @@ inline fun <reified Data> TestSuite.withData(
 inline fun <reified Data> TestSuite.withDataSuites(
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     noinline action: TestSuite.(Data) -> Unit
 ) = withDataSuitesInternal(
     parameters.map { it.toString() to it }.asSequence(),
     if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength = displayNameMaxLength,
     testConfig,
     action
 )
@@ -361,18 +443,21 @@ inline fun <reified Data> TestSuite.withDataSuites(
  * @param testConfig Optional test configuration
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each data item
  */
 inline fun <reified Data> TestSuite.withDataSuites(
     data: Iterable<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     noinline action: TestSuite.(Data) -> Unit
 ) = withDataSuitesInternal(
     data.map { it.toString() to it }.asSequence(),
     if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength = displayNameMaxLength,
     testConfig,
     action
 )
@@ -385,18 +470,21 @@ inline fun <reified Data> TestSuite.withDataSuites(
  * @param testConfig Optional test configuration
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each map value
  */
 inline fun <reified Data> TestSuite.withDataSuites(
     map: Map<String, Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     noinline action: TestSuite.(Data) -> Unit
 ) = withDataSuitesInternal(
     map.map { (k, v) -> k to v }.asSequence(),
     if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength = displayNameMaxLength,
     testConfig,
     action
 )
@@ -408,18 +496,21 @@ inline fun <reified Data> TestSuite.withDataSuites(
  * @param testConfig Optional test configuration
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each data item
  */
 inline fun <reified Data> TestSuite.withDataSuites(
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     noinline action: TestSuite.(Data) -> Unit
 ) = withDataSuitesInternal(
     data.map { it.toString() to it },
     if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength = displayNameMaxLength,
     testConfig,
     action
 )
@@ -433,6 +524,7 @@ inline fun <reified Data> TestSuite.withDataSuites(
  * @param testConfig Optional test configuration
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each parameter
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
@@ -441,13 +533,15 @@ inline fun <reified Data> TestSuite.withDataSuites(
     nameFn: (Data) -> String,
     vararg arguments: Data,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     noinline action: TestSuite.(Data) -> Unit
 ) = withDataSuitesInternal(
     arguments.map { nameFn(it) to it }.asSequence(),
     if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength = displayNameMaxLength,
     testConfig,
     action
 )
@@ -461,19 +555,22 @@ inline fun <reified Data> TestSuite.withDataSuites(
  * @param testConfig Optional test configuration
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each data item
  */
 inline fun <reified Data> TestSuite.withDataSuites(
     nameFn: (Data) -> String,
     data: Iterable<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     noinline action: TestSuite.(Data) -> Unit
 ) = withDataSuitesInternal(
     data.map { nameFn(it) to it }.asSequence(),
     if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength = displayNameMaxLength,
     testConfig,
     action
 )
@@ -487,19 +584,22 @@ inline fun <reified Data> TestSuite.withDataSuites(
  * @param testConfig Optional test configuration
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each data item
  */
 inline fun <reified Data> TestSuite.withDataSuites(
     crossinline nameFn: (Data) -> String,
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.maxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     noinline action: TestSuite.(Data) -> Unit
 ) = withDataSuitesInternal(
     data.map { nameFn(it) to it },
     if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
     maxLength,
+    displayNameMaxLength = displayNameMaxLength,
     testConfig,
     action
 )
@@ -512,6 +612,7 @@ inline fun <reified Data> TestSuite.withDataSuites(
  * @param testConfig Optional test configuration
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each data item
  */
 @PublishedApi
@@ -519,13 +620,18 @@ internal fun <Data> TestSuite.withDataSuitesInternal(
     data: Sequence<Pair<String, Data>>,
     compactedName: String?,
     maxLength: Int,
+    displayNameMaxLength: Int,
     testConfig: TestConfig = TestConfig,
     action: TestSuite.(Data) -> Unit
 ) {
 
     if (compactedName != null) {
         val testName = "[compacted] $compactedName"
-        testSuite(name = testName.truncated(maxLength), displayName = testName.escaped, testConfig = testConfig) {
+        testSuite(
+            name = testName.truncated(maxLength).escaped,
+            displayName = testName.truncated(displayNameMaxLength).escaped,
+            testConfig = testConfig
+        ) {
             val errors = mutableMapOf<String, Throwable?>()
             data.forEachIndexed { i, d ->
                 val name = "${i + 1}: ${d.first}"
@@ -551,8 +657,8 @@ internal fun <Data> TestSuite.withDataSuitesInternal(
         for (d in data) {
             val name = d.first.escaped
             testSuite(
-                name = name.truncated(maxLength),
-                displayName = name.escaped,
+                name = name.truncated(maxLength).escaped,
+                displayName = name.truncated(displayNameMaxLength).escaped,
                 testConfig = testConfig,
                 content = fun TestSuite.() {
                     action(d.second)
@@ -570,6 +676,7 @@ internal fun <Data> TestSuite.withDataSuitesInternal(
  * @param testConfig Optional test configuration
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test action to execute for each map value
  */
 @PublishedApi
@@ -578,12 +685,17 @@ internal inline fun <reified Data> TestSuite.withDataInternal(
     testConfig: TestConfig = TestConfig,
     compact: Boolean,
     maxLength: Int,
+    displayNameMaxLength: Int,
     crossinline action: suspend (Data) -> Unit
 ) {
 
     if (compact) {
         val testName = "[compacted] " + Data::class.simpleName ?: "<Anonymous>"
-        test(name = testName.truncated(maxLength), displayName = testName.escaped, testConfig = testConfig) {
+        test(
+            name = testName.truncated(maxLength).escaped,
+            displayName = testName.truncated(displayNameMaxLength).escaped,
+            testConfig = testConfig
+        ) {
             val mutex = Mutex()
             val errors = mutableMapOf<String, Throwable?>()
             map.forEachIndexed { i, d ->
@@ -609,8 +721,8 @@ internal inline fun <reified Data> TestSuite.withDataInternal(
     } else {
         for (d in map) {
             test(
-                name = d.first.truncated(maxLength),
-                displayName = d.first.escaped,
+                name = d.first.truncated(maxLength).escaped,
+                displayName = d.first.truncated(displayNameMaxLength).escaped,
                 testConfig = testConfig
             ) { action(d.second) }
         }

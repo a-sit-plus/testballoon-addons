@@ -2,6 +2,10 @@
 
 ## 0.x
 
+### 0.4.0
+* Change global defaults and fix length bug
+* Allow globally (and per test/suite) setting of max display length
+
 ### 0.3.1
 Configurable max test name length (globally and per test)
 
