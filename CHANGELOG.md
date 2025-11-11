@@ -2,6 +2,9 @@
 
 ## 0.x
 
+### 0.3.1
+Configurable max test name length (globally and per test)
+
 ### 0.3.0
 * Revised fixture generation
   * Use explicit function instead of bare lambdas; no more context params needed

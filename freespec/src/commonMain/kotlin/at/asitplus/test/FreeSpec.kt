@@ -1,15 +1,26 @@
 package at.asitplus.testballoon
 
+import at.asitplus.testballoon.FreeSpec.maxLength
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestExecutionScope
 import de.infix.testBalloon.framework.core.TestSuite
 
+/**
+ * Global knobs to tweak the behavior of PropertyTest Addon
+ */
+object FreeSpec {
+    /**
+     * The default maximum length of test element names (not display name). Default = 64
+     */
+    var maxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
+}
 
 context(suite: TestSuite)
 /**
  * Creates a test case with the specified name and configuration.
  *
  * @param testConfig Optional test configuration
+ * @param maxLength maximum length of test element name (not display name)
  * @property displayName optional display name override
  * @param nested The test body to execute.
  */
@@ -17,11 +28,12 @@ context(suite: TestSuite)
 @kotlin.internal.LowPriorityInOverloadResolution
 operator fun String.invoke(
     displayName: String = this,
+    maxLength: Int = FreeSpec.maxLength,
     testConfig: TestConfig = TestConfig,
     nested: suspend TestExecutionScope.() -> Unit
 ) {
     suite.test(
-        freeSpecName(this).truncated(),
+        freeSpecName(this).truncated(maxLength),
         displayName = displayName.escaped,
         testConfig = testConfig.disableByName(this)
     ) { nested() }
@@ -32,12 +44,14 @@ operator fun String.invoke(
  * Represents a configured test suite with its parent suite, name, and configuration.
  *
  * @property parent The parent test suite
+ * @param maxLength maximum length of test element name (not display name)
  * @property testName The name of the suite
  * @property displayName optional display name override
  * @property config The configuration for the suite
  */
 data class ConfiguredSuite(
     val parent: TestSuite,
+    private val maxLength: Int = FreeSpec.maxLength,
     val displayName: String,
     val testName: String,
     val config: TestConfig
@@ -49,7 +63,7 @@ data class ConfiguredSuite(
      */
     infix operator fun minus(suiteBody: TestSuite.() -> Unit) {
         parent.testSuite(
-            freeSpecName(testName).truncated(),
+            freeSpecName(testName).truncated(maxLength),
             displayName = displayName.escaped,
             testConfig = config.disableByName(displayName),
             content = fun TestSuite.() {
@@ -65,11 +79,12 @@ context(suite: TestSuite)
  * Creates a configured suite with the specified name and configuration.
  *
  * @param testConfig Optional test configuration
+ * @param maxLength maximum length of test element name (not display name)
  * @param displayName Optional display name override
  * @return A new [ConfiguredSuite] instance.
  */
-operator fun String.invoke(displayName: String = this, testConfig: TestConfig = TestConfig) =
-    ConfiguredSuite(suite, displayName, this, testConfig)
+operator fun String.invoke(displayName: String = this, maxLength: Int = FreeSpec.maxLength,testConfig: TestConfig = TestConfig) =
+    ConfiguredSuite(suite, maxLength,displayName, this, testConfig)
 
 context(suite: TestSuite)
 /**
@@ -79,7 +94,7 @@ context(suite: TestSuite)
  */
 infix operator fun String.minus(suiteBody: TestSuite.() -> Unit) {
     suite.testSuite(
-        name = freeSpecName(this).truncated(),
+        name = freeSpecName(this).truncated(maxLength),
         displayName = freeSpecName(this).escaped,
         testConfig = TestConfig.disableByName(this),
         content = fun TestSuite.() {
