@@ -16,7 +16,7 @@ context(fixture: GeneratingFixtureScope<T>)
  */
 inline operator fun <reified T> String.invoke(
     displayName: String = this,
-    maxLength: Int = FreeSpec.defaultMaxLength,
+    maxLength: Int = FreeSpec.defaultTestNameMaxLength,
     displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     crossinline nested: suspend TestExecutionScope.(T) -> Unit

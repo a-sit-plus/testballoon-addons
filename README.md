@@ -52,6 +52,18 @@ This project consists of the following modules:
 `at.asitplus.testballoon:fixturegen-freespec:$version`
 > dependency manually to your project.
 
+
+All modules allow for setting global defaults wrt. test names. These properties are called:
+
+* `defaultTestNameLength`
+* `defaultDisplayNameLength`
+
+The former defaults to 64 characters, while display names are not truncated by default.
+Both properties can be set per test style (e.g., `FreeSpec.defaultTestNameLength = 10`,
+`PropertyTest.defaultDisplayNameLength = 100`)
+It is also possible to set test name length and display name length for individual tests by passing the `maxLength` and
+`displayNameMaxLength` parameters, respectively.
+
 ### FreeSpec
 
 | Maven Coordinates | `at.asitplus.testballoon:freespec:$version` |
@@ -222,7 +234,7 @@ import kotlin.random.Random
 import kotlinx.coroutines.delay //just to get some suspending demo generator
 
 val aGeneratingSuite by testSuite {
-    
+
     //seed before the generator function, not inside!
     val byteRNG = Random(42);
     //We want to test with fresh randomness, so we generate a fresh fixture for each test
@@ -257,7 +269,6 @@ val aGeneratingSuite by testSuite {
             //test something different, with a fresh float
         }
     }
-
 
 
     //always-the-same fixtures also work, of course

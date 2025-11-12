@@ -2,6 +2,11 @@
 
 ## 0.x
 
+### 0.4.1
+* Fix length config bug
+* Default display name max length to -1 (no truncation)
+* Remove bare-lambda fixture generation
+
 ### 0.4.0
 * Change global defaults and fix length bug
 * Allow globally (and per test/suite) setting of max display length

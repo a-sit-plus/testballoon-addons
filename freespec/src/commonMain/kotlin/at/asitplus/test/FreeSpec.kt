@@ -8,18 +8,31 @@ import de.infix.testBalloon.framework.core.TestSuite
  * Global knobs to tweak the behavior of PropertyTest Addon
  */
 object FreeSpec {
-    /**
-     * The default maximum length of test element names (not display name). Default = 64
-     */
-    var defaultMaxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
-
-    @Deprecated("to be removed", replaceWith = ReplaceWith("defaultMaxLength"))
-    var maxLength = defaultMaxLength
 
     /**
-     * The default maximum length of test element names (not display name). Default = 64
+     * The default maximum length of test element names (not display name). Default = 64. `-1` means no truncation
      */
-    var defaultDisplayNameMaxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
+    var defaultTestNameMaxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
+
+    /**
+     * The default maximum length of test element names (not display name). Default = -1 (no truncation)
+     */
+    var defaultDisplayNameMaxLength: Int = -1
+
+    @Deprecated("to be removed", replaceWith = ReplaceWith("defaultTestNameMaxLength"))
+    var maxLength
+        get() = defaultTestNameMaxLength
+        set(value) {
+            defaultTestNameMaxLength = value
+        }
+
+    @Deprecated("to be removed", replaceWith = ReplaceWith("defaultTestNameMaxLength"))
+    var defaultMaxLength
+        get() = defaultTestNameMaxLength
+        set(value) {
+            defaultTestNameMaxLength = value
+        }
+
 }
 
 context(suite: TestSuite)
@@ -36,7 +49,7 @@ context(suite: TestSuite)
 @kotlin.internal.LowPriorityInOverloadResolution
 operator fun String.invoke(
     displayName: String = this,
-    maxLength: Int = FreeSpec.defaultMaxLength,
+    maxLength: Int = FreeSpec.defaultTestNameMaxLength,
     displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     nested: suspend TestExecutionScope.() -> Unit
@@ -61,7 +74,7 @@ operator fun String.invoke(
  */
 data class ConfiguredSuite(
     val parent: TestSuite,
-    private val maxLength: Int = FreeSpec.defaultMaxLength,
+    private val maxLength: Int = FreeSpec.defaultTestNameMaxLength,
     private val displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
     val displayName: String,
     val testName: String,
@@ -97,11 +110,11 @@ context(suite: TestSuite)
  */
 operator fun String.invoke(
     displayName: String = this,
-    maxLength: Int = FreeSpec.defaultMaxLength,
+    maxLength: Int = FreeSpec.defaultTestNameMaxLength,
     displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig
 ) =
-    ConfiguredSuite(suite, maxLength, displayNameMaxLength,displayName, this, testConfig)
+    ConfiguredSuite(suite, maxLength, displayNameMaxLength, displayName, this, testConfig)
 
 context(suite: TestSuite)
 /**
@@ -111,7 +124,7 @@ context(suite: TestSuite)
  */
 infix operator fun String.minus(suiteBody: TestSuite.() -> Unit) {
     suite.testSuite(
-        name = freeSpecName(this).truncated(FreeSpec.defaultMaxLength).escaped,
+        name = freeSpecName(this).truncated(FreeSpec.defaultTestNameMaxLength).escaped,
         displayName = freeSpecName(this).truncated(FreeSpec.defaultDisplayNameMaxLength).escaped,
         testConfig = TestConfig.disableByName(this),
         content = fun TestSuite.() {

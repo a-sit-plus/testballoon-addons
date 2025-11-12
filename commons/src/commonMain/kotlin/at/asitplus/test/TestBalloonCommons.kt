@@ -13,6 +13,7 @@ fun freeSpecName(name: String) = if (name.startsWith("!")) name.substring(1) els
 fun String.truncated(limit: Int) = ellipsizeMiddle(limit).escaped
 
 private fun String.ellipsizeMiddle(maxLength: Int): String {
+    if (length == -1) return this
     val ellipsis = "…"
     if (maxLength !in 3..<length) return this
     val keep = maxLength - ellipsis.length

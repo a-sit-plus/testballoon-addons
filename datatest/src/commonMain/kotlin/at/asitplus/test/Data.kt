@@ -18,17 +18,18 @@ object DataTest {
     var compactByDefault = false
 
     /**
-     * The default maximum length of test element names (not display name). Default = 64
+     * The default maximum length of test element names (not display name). Default = 64. `-1` means no truncation
      */
     var defaultTestNameMaxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
 
     /**
-     * The default maximum length of test element names (not display name). Default = 64
+     * The default maximum length of test element names (not display name). Default = -1 (no truncation)
      */
-    var defaultDisplayNameMaxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
+    var defaultDisplayNameMaxLength: Int = -1
 
-    @Deprecated("to be removed", replaceWith = ReplaceWith("defaultMaxLength"))
-    var maxLength = defaultTestNameMaxLength
+    @Deprecated("to be removed", replaceWith = ReplaceWith("defaultTestNameMaxLength"))
+    var maxLength get() = defaultTestNameMaxLength
+        set(value) {defaultTestNameMaxLength = value}
 }
 
 

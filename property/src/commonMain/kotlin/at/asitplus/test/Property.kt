@@ -21,17 +21,28 @@ object PropertyTest {
     var compactByDefault = false
 
     /**
-     * The default maximum length of test element names (not display name). Default ? 64
+     * The default maximum length of test element names (not display name). Default = 64. `-1` means no truncation
      */
-    var defaultMaxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
-
-    @Deprecated("to be removed", replaceWith = ReplaceWith("defaultMaxLength"))
-    var maxLength = defaultMaxLength
+    var defaultTestNameMaxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
 
     /**
-     * The default maximum length of test element names (not display name). Default = 64
+     * The default maximum length of test element names (not display name). Default = -1 (no truncation)
      */
-    var defaultDisplayNameMaxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
+    var defaultDisplayNameMaxLength: Int = -1
+
+    @Deprecated("to be removed", replaceWith = ReplaceWith("defaultTestNameMaxLength"))
+    var maxLength
+        get() = defaultTestNameMaxLength
+        set(value) {
+            defaultTestNameMaxLength = value
+        }
+
+    @Deprecated("to be removed", replaceWith = ReplaceWith("defaultTestNameMaxLength"))
+    var defaultMaxLength
+        get() = defaultTestNameMaxLength
+        set(value) {
+            defaultTestNameMaxLength = value
+        }
 }
 
 
@@ -48,7 +59,7 @@ object PropertyTest {
 inline fun <reified Value> TestSuite.checkAll(
     genA: Gen<Value>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.defaultMaxLength,
+    maxLength: Int = PropertyTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     crossinline content: suspend context(PropertyContext) TestExecutionScope.(Value) -> Unit
@@ -77,7 +88,7 @@ inline fun <reified Value> TestSuite.checkAll(
     iterations: Int,
     genA: Gen<Value>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.defaultMaxLength,
+    maxLength: Int = PropertyTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     crossinline content: suspend context(PropertyContext) TestExecutionScope.(Value) -> Unit
@@ -194,7 +205,7 @@ inline fun <reified Value> TestSuite.checkAll(
     iterations: Int,
     genA: Gen<Value>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.defaultMaxLength,
+    maxLength: Int = PropertyTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredPropertyScope(
@@ -222,7 +233,7 @@ inline fun <reified Value> TestSuite.checkAllSuites(
     iterations: Int,
     genA: Gen<Value>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.defaultMaxLength,
+    maxLength: Int = PropertyTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     crossinline content: context(PropertyContext) TestSuite.(Value) -> Unit
@@ -309,7 +320,7 @@ fun <Value> TestSuite.checkAllSuitesInternal(
 inline fun <reified A> TestSuite.checkAll(
     genA: Gen<A>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.defaultMaxLength,
+    maxLength: Int = PropertyTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredPropertyScope(
@@ -335,7 +346,7 @@ inline fun <reified A> TestSuite.checkAll(
 inline fun <reified A> TestSuite.checkAllSuites(
     genA: Gen<A>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.defaultMaxLength,
+    maxLength: Int = PropertyTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
     noinline content: context(PropertyContext) TestSuite.(A) -> Unit
