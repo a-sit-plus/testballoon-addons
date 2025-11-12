@@ -1,6 +1,10 @@
 <div align="center">
 
-# TestBalloon Addons
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/tba-light-text.png">
+  <source media="(prefers-color-scheme: light)" srcset="docs/tba-dark-text.png">
+  <img src="docs/tba-light-text.png" alt="TestBalloon Addons" width="321" height="97">
+</picture><br><br>
 
 [![A-SIT Plus Official](https://raw.githubusercontent.com/a-sit-plus/a-sit-plus.github.io/709e802b3e00cb57916cbb254ca5e1a5756ad2a8/A-SIT%20Plus_%20official_opt.svg)](https://plus.a-sit.at/open-source.html)
 [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0)
@@ -29,11 +33,8 @@ surface, we can get the best of both worlds.
 
 > [!CAUTION]  
 > On Android (JVM, not native), forward slashed in test names and display names are **always** replaced
-> with the `⧸` character because the android test runner cannot deal with slashes in test names. This can bite you whan
+> with the `⧸` character because the Android test runner cannot deal with slashes in test names. This can bite you when
 > using base64-encoded data inside test names.
->
-> In addition, test names are truncated to 64 characters and ellipsised in the middle (which does not affect display
-> names).
 
 ## Modules
 
