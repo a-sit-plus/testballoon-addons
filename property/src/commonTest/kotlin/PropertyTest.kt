@@ -51,3 +51,46 @@ val propertySuite by testSuite {
     }
 
 }
+
+
+
+
+val compactingSuite by testSuite {
+    PropertyTest.compactByDefault = true
+
+    checkAllSuites(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte())) { byteArray ->
+        checkAll(iterations = 10, Arb.uLong(100u, 200u)) { number ->
+            byteArray shouldBe byteArray
+            number shouldBe byteArray.size.toULong()
+        }
+    }
+
+    //Alternative syntax for checkAllSuites
+    // --> NOTE THE MINUS HERE >->-->--------------------------------------↘↘↘
+    checkAll(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte())) - { byteArray ->
+        checkAll(iterations = 10, Arb.uLong(100u, 200u)) { number ->
+            byteArray shouldBe byteArray
+            number shouldBe byteArray.size.toULong()
+        }
+    }
+
+    checkAll(iterations = 5, Arb.byteArray(Arb.int(100, 200), Arb.byte())) - { byteArray ->
+        checkAll(iterations = 5, Arb.uLong(100u, 200u)) { number ->
+            byteArray shouldBe byteArray
+            number shouldBe byteArray.size.toULong()
+        }
+        checkAll(iterations = 5, Arb.byteArray(Arb.int(100, 200), Arb.byte())) - { byteArray ->
+            checkAll(iterations = 5, Arb.uLong(100u, 200u)) { number ->
+                byteArray shouldBe byteArray
+                number shouldBe byteArray.size.toULong()
+            }
+            checkAll(iterations = 5, Arb.byteArray(Arb.int(100, 200), Arb.byte())) - { byteArray ->
+                checkAll(iterations = 5, Arb.uLong(100u, 200u)) { number ->
+                    byteArray shouldBe byteArray
+                    number shouldBe byteArray.size.toULong()
+                }
+            }
+        }
+    }
+
+}

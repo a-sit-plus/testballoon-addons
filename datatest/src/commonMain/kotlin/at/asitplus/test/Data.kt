@@ -3,8 +3,6 @@ package at.asitplus.testballoon
 import at.asitplus.catchingUnwrapped
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuite
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 
 /**
@@ -63,7 +61,6 @@ fun <Data> TestSuite.withData(
     displayNameMaxLength,
     action
 )
-
 
 /**
  * Executes a test for each item in the provided iterable data.
@@ -685,8 +682,6 @@ internal fun <Data> TestSuite.withDataInternal(
     displayNameMaxLength: Int,
     action: suspend (Data) -> Unit
 ) {
-
-
     if (compact) {
         val (compactName, map) = map.peekTypeNameAndReplay { it.second }
         val testName = "[compacted] $compactName"
@@ -695,15 +690,14 @@ internal fun <Data> TestSuite.withDataInternal(
             displayName = testName.truncated(displayNameMaxLength).escaped,
             testConfig = testConfig
         ) {
-            val mutex = Mutex()
             val errors = mutableMapOf<String, Throwable?>()
             map.forEachIndexed { i, d ->
                 val name = "${i + 1}: ${d.first}"
                 catchingUnwrapped {
                     action(d.second)
-                    mutex.withLock { errors["OK:    $name"] = null }
+                    errors["OK:    $name"] = null
                 }.onFailure {
-                    mutex.withLock { errors["Error: $name"] = it }
+                    errors["Error: $name"] = it
                 }
             }
             collateErrors(errors, testName)

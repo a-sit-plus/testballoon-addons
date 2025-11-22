@@ -63,7 +63,7 @@ fun collateErrors(
 ) {
     if (errors.values.filterNotNull().isNotEmpty()) {
         val (primaryLabel, primary) = errors.filterValues { it != null }.entries.first()
-        val messages = errors.map { (msg, err) -> msg + (err?.let { ": ${it.message}" }) }.joinToString("\n")
+        val messages = errors.map { (msg, err) -> msg + (err?.let { ": ${it.message}" }?:"") }.joinToString("\n")
         val msg = buildString {
             appendLine(testName)
             appendLine(messages)
