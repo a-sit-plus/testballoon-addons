@@ -19,14 +19,14 @@ object FreeSpec {
      */
     var defaultDisplayNameMaxLength: Int = -1
 
-    @Deprecated("to be removed", replaceWith = ReplaceWith("defaultTestNameMaxLength"))
+    @Deprecated("to be removed in 0.6", replaceWith = ReplaceWith("defaultTestNameMaxLength"), level = DeprecationLevel.ERROR)
     var maxLength
         get() = defaultTestNameMaxLength
         set(value) {
             defaultTestNameMaxLength = value
         }
 
-    @Deprecated("to be removed", replaceWith = ReplaceWith("defaultTestNameMaxLength"))
+    @Deprecated("to be removed in 0.6", replaceWith = ReplaceWith("defaultTestNameMaxLength"), level = DeprecationLevel.ERROR)
     var defaultMaxLength
         get() = defaultTestNameMaxLength
         set(value) {
@@ -123,6 +123,7 @@ context(suite: TestSuite)
  * @param suiteBody The body of the test suite.
  */
 infix operator fun String.minus(suiteBody: TestSuite.() -> Unit) {
+
     suite.testSuite(
         name = freeSpecName(this).truncated(FreeSpec.defaultTestNameMaxLength).escaped,
         displayName = freeSpecName(this).truncated(FreeSpec.defaultDisplayNameMaxLength).escaped,

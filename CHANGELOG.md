@@ -2,6 +2,20 @@
 
 ## 0.x
 
+### 0.5.0
+* Refactor to get rid of reification for:
+  * proper stack traces
+  * Kotlin 2.3 compatibility
+* Sane default stringification of collection and arrays types
+  * All primitive arrays are correctly joined to string
+  * All unsigned arrays are correctly joined to string
+  * `ByteArray` and `UByteArray` use hex notation
+* fix property test compacting bug
+* clarify deprecations
+* Datatest
+  * fix misnamed `withDataSuites`
+  * fix misnamed `arguments` -> `parameters`
+
 ### 0.4.1
 * Fix length config bug
 * Default display name max length to -1 (no truncation)

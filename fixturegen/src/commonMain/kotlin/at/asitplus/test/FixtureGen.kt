@@ -45,7 +45,7 @@ class GeneratingFixtureScope<T> @PublishedApi internal constructor(
 @JvmInline
 value class GeneratingFixtureScopHolder<T>(val scope: GeneratingFixtureScope<T>) {
 
-    inline operator fun minus(noinline block: GeneratingFixtureScope<T>.() -> Unit) = scope.block()
+    operator fun minus( block: GeneratingFixtureScope<T>.() -> Unit) = scope.block()
 }
 
 @JvmInline
@@ -79,7 +79,7 @@ value class GeneratingSuspendFixtureScopHolder<T>(val scope: GeneratingFixtureSc
  * @param T The type of fixture object being managed
  * @param generator The generator function invoked to provide fresh state fo each test
  */
-inline fun <reified T> TestSuite.withFixtureGenerator(noinline generator: (() -> T)) = GeneratingFixtureScopHolder(
+fun <T> TestSuite.withFixtureGenerator(generator: (() -> T)) = GeneratingFixtureScopHolder(
     GeneratingFixtureScope(this, generator)
 )
 
@@ -109,5 +109,5 @@ inline fun <reified T> TestSuite.withFixtureGenerator(noinline generator: (() ->
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-inline fun <reified T> TestSuite.withFixtureGenerator(noinline generator: suspend (() -> T)) =
+fun <T> TestSuite.withFixtureGenerator(generator: suspend (() -> T)) =
     GeneratingSuspendFixtureScopHolder(GeneratingFixtureScope(this, generator))

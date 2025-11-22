@@ -65,6 +65,11 @@ Both properties can be set per test style (e.g., `FreeSpec.defaultTestNameLength
 It is also possible to set test name length and display name length for individual tests by passing the `maxLength` and
 `displayNameMaxLength` parameters, respectively.
 
+In Addition, TestBalloon Addons use sane default stringification for test names of collection and arrays types
+* All primitive arrays are correctly joined to string (i.e. `[-1, 4, -643, 34310]`)
+* All unsigned arrays are correctly joined to string (i.e. `[9, 76, 145, 9365]`)
+* `ByteArray` and `UByteArray` use hex notation (i.e. `CA:FE:BA:BE`)
+
 ### FreeSpec
 
 | Maven Coordinates | `at.asitplus.testballoon:freespec:$version` |
