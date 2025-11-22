@@ -25,7 +25,7 @@ object DataTest {
      */
     var defaultDisplayNameMaxLength: Int = -1
 
-    @Deprecated("to be removed", replaceWith = ReplaceWith("defaultTestNameMaxLength"))
+    @Deprecated("to be removed in 0.6", replaceWith = ReplaceWith("defaultTestNameMaxLength"), level = DeprecationLevel.ERROR)
     var maxLength
         get() = defaultTestNameMaxLength
         set(value) {

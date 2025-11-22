@@ -2,6 +2,13 @@
 
 ## 0.x
 
+### 0.5.0
+* Refactor to get rid of reification for:
+  * proper stack traces
+  * Kotlin 2.3 compatibility
+* fix property test compacting bug
+* clarify deprecations
+
 ### 0.4.1
 * Fix length config bug
 * Default display name max length to -1 (no truncation)
