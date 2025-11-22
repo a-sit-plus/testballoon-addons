@@ -23,3 +23,57 @@ private fun String.ellipsizeMiddle(maxLength: Int): String {
 }
 
 expect val String.escaped: String
+
+
+fun <T> Sequence<T>.peekTypeNameAndReplay(
+    valueSelector: (T) -> Any?
+): Pair<String, Sequence<T>> {
+    val iterator = iterator()
+    if (!iterator.hasNext()) return "no data" to emptySequence()
+
+    val prefix = mutableListOf<T>()
+    var typeName: String? = null
+
+    while (iterator.hasNext()) {
+        val element = iterator.next()
+        prefix += element
+        val value = valueSelector(element)
+        if (value != null) {
+            typeName = value::class.simpleName ?: "anonymous class"
+            break
+        }
+    }
+
+    val replay = sequence {
+        for (element in prefix) {
+            yield(element)
+        }
+        while (iterator.hasNext()) {
+            yield(iterator.next())
+        }
+    }
+
+    return (typeName ?: "no data") to replay
+}
+
+
+fun collateErrors(
+    errors: MutableMap<String, Throwable?>,
+    testName: String
+) {
+    if (errors.values.filterNotNull().isNotEmpty()) {
+        val (primaryLabel, primary) = errors.filterValues { it != null }.entries.first()
+        val messages = errors.map { (msg, err) -> msg + (err?.let { ": ${it.message}" }) }.joinToString("\n")
+        val msg = buildString {
+            appendLine(testName)
+            appendLine(messages)
+            appendLine("----------------------------------------")
+            appendLine("Stack trace of first error: $primaryLabel")
+            appendLine(primary!!.stackTraceToString())  // works on all KMP targets
+            appendLine("----------------------------------------")
+        }
+        val ex = (if (errors.count { it is AssertionError } == errors.size) AssertionError(msg)
+        else RuntimeException(msg)).also { errors.values.filterNotNull().forEach(it::addSuppressed) }
+        throw ex
+    }
+}

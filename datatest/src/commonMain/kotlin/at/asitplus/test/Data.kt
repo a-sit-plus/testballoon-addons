@@ -28,8 +28,11 @@ object DataTest {
     var defaultDisplayNameMaxLength: Int = -1
 
     @Deprecated("to be removed", replaceWith = ReplaceWith("defaultTestNameMaxLength"))
-    var maxLength get() = defaultTestNameMaxLength
-        set(value) {defaultTestNameMaxLength = value}
+    var maxLength
+        get() = defaultTestNameMaxLength
+        set(value) {
+            defaultTestNameMaxLength = value
+        }
 }
 
 
@@ -45,13 +48,13 @@ object DataTest {
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-inline fun <reified Data> TestSuite.withData(
+fun <Data> TestSuite.withData(
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    crossinline action: suspend (Data) -> Unit
+    action: suspend (Data) -> Unit
 ) = withDataInternal(
     parameters.asSequence().map { it.toString() to it },
     testConfig,
@@ -69,13 +72,13 @@ inline fun <reified Data> TestSuite.withData(
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each data item
  */
-inline fun <reified Data> TestSuite.withData(
+fun <Data> TestSuite.withData(
     data: Iterable<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    crossinline action: suspend (Data) -> Unit
+    action: suspend (Data) -> Unit
 ) = withDataInternal(
     data.asSequence().map { it.toString() to it },
     testConfig,
@@ -97,13 +100,13 @@ inline fun <reified Data> TestSuite.withData(
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each map value
  */
-inline fun <reified Data> TestSuite.withData(
+fun <Data> TestSuite.withData(
     map: Map<String, Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    crossinline action: suspend (Data) -> Unit
+    action: suspend (Data) -> Unit
 ) = withDataInternal(
     map.asSequence().map { (k, v) -> k to v },
     testConfig,
@@ -126,13 +129,13 @@ inline fun <reified Data> TestSuite.withData(
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each data item
  */
-inline fun <reified Data> TestSuite.withData(
-    crossinline nameFn: (Data) -> String, data: Iterable<Data>,
+fun <Data> TestSuite.withData(
+    nameFn: (Data) -> String, data: Iterable<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    crossinline action: suspend (Data) -> Unit
+    action: suspend (Data) -> Unit
 ) = withDataInternal(
     data.asSequence().map { nameFn(it) to it },
     testConfig,
@@ -157,13 +160,13 @@ inline fun <reified Data> TestSuite.withData(
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-inline fun <reified Data> TestSuite.withData(
-    crossinline nameFn: (Data) -> String, vararg arguments: Data,
+fun <Data> TestSuite.withData(
+    nameFn: (Data) -> String, vararg arguments: Data,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    crossinline action: suspend (Data) -> Unit
+    action: suspend (Data) -> Unit
 ) = withDataInternal(
     arguments.asSequence().map { nameFn(it) to it },
     testConfig,
@@ -183,13 +186,13 @@ inline fun <reified Data> TestSuite.withData(
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each sequence item
  */
-inline fun <reified Data> TestSuite.withData(
+fun <Data> TestSuite.withData(
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    crossinline action: suspend (Data) -> Unit
+    action: suspend (Data) -> Unit
 ) = withDataInternal(data.map { it.toString() to it }, testConfig, compact, maxLength, displayNameMaxLength, action)
 
 /**
@@ -204,24 +207,24 @@ inline fun <reified Data> TestSuite.withData(
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each sequence item
  */
-inline fun <reified Data> TestSuite.withData(
-    crossinline nameFn: (Data) -> String, data: Sequence<Data>,
+fun <Data> TestSuite.withData(
+    nameFn: (Data) -> String, data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    crossinline action: suspend (Data) -> Unit
+    action: suspend (Data) -> Unit
 ) = withDataInternal(data.map { nameFn(it) to it }, testConfig, compact, maxLength, displayNameMaxLength, action)
 
 data class ConfiguredDataTestScope<Data>(
-    private val compactName: String?,
+    private val compact: Boolean,
     private val maxLength: Int = DataTest.defaultTestNameMaxLength,
     private val displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     val testSuite: TestSuite, val map: Sequence<Pair<String, Data>>,
     val testConfig: TestConfig = TestConfig,
 ) {
     operator fun minus(action: TestSuite.(Data) -> Unit) =
-        testSuite.withDataSuitesInternal(map, compactName, maxLength, displayNameMaxLength, testConfig, action)
+        testSuite.withDataSuitesInternal(map, compact, maxLength, displayNameMaxLength, testConfig, action)
 }
 
 /**
@@ -235,14 +238,14 @@ data class ConfiguredDataTestScope<Data>(
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-inline fun <reified Data> TestSuite.withData(
+fun <Data> TestSuite.withData(
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig
 ) = ConfiguredDataTestScope<Data>(
-    if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
+    compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
     this,
@@ -259,14 +262,14 @@ inline fun <reified Data> TestSuite.withData(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
-inline fun <reified Data> TestSuite.withData(
+fun <Data> TestSuite.withData(
     data: Iterable<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredDataTestScope<Data>(
-    if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
+    compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
     this,
@@ -284,14 +287,14 @@ inline fun <reified Data> TestSuite.withData(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
-inline fun <reified Data> TestSuite.withData(
+fun <Data> TestSuite.withData(
     map: Map<String, Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredDataTestScope<Data>(
-    if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
+    compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
     this,
@@ -308,14 +311,14 @@ inline fun <reified Data> TestSuite.withData(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
-inline fun <reified Data> TestSuite.withData(
+fun <Data> TestSuite.withData(
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig
 ) = ConfiguredDataTestScope<Data>(
-    if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
+    compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
     this,
@@ -337,15 +340,15 @@ inline fun <reified Data> TestSuite.withData(
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-inline fun <reified Data> TestSuite.withDataSuites(
-    crossinline nameFn: (Data) -> String,
+fun <Data> TestSuite.withDataSuites(
+    nameFn: (Data) -> String,
     vararg arguments: Data,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig
 ) = ConfiguredDataTestScope<Data>(
-    if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
+    compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
     this,
@@ -365,15 +368,15 @@ inline fun <reified Data> TestSuite.withDataSuites(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
-inline fun <reified Data> TestSuite.withData(
-    crossinline nameFn: (Data) -> String,
+fun <Data> TestSuite.withData(
+    nameFn: (Data) -> String,
     data: Iterable<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredDataTestScope<Data>(
-    if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
+    compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
     this,
@@ -393,15 +396,15 @@ inline fun <reified Data> TestSuite.withData(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
-inline fun <reified Data> TestSuite.withData(
-    crossinline nameFn: (Data) -> String,
+fun <Data> TestSuite.withData(
+    nameFn: (Data) -> String,
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredDataTestScope<Data>(
-    if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
+    compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
     this,
@@ -421,16 +424,16 @@ inline fun <reified Data> TestSuite.withData(
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-inline fun <reified Data> TestSuite.withDataSuites(
+fun <Data> TestSuite.withDataSuites(
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    noinline action: TestSuite.(Data) -> Unit
+    action: TestSuite.(Data) -> Unit
 ) = withDataSuitesInternal(
     parameters.map { it.toString() to it }.asSequence(),
-    if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
+    compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
     testConfig,
@@ -447,16 +450,16 @@ inline fun <reified Data> TestSuite.withDataSuites(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each data item
  */
-inline fun <reified Data> TestSuite.withDataSuites(
+fun <Data> TestSuite.withDataSuites(
     data: Iterable<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    noinline action: TestSuite.(Data) -> Unit
+    action: TestSuite.(Data) -> Unit
 ) = withDataSuitesInternal(
     data.map { it.toString() to it }.asSequence(),
-    if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
+    compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
     testConfig,
@@ -474,16 +477,16 @@ inline fun <reified Data> TestSuite.withDataSuites(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each map value
  */
-inline fun <reified Data> TestSuite.withDataSuites(
+fun <Data> TestSuite.withDataSuites(
     map: Map<String, Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    noinline action: TestSuite.(Data) -> Unit
+    action: TestSuite.(Data) -> Unit
 ) = withDataSuitesInternal(
     map.map { (k, v) -> k to v }.asSequence(),
-    if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
+    compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
     testConfig,
@@ -500,16 +503,16 @@ inline fun <reified Data> TestSuite.withDataSuites(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each data item
  */
-inline fun <reified Data> TestSuite.withDataSuites(
+fun <Data> TestSuite.withDataSuites(
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    noinline action: TestSuite.(Data) -> Unit
+    action: TestSuite.(Data) -> Unit
 ) = withDataSuitesInternal(
     data.map { it.toString() to it },
-    if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
+    compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
     testConfig,
@@ -530,17 +533,17 @@ inline fun <reified Data> TestSuite.withDataSuites(
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-inline fun <reified Data> TestSuite.withDataSuites(
+fun <Data> TestSuite.withDataSuites(
     nameFn: (Data) -> String,
     vararg arguments: Data,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    noinline action: TestSuite.(Data) -> Unit
+    action: TestSuite.(Data) -> Unit
 ) = withDataSuitesInternal(
     arguments.map { nameFn(it) to it }.asSequence(),
-    if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
+    compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
     testConfig,
@@ -559,17 +562,17 @@ inline fun <reified Data> TestSuite.withDataSuites(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each data item
  */
-inline fun <reified Data> TestSuite.withDataSuites(
+fun <Data> TestSuite.withDataSuites(
     nameFn: (Data) -> String,
     data: Iterable<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    noinline action: TestSuite.(Data) -> Unit
+    action: TestSuite.(Data) -> Unit
 ) = withDataSuitesInternal(
     data.map { nameFn(it) to it }.asSequence(),
-    if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
+    compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
     testConfig,
@@ -588,17 +591,17 @@ inline fun <reified Data> TestSuite.withDataSuites(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each data item
  */
-inline fun <reified Data> TestSuite.withDataSuites(
-    crossinline nameFn: (Data) -> String,
+fun <Data> TestSuite.withDataSuites(
+    nameFn: (Data) -> String,
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    noinline action: TestSuite.(Data) -> Unit
+    action: TestSuite.(Data) -> Unit
 ) = withDataSuitesInternal(
     data.map { nameFn(it) to it },
-    if (compact) Data::class.simpleName ?: "<Anonymous>" else null,
+    compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
     testConfig,
@@ -619,15 +622,16 @@ inline fun <reified Data> TestSuite.withDataSuites(
 @PublishedApi
 internal fun <Data> TestSuite.withDataSuitesInternal(
     data: Sequence<Pair<String, Data>>,
-    compactedName: String?,
+    compact: Boolean,
     maxLength: Int,
     displayNameMaxLength: Int,
     testConfig: TestConfig = TestConfig,
     action: TestSuite.(Data) -> Unit
 ) {
 
-    if (compactedName != null) {
-        val testName = "[compacted] $compactedName"
+    if (compact) {
+        val (compactName, data) = data.peekTypeNameAndReplay { it.second }
+        val testName = "[compacted] $compactName"
         testSuite(
             name = testName.truncated(maxLength).escaped,
             displayName = testName.truncated(displayNameMaxLength).escaped,
@@ -643,15 +647,7 @@ internal fun <Data> TestSuite.withDataSuitesInternal(
                     errors["Error: $name"] = it
                 }
             }
-            if (errors.values.filterNotNull().isNotEmpty()) {
-                val messages = errors.map { (msg, err) -> msg + (err?.let { ": ${it.message}" }) }.joinToString("\n")
-                throw (if (errors.count { it is AssertionError } == errors.size) AssertionError(
-                    testName + "\n$messages"
-                )
-                else RuntimeException(
-                    testName + "\n$messages"
-                )).also { errors.values.filterNotNull().forEach(it::addSuppressed) }
-            }
+            collateErrors(errors, testName)
         }
     } else {
 
@@ -681,17 +677,19 @@ internal fun <Data> TestSuite.withDataSuitesInternal(
  * @param action Test action to execute for each map value
  */
 @PublishedApi
-internal inline fun <reified Data> TestSuite.withDataInternal(
+internal fun <Data> TestSuite.withDataInternal(
     map: Sequence<Pair<String, Data>>,
     testConfig: TestConfig = TestConfig,
     compact: Boolean,
     maxLength: Int,
     displayNameMaxLength: Int,
-    crossinline action: suspend (Data) -> Unit
+    action: suspend (Data) -> Unit
 ) {
 
+
     if (compact) {
-        val testName = "[compacted] " + Data::class.simpleName ?: "<Anonymous>"
+        val (compactName, map) = map.peekTypeNameAndReplay { it.second }
+        val testName = "[compacted] $compactName"
         test(
             name = testName.truncated(maxLength).escaped,
             displayName = testName.truncated(displayNameMaxLength).escaped,
@@ -706,18 +704,9 @@ internal inline fun <reified Data> TestSuite.withDataInternal(
                     mutex.withLock { errors["OK:    $name"] = null }
                 }.onFailure {
                     mutex.withLock { errors["Error: $name"] = it }
-
                 }
             }
-            if (errors.values.filterNotNull().isNotEmpty()) {
-                val messages = errors.map { (msg, err) -> msg + (err?.let { ": ${it.message}" }) }.joinToString("\n")
-                throw (if (errors.count { it is AssertionError } == errors.size) AssertionError(
-                    testName + "\n$messages"
-                )
-                else RuntimeException(
-                    testName + "\n$messages"
-                )).also { errors.values.filterNotNull().forEach(it::addSuppressed) }
-            }
+            collateErrors(errors, testName)
         }
     } else {
         for (d in map) {

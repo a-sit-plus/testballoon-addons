@@ -19,4 +19,11 @@ val aDataDrivenSuite by testSuite {
             word shouldBe "three"
         }
     }
+
+    withData(1, 2, 3, 4, compact = true) - { number ->
+        withData("one", "two", "three", "four") { word ->
+            number shouldBe number
+            word shouldBe "three"
+        }
+    }
 }
