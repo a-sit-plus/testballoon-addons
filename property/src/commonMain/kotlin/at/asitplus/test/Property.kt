@@ -27,14 +27,22 @@ object PropertyTest {
      */
     var defaultDisplayNameMaxLength: Int = -1
 
-    @Deprecated("to be removed in 0.6", replaceWith = ReplaceWith("defaultTestNameMaxLength"), level = DeprecationLevel.ERROR)
+    @Deprecated(
+        "to be removed in 0.6",
+        replaceWith = ReplaceWith("defaultTestNameMaxLength"),
+        level = DeprecationLevel.ERROR
+    )
     var maxLength
         get() = defaultTestNameMaxLength
         set(value) {
             defaultTestNameMaxLength = value
         }
 
-    @Deprecated("to be removed in 0.6", replaceWith = ReplaceWith("defaultTestNameMaxLength"), level = DeprecationLevel.ERROR)
+    @Deprecated(
+        "to be removed in 0.6",
+        replaceWith = ReplaceWith("defaultTestNameMaxLength"),
+        level = DeprecationLevel.ERROR
+    )
     var defaultMaxLength
         get() = defaultTestNameMaxLength
         set(value) {
@@ -253,8 +261,13 @@ private fun <Value> checkAllSeries(
         .takeWhile { constraints.evaluate(context) }
         .forEachIndexed { iter, sample ->
             context.markEvaluation()
-            series(iter, sample.value, context)
-            context.markSuccess()
+            catchingUnwrapped {
+                series(iter, sample.value, context)
+                context.markSuccess()
+            }.getOrElse {
+                context.markFailure()
+                throw it
+            }
         }
 }
 

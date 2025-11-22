@@ -61,7 +61,8 @@ fun collateErrors(
     errors: MutableMap<String, Throwable?>,
     testName: String
 ) {
-    if (errors.values.filterNotNull().isNotEmpty()) {
+    val actualErrors = errors.values.filterNotNull()
+    if (actualErrors.isNotEmpty()) {
         val (primaryLabel, primary) = errors.filterValues { it != null }.entries.first()
         val messages = errors.map { (msg, err) -> msg + (err?.let { ": ${it.message}" }?:"") }.joinToString("\n")
         val msg = buildString {
@@ -72,8 +73,8 @@ fun collateErrors(
             appendLine(primary!!.stackTraceToString())  // works on all KMP targets
             appendLine("----------------------------------------")
         }
-        val ex = (if (errors.count { it is AssertionError } == errors.size) AssertionError(msg)
-        else RuntimeException(msg)).also { errors.values.filterNotNull().forEach(it::addSuppressed) }
+        val ex = (if (actualErrors.count { it is AssertionError } == actualErrors.size) AssertionError(msg)
+        else RuntimeException(msg)).also { actualErrors.forEach(it::addSuppressed) }
         throw ex
     }
 }
