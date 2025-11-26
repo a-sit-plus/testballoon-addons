@@ -292,6 +292,11 @@ val aGeneratingSuite by testSuite {
             //without affecting the other!
             println("a=${it.a}, b=${it.b}") //a=1, b=2
         }
+        testSuite("withFixture") { obj ->
+            test("withObj") {
+                println("a=${obj.a}, b=${obj.b}") //a=1, b=2
+            }
+        }
     }
 
 

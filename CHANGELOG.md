@@ -2,6 +2,11 @@
 
 ## 0.x
 
+### 0.6.0
+* Allow fixture generation for test suites
+  * Due to name shadowing issues this is not yet supported for FreeSpec 
+* remove deprecations scheduled for 0.6 removal
+
 ### 0.5.0
 * Refactor to get rid of reification for:
   * proper stack traces

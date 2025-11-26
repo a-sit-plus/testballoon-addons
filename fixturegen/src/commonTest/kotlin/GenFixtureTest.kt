@@ -86,6 +86,7 @@ val firstGeneratingSuite by testSuite {
         //create new object for each test
         ABuggyImplementation(ageRNG.nextInt(0, 99))
     } - {
+
         repeat(1000) {
             test("Generated test accessing restricted resources") {
                 if (it.age == 18) it.restrictedAction() shouldBe true
@@ -168,10 +169,24 @@ val aGeneratingSuite by testSuite {
         ABuggyImplementation(ageRNG.nextInt(0, 99))
     } - {
         repeat(1000) {
+
             test("Generated test accessing restricted resources") {
                 //test `restrictedAction` across a wide age range
                 //a thousand times to unveil the bug
             }
+        }
+    }
+
+
+    withFixtureGenerator { delay(100);3 } -{
+        test("3 Test") {
+            it shouldBe 3
+        }
+        testSuite("3 Suite") { int ->
+            test("the Test") {
+                int shouldBe 3
+            }
+
         }
     }
 }

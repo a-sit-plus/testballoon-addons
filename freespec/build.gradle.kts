@@ -1,5 +1,6 @@
 @file:OptIn(ExperimentalWasmDsl::class)
 
+import at.asitplus.gradle.coroutines
 import at.asitplus.gradle.publishVersionCatalog
 import at.asitplus.gradle.setupDokka
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
@@ -72,6 +73,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
+                implementation(coroutines())
                 implementation(project(":commons"))
                 api("de.infix.testBalloon:testBalloon-framework-core:${libs.versions.testballoon.get()}")
             }

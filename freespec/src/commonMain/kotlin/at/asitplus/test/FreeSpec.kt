@@ -18,21 +18,6 @@ object FreeSpec {
      * The default maximum length of test element names (not display name). Default = -1 (no truncation)
      */
     var defaultDisplayNameMaxLength: Int = -1
-
-    @Deprecated("to be removed in 0.6", replaceWith = ReplaceWith("defaultTestNameMaxLength"), level = DeprecationLevel.ERROR)
-    var maxLength
-        get() = defaultTestNameMaxLength
-        set(value) {
-            defaultTestNameMaxLength = value
-        }
-
-    @Deprecated("to be removed in 0.6", replaceWith = ReplaceWith("defaultTestNameMaxLength"), level = DeprecationLevel.ERROR)
-    var defaultMaxLength
-        get() = defaultTestNameMaxLength
-        set(value) {
-            defaultTestNameMaxLength = value
-        }
-
 }
 
 context(suite: TestSuite)

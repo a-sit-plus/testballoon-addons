@@ -7,6 +7,7 @@ import de.infix.testBalloon.framework.shared.TestDisplayName
 import de.infix.testBalloon.framework.shared.TestElementName
 import de.infix.testBalloon.framework.shared.TestRegistering
 import kotlin.jvm.JvmInline
+import kotlinx.coroutines.runBlocking
 
 /**
  * Scope for managing mutable test fixtures that are regenerated for each test.
@@ -39,13 +40,29 @@ class GeneratingFixtureScope<T> @PublishedApi internal constructor(
     ) {
         testSuite.test(name.truncated(maxLength), displayName.escaped, testConfig = testConfig) { content(generator()) }
     }
-}
 
-
-@JvmInline
-value class GeneratingFixtureScopHolder<T>(val scope: GeneratingFixtureScope<T>) {
-
-    operator fun minus( block: GeneratingFixtureScope<T>.() -> Unit) = scope.block()
+    /**
+     * Registers a test suite that uses a fresh fixture instance as a child of the current [testSuite].
+     *
+     * **Note that any suspending generator will be wrapped by `runBlocking`!**
+     *
+     * @param name The name of the test
+     * @param displayName The display name of the test
+     * @param maxLength maximum length of test element name (not display name)
+     * @param testConfig Configuration for test execution
+     * @param content Test block that receives a newly generated fixture instance
+     */
+    @TestRegistering
+    fun testSuite(
+        @TestElementName name: String,
+        @TestDisplayName displayName: String = name,
+        maxLength: Int = DEFAULT_TEST_NAME_MAX_LEN,
+        testConfig: TestConfig = TestConfig,
+        content:  TestSuite.(T) -> Unit
+    ) {
+        testSuite.testSuite(name.truncated(maxLength), displayName.escaped, testConfig = testConfig) {
+            content( runBlocking { generator() }) }
+    }
 }
 
 @JvmInline
@@ -55,33 +72,6 @@ value class GeneratingSuspendFixtureScopHolder<T>(val scope: GeneratingFixtureSc
 }
 
 
-/**
- * Prepares a fixture-generating scope from a generator function.
- *
- * Use as follows:
- * ```kotlin
- * val aGeneratingSuite by testSuite {
- *     withFixtureGenerator { Random.nextBytes(32) } - {
- *
- *         test("A Test with fresh Randomness") { freshFixture ->
- *             //your test logic here
- *         }
- *
- *         repeat(100) {
- *             test("A Test with fresh Randomness") { freshFixture ->
- *                 //some more test logic; each call gets fresh randomness
- *             }
- *         }
- *     }
- * }
- * ```
- *
- * @param T The type of fixture object being managed
- * @param generator The generator function invoked to provide fresh state fo each test
- */
-fun <T> TestSuite.withFixtureGenerator(generator: (() -> T)) = GeneratingFixtureScopHolder(
-    GeneratingFixtureScope(this, generator)
-)
 
 /**
  * Prepares a fixture-generating scope from a generator function.
@@ -107,7 +97,5 @@ fun <T> TestSuite.withFixtureGenerator(generator: (() -> T)) = GeneratingFixture
  * @param T The type of fixture object being managed
  * @param generator The generator function invoked to provide fresh state fo each test
  */
-@Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
-@kotlin.internal.LowPriorityInOverloadResolution
 fun <T> TestSuite.withFixtureGenerator(generator: suspend (() -> T)) =
     GeneratingSuspendFixtureScopHolder(GeneratingFixtureScope(this, generator))

@@ -2,6 +2,8 @@ package at.asitplus.testballoon
 
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestExecutionScope
+//import de.infix.testBalloon.framework.core.TestSuite
+//import kotlinx.coroutines.runBlocking
 
 
 context(fixture: GeneratingFixtureScope<T>)
@@ -29,3 +31,27 @@ operator fun <T> String.invoke(
         nested(fixture.generator())
     }
 }
+
+/*
+context(fixture: GeneratingFixtureScope<T>)
+/**
+ * Creates a test suite with the specified name and body.
+ *
+ * @param suiteBody The body of the test suite.
+ */
+
+infix operator fun <T> String.minus(suiteBody: TestSuite.(T) -> Unit) =
+    fixture.testSuite.testSuite(this@minus.truncated(FreeSpec.defaultTestNameMaxLength), testConfig = TestConfig.disableByName(this@minus)) {
+        suiteBody( runBlocking { fixture.generator() }) }
+
+
+
+
+context(fixture: GeneratingFixtureScope<T>)
+/**
+ * Creates a test suite from a configured suite with the specified body.
+ *
+ * @param suiteBody The body of the test suite.
+ */
+infix operator fun <T> ConfiguredSuite.minus(suiteBody: TestSuite.(T) -> Unit)  =  fixture.testSuite.testSuite(testName.truncated(maxLength), displayName.escaped,  testConfig = config.disableByName(displayName)) {
+    suiteBody( runBlocking { generator() }) }*/
