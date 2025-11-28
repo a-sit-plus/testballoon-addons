@@ -1,12 +1,21 @@
-import at.asitplus.testballoon.withFixtureGenerator
 import at.asitplus.testballoon.invoke
 import at.asitplus.testballoon.minus
+import at.asitplus.testballoon.withFixtureGenerator
 import de.infix.testBalloon.framework.core.testSuite
 import io.kotest.matchers.string.shouldContain
 import kotlin.random.Random
 
 val aGeneratingFreeSpecSuite by testSuite {
     withFixtureGenerator { Random.nextBytes(32) } - {
+
+        //need to explicitly specify parameter to avoid ambiguities when nesting
+        "Foo" - { bytes ->
+            "Bar" - {
+                "baz" {
+                    bytes.toHexString() shouldContain "16"
+                }
+            }
+        }
 
         "A Test with fresh randomness" { freshFixture ->
             freshFixture.toHexString() shouldContain "16"
@@ -18,8 +27,8 @@ val aGeneratingFreeSpecSuite by testSuite {
             }
         }
 
-        //✨it ✨just ✨werks ✨
-        "Test with implicit fixture name `it`" {
+        //need to explicitly specify parameter to avoid ambiguities when nesting
+        "Test with implicit fixture name `it`" { it ->
             it.toHexString() shouldContain "26"
         }
 

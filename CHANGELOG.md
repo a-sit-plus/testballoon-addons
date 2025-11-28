@@ -2,6 +2,13 @@
 
 ## 0.x
 
+
+### 0.6.0 Breaking FreeSpec Fixture Generation
+* Support fixture generation for suites in addition to tests
+  * Support nesting, but only ever use the fixture generator for the toplevel scope
+  * FreeSpec now requires explicit fixture parameter specification to disambiguate
+* Remove deprecated properties marked for removal with 0.6
+
 ### 0.5.0
 * Refactor to get rid of reification for:
   * proper stack traces

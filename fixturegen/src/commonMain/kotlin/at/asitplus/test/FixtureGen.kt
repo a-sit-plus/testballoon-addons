@@ -37,15 +37,81 @@ class GeneratingFixtureScope<T> @PublishedApi internal constructor(
         testConfig: TestConfig = TestConfig,
         content: suspend TestExecutionScope.(T) -> Unit
     ) {
-        testSuite.test(name.truncated(maxLength), displayName.escaped, testConfig = testConfig) { content(generator()) }
+        testSuite.test(
+            name.truncated(maxLength).escaped,
+            displayName.truncated(maxLength).escaped,
+            testConfig = testConfig
+        ) { content(generator()) }
+    }
+}
+
+
+/**
+ * Scope for managing mutable test fixtures that are regenerated for each test.
+ * Provides a structured way to define tests that require fresh fixture instances generated before each test.
+ *
+ * @param T The type of fixture object being managed
+ * @property testSuite The parent test suite containing this mutable fixture scope
+ * @property generator Function that generates new fixture instances
+ */
+class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
+    val testSuite: TestSuite,
+    val generator: () -> T
+) {
+    /**
+     * Registers a test that uses a fresh fixture instance as a child of the current [testSuite].
+     *
+     * @param name The name of the test
+     * @param displayName The display name of the test
+     * @param maxLength maximum length of test element name (not display name)
+     * @param testConfig Configuration for test execution
+     * @param content Test block that receives a newly generated fixture instance
+     */
+    @TestRegistering
+    fun test(
+        @TestElementName name: String,
+        @TestDisplayName displayName: String = name,
+        maxLength: Int = DEFAULT_TEST_NAME_MAX_LEN,
+        testConfig: TestConfig = TestConfig,
+        content: suspend TestExecutionScope.(T) -> Unit
+    ) {
+        testSuite.test(
+            name.truncated(maxLength).escaped,
+            displayName.truncated(maxLength).escaped,
+            testConfig = testConfig
+        ) { content(generator()) }
+    }
+
+    /**
+     * Registers a test suite that uses a fresh fixture instance as a child of the current [testSuite].
+     *
+     * @param name The name of the suite
+     * @param displayName The display name of the test
+     * @param maxLength maximum length of test element name (not display name)
+     * @param testConfig Configuration for test execution
+     * @param content Test suite block that receives a newly generated fixture instance
+     */
+    @TestRegistering
+    fun testSuite(
+        @TestElementName name: String,
+        @TestDisplayName displayName: String = name,
+        maxLength: Int = DEFAULT_TEST_NAME_MAX_LEN,
+        testConfig: TestConfig = TestConfig,
+        content: TestSuite.(T) -> Unit
+    ) {
+        testSuite.testSuite(
+            name.truncated(maxLength).escaped,
+            displayName.truncated(maxLength).escaped,
+            testConfig = testConfig
+        ) { content(generator()) }
     }
 }
 
 
 @JvmInline
-value class GeneratingFixtureScopHolder<T>(val scope: GeneratingFixtureScope<T>) {
+value class GeneratingFixtureScopHolder<T>(val scope: NonSuspendingGeneratingFixtureScope<T>) {
 
-    operator fun minus( block: GeneratingFixtureScope<T>.() -> Unit) = scope.block()
+    operator fun minus(block: NonSuspendingGeneratingFixtureScope<T>.() -> Unit) = scope.block()
 }
 
 @JvmInline
@@ -80,7 +146,7 @@ value class GeneratingSuspendFixtureScopHolder<T>(val scope: GeneratingFixtureSc
  * @param generator The generator function invoked to provide fresh state fo each test
  */
 fun <T> TestSuite.withFixtureGenerator(generator: (() -> T)) = GeneratingFixtureScopHolder(
-    GeneratingFixtureScope(this, generator)
+    NonSuspendingGeneratingFixtureScope(this, generator)
 )
 
 /**

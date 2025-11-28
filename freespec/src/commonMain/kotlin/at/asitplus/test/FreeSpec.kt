@@ -19,20 +19,6 @@ object FreeSpec {
      */
     var defaultDisplayNameMaxLength: Int = -1
 
-    @Deprecated("to be removed in 0.6", replaceWith = ReplaceWith("defaultTestNameMaxLength"), level = DeprecationLevel.ERROR)
-    var maxLength
-        get() = defaultTestNameMaxLength
-        set(value) {
-            defaultTestNameMaxLength = value
-        }
-
-    @Deprecated("to be removed in 0.6", replaceWith = ReplaceWith("defaultTestNameMaxLength"), level = DeprecationLevel.ERROR)
-    var defaultMaxLength
-        get() = defaultTestNameMaxLength
-        set(value) {
-            defaultTestNameMaxLength = value
-        }
-
 }
 
 context(suite: TestSuite)
@@ -57,8 +43,9 @@ operator fun String.invoke(
     suite.test(
         freeSpecName(this).truncated(maxLength).escaped,
         displayName = displayName.truncated(displayNameMaxLength).escaped,
-        testConfig = testConfig.disableByName(this)
-    ) { nested() }
+        testConfig = testConfig.disableByName(this),
+        nested
+    )
 }
 
 
@@ -74,8 +61,8 @@ operator fun String.invoke(
  */
 data class ConfiguredSuite(
     val parent: TestSuite,
-    private val maxLength: Int = FreeSpec.defaultTestNameMaxLength,
-    private val displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
+     val maxLength: Int = FreeSpec.defaultTestNameMaxLength,
+     val displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
     val displayName: String,
     val testName: String,
     val config: TestConfig
@@ -90,9 +77,8 @@ data class ConfiguredSuite(
             freeSpecName(testName).truncated(maxLength).escaped,
             displayName = displayName.truncated(displayNameMaxLength).escaped,
             testConfig = config.disableByName(displayName),
-            content = fun TestSuite.() {
-                suiteBody()
-            })
+            content = suiteBody
+        )
     }
 
 }
@@ -128,8 +114,7 @@ infix operator fun String.minus(suiteBody: TestSuite.() -> Unit) {
         name = freeSpecName(this).truncated(FreeSpec.defaultTestNameMaxLength).escaped,
         displayName = freeSpecName(this).truncated(FreeSpec.defaultDisplayNameMaxLength).escaped,
         testConfig = TestConfig.disableByName(this),
-        content = fun TestSuite.() {
-            suiteBody()
-        })
+        content = suiteBody
+    )
 }
 
