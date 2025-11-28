@@ -13,6 +13,25 @@ val firstGeneratingSuite by testSuite {
 
     //reference function to be called for each test inside withFixtureGenerator
     withFixtureGenerator(random::nextFloat) - {
+
+        testSuite("Suite With Fixture") {
+            testSuite("Suite without") {
+                test("Test without") {
+                    it shouldBe 4
+                }
+            }
+            withFixtureGenerator(random::nextBoolean) - {
+                testSuite("Suite With Fixture") { bool ->
+
+                    test("TheTest") {
+                        bool shouldBe true
+                        it shouldBe 5
+                    }
+
+                }
+            }
+        }
+
         repeat(10) {
             test("Generated test with random float") {
                 it shouldBeGreaterThan 0.5f /*~50% success rate*/
@@ -96,7 +115,6 @@ val firstGeneratingSuite by testSuite {
 }
 
 
-
 val aGeneratingSuite by testSuite {
 
     //seed before the generator function, not inside!
@@ -133,7 +151,6 @@ val aGeneratingSuite by testSuite {
             it shouldBeGreaterThan 0f
         }
     }
-
 
 
     //always-the-same fixtures also work, of course

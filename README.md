@@ -227,9 +227,8 @@ TestBalloon enforces a strict separation between blue code and green code. This 
 nested
 test suites, and it supports deep concurrency,
 Hence, ye olde JUnit4-style `@Before` and `@After` hacks mutating global state are deliberately not supported.
-Sometimes, though, you really want fresh test data for every test&mdash;in effect, **you want to generate a fresh test
-fixture
-for every test**.
+Sometimes, though, you really want fresh data for every test or suite&mdash;in effect, **you want to generate a fresh test
+fixture for every test/suite**.
 
 Look no further:
 
@@ -252,6 +251,12 @@ val aGeneratingSuite by testSuite {
             }
         }
 
+
+        testSuite("Generated Suite with fresh randomness") { freshFixture ->
+            test("using the outer fixture") {
+                //your logic based on freshFixture here
+            }
+        }
         repeat(5) {
             //✨ it ✨ just ✨ werks ✨
             test("Test with implicit fixture name `it`") {
@@ -316,14 +321,34 @@ val aGeneratingSuite by testSuite {
         }
     }
 }
-
 ```
+
+> [!WARNING]  
+> A fixture-generating scope is intended to be consumed by the scope directly below it (i.e. the outermost test suite,
+> or directly by a test). Programmatically, you can mix this up and it will compile, but it will not run!
+> The following is an antipattern:
+> ```kotlin
+> val outermostSuite by testSuite {
+>   withFixtureGenerator(random::nextFloat) - {
+>     testSuite("outer") { /*fixture implicitly available as `it`*/
+>       test("nested") { float -> /**`it` is not available, explicit parameter specification messes things up*/
+>         //This will throw a runtime error, because "nested" will be erroneously wired directly below the outermos suite
+>       } 
+>     }
+>   }
+> }
+> ```
 
 <details>
 <summary>Combining with FreeSpec</summary> 
 
 | Maven Coordinates (if not using [modulator](https://github.com/a-sit-plus/modulator)) | `at.asitplus.testballoon:fixturegen-freespec:$version` |
 |---------------------------------------------------------------------------------------|--------------------------------------------------------|
+
+
+> [!WARNING]  
+> As without FreeSpec syntax, a fixture-generating scope is intended to be consumed by the scope directly below it (i.e. the outermost test suite,
+> or directly by a test). To disambiguate and be explicit about this, explicit parameter specification is required, starting with TestBalloon Addons 0.6.0.
 
 ```kotlin
 import at.asitplus.testballoon.withFixtureGenerator //   <- Look ma, only regular generatingFixture import!
@@ -337,8 +362,18 @@ val aGeneratingFreeSpecSuite by testSuite {
     //any lambda with any return type is a fixture generator. Type is reified.
     withFixtureGenerator { Random.nextBytes(32) } - {
 
-        "A Test with fresh randomness" { freshFixture ->
-            //your test logic here
+        "A Suite with fresh randomness" - { freshFixture ->
+            "Consuming outer fixture" {
+                //your freshFixture-based test logic here
+            }
+
+            withFixtureGenerator { Random.nextBytes(32) } - {
+                "With fresh inner fixture" { inner ->
+                    //your test logic here with always fresh inner
+                    //and fixed freshFixture from outer scope
+                }
+            }
+            
         }
 
         repeat(100) {
@@ -347,15 +382,15 @@ val aGeneratingFreeSpecSuite by testSuite {
             }
         }
 
-        //✨it ✨just ✨werks ✨
-        "Test with implicit fixture name `it`" {
+        //parameter must be explicitly specified to disambiguate
+        "Test with fixture name `it`" { it ->
             //no need for an explicit parameter name here, just use `it`
         }
 
         "And we can even nest!" - {
             withFixtureGenerator { Random.nextBytes(16) } - {
                 repeat(10) {
-                    "pure, high-octane magic going on" {
+                    "pure, high-octane magic going on" { it ->
                         //Woohoo! more randomness each run
                     }
                 }
