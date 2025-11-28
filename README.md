@@ -346,7 +346,7 @@ val aGeneratingSuite by testSuite {
 |---------------------------------------------------------------------------------------|--------------------------------------------------------|
 
 
-> [!WARNING]  
+> WARNING!  
 > As without FreeSpec syntax, a fixture-generating scope is intended to be consumed by the scope directly below it (i.e. the outermost test suite,
 > or directly by a test). To disambiguate and be explicit about this, explicit parameter specification is required, starting with TestBalloon Addons 0.6.0.
 
