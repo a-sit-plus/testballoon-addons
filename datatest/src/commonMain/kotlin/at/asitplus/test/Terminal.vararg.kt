@@ -1,6 +1,7 @@
 package at.asitplus.testballoon
 
 import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.TestExecutionScope
 import de.infix.testBalloon.framework.core.TestSuite
 
 /**
@@ -21,7 +22,7 @@ fun <Data> TestSuite.withData(
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    action: suspend (Data) -> Unit
+    action: suspend TestExecutionScope.(Data) -> Unit
 ) = withDataInternal(
     parameters.asSequence().map { it.toPrettyString() to it },
     testConfig,
@@ -52,7 +53,7 @@ fun <Data> TestSuite.withData(
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    action: suspend (Data) -> Unit
+    action: suspend TestExecutionScope.(Data) -> Unit
 ) = withDataInternal(
     parameters.asSequence().map { nameFn(it) to it },
     testConfig,
