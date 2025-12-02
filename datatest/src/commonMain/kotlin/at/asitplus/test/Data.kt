@@ -2,6 +2,7 @@ package at.asitplus.testballoon
 
 import at.asitplus.catchingUnwrapped
 import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.TestExecutionScope
 import de.infix.testBalloon.framework.core.TestSuite
 
 /**
@@ -56,7 +57,7 @@ internal fun <Data> TestSuite.withDataInternal(
     compact: Boolean,
     maxLength: Int,
     displayNameMaxLength: Int,
-    action: suspend (Data) -> Unit
+    action: suspend TestExecutionScope.(Data) -> Unit
 ) {
     if (compact) {
         val (compactName, map) = map.peekTypeNameAndReplay { it.second }

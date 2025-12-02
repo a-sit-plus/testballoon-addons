@@ -17,6 +17,7 @@ val aDataDrivenSuite by testSuite {
         withData(number.toString(), "one",null, null, null, "two", "three", "four", compact = true) { word ->
             number shouldBe number
             word shouldBe "three"
+
         }
     }
 

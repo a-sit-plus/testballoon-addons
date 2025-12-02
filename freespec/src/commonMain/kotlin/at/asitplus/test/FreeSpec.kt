@@ -61,8 +61,8 @@ operator fun String.invoke(
  */
 data class ConfiguredSuite(
     val parent: TestSuite,
-     val maxLength: Int = FreeSpec.defaultTestNameMaxLength,
-     val displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
+    val maxLength: Int = FreeSpec.defaultTestNameMaxLength,
+    val displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
     val displayName: String,
     val testName: String,
     val config: TestConfig

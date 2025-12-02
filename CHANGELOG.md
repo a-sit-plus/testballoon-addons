@@ -2,6 +2,8 @@
 
 ## 0.x
 
+### 0.6.1
+* Add missing TestExecutionScope to data-driven test leaves
 
 ### 0.6.0 Breaking FreeSpec Fixture Generation
 * Support fixture generation for suites in addition to tests
