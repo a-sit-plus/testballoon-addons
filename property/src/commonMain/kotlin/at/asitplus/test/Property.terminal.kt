@@ -1,7 +1,7 @@
 package at.asitplus.testballoon
 
+import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.TestExecutionScope
 import de.infix.testBalloon.framework.core.TestSuite
 import io.kotest.property.Gen
 import io.kotest.property.PropertyContext
@@ -24,7 +24,7 @@ fun <Value> TestSuite.checkAll(
     maxLength: Int = PropertyTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    content: suspend context(PropertyContext) TestExecutionScope.(Value) -> Unit
+    content: suspend context(PropertyContext) Test.ExecutionScope.(Value) -> Unit
 ) = checkAll(
     PropertyTesting.defaultIterationCount,
     genA,
@@ -53,7 +53,7 @@ fun <Value> TestSuite.checkAll(
     maxLength: Int = PropertyTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    content: suspend context(PropertyContext) TestExecutionScope.(Value) -> Unit
+    content: suspend context(PropertyContext) Test.ExecutionScope.(Value) -> Unit
 ) = checkAllInternal(
     iterations,
     genA,

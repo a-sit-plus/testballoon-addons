@@ -18,6 +18,8 @@ tasks.getByName("dokkaHtmlMultiModule") {
     moduleName.set("TestBalloon-Addons")
 }
 
+subprojects { repositories {mavenLocal()} }
+
 allprojects {
     apply(plugin = "org.jetbrains.dokka")
     group = rootProject.group

@@ -1,7 +1,7 @@
 package at.asitplus.testballoon
 
+import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.TestExecutionScope
 import de.infix.testBalloon.framework.core.TestSuite
 
 /**
@@ -38,14 +38,16 @@ operator fun String.invoke(
     maxLength: Int = FreeSpec.defaultTestNameMaxLength,
     displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    nested: suspend TestExecutionScope.() -> Unit
+    nested: suspend Test.ExecutionScope.() -> Unit
 ) {
-    suite.test(
-        freeSpecName(this).truncated(maxLength).escaped,
-        displayName = displayName.truncated(displayNameMaxLength).escaped,
-        testConfig = testConfig.disableByName(this),
-        nested
-    )
+    with(suite.testSuiteInScope) {
+        test(
+            freeSpecName(this@invoke).truncated(maxLength).escaped,
+            displayName = displayName.truncated(displayNameMaxLength).escaped,
+            testConfig = testConfig.disableByName(this@invoke),
+            nested
+        )
+    }
 }
 
 
@@ -73,12 +75,14 @@ data class ConfiguredSuite(
      * @param suiteBody The body of the test suite.
      */
     infix operator fun minus(suiteBody: TestSuite.() -> Unit) {
-        parent.testSuite(
-            freeSpecName(testName).truncated(maxLength).escaped,
-            displayName = displayName.truncated(displayNameMaxLength).escaped,
-            testConfig = config.disableByName(displayName),
-            content = suiteBody
-        )
+        with(parent.testSuiteInScope) {
+            testSuite(
+                freeSpecName(testName).truncated(maxLength).escaped,
+                displayName = displayName.truncated(displayNameMaxLength).escaped,
+                testConfig = config.disableByName(displayName),
+                content = suiteBody
+            )
+        }
     }
 
 }
@@ -108,13 +112,14 @@ context(suite: TestSuite)
  *
  * @param suiteBody The body of the test suite.
  */
-infix operator fun String.minus(suiteBody: TestSuite.() -> Unit) {
+infix operator fun String.minus(suiteBody: TestSuite.() -> Unit) =
+    with(suite.testSuiteInScope) {
+        testSuite(
+            name = freeSpecName(this@minus).truncated(FreeSpec.defaultTestNameMaxLength).escaped,
+            displayName = freeSpecName(this@minus).truncated(FreeSpec.defaultDisplayNameMaxLength).escaped,
+            testConfig = TestConfig.disableByName(this@minus),
+            content = suiteBody
+        )
+    }
 
-    suite.testSuite(
-        name = freeSpecName(this).truncated(FreeSpec.defaultTestNameMaxLength).escaped,
-        displayName = freeSpecName(this).truncated(FreeSpec.defaultDisplayNameMaxLength).escaped,
-        testConfig = TestConfig.disableByName(this),
-        content = suiteBody
-    )
-}
 

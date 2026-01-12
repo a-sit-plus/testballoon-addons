@@ -5,6 +5,7 @@ rootProject.name = "testballoon-addons"
 
 pluginManagement {
     repositories {
+        mavenLocal()
         google()
         mavenCentral()
         gradlePluginPortal()

@@ -1,8 +1,8 @@
 package at.asitplus.testballoon
 
 import at.asitplus.catchingUnwrapped
+import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.TestExecutionScope
 import de.infix.testBalloon.framework.core.TestSuite
 import io.kotest.property.*
 
@@ -27,7 +27,6 @@ object PropertyTest {
      */
     var defaultDisplayNameMaxLength: Int = -1
 }
-
 
 
 data class ConfiguredPropertyScope<Value>(
@@ -186,7 +185,7 @@ internal fun <Value> TestSuite.checkAllInternal(
     maxLength: Int,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    content: suspend context(PropertyContext) TestExecutionScope.(Value) -> Unit
+    content: suspend context(PropertyContext) Test.ExecutionScope.(Value) -> Unit
 ) {
 
     if (compact) {
