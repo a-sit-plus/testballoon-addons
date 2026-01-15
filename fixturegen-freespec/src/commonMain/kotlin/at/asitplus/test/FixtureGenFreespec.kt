@@ -23,7 +23,7 @@ operator fun <T> String.invoke(
     testConfig: TestConfig = TestConfig,
     nested: suspend Test.ExecutionScope.(T) -> Unit
 ) {
-    with(fixture.testSuite.testSuiteInScope) {
+    with(fixture.testSuite) {
         test(
             freeSpecName(this@invoke).truncated(maxLength).escaped,
             displayName = displayName.truncated(displayNameMaxLength).escaped,
@@ -92,7 +92,7 @@ operator fun <T> String.invoke(
     displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig
 ) = ConfiguredSuite(
-    fixture.testSuite.testSuiteInScope,
+    fixture.testSuite,
     maxLength,
     displayNameMaxLength,
     freeSpecName(displayName),
@@ -101,7 +101,7 @@ operator fun <T> String.invoke(
 )
 
 context(fixture: NonSuspendingGeneratingFixtureScope<T>)
-infix operator fun <T> ConfiguredSuite.minus(suiteBody: TestSuiteScope.(T) -> Unit) = with(fixture.testSuite.testSuiteInScope) {
+infix operator fun <T> ConfiguredSuite.minus(suiteBody: TestSuiteScope.(T) -> Unit) = with(fixture.testSuite) {
     testSuite(
         testName.truncated(maxLength).escaped,
         displayName.truncated(displayNameMaxLength).escaped,

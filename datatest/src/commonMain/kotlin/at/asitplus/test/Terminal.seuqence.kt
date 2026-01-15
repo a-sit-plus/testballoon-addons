@@ -3,6 +3,7 @@ package at.asitplus.testballoon
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuite
+import de.infix.testBalloon.framework.core.TestSuiteScope
 
 
 /**
@@ -15,7 +16,7 @@ import de.infix.testBalloon.framework.core.TestSuite
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each sequence item
  */
-fun <Data> TestSuite.withData(
+fun <Data> TestSuiteScope.withData(
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
@@ -43,7 +44,7 @@ fun <Data> TestSuite.withData(
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each sequence item
  */
-fun <Data> TestSuite.withData(
+fun <Data> TestSuiteScope.withData(
     nameFn: (Data) -> String,
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,

@@ -4,6 +4,7 @@ import at.asitplus.catchingUnwrapped
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuite
+import de.infix.testBalloon.framework.core.TestSuiteScope
 import io.kotest.property.*
 
 
@@ -33,7 +34,7 @@ data class ConfiguredPropertyScope<Value>(
     private val compact: Boolean,
     private val maxLength: Int,
     private val displayNameMaxLength: Int,
-    val testSuite: TestSuite,
+    val testSuite: TestSuiteScope,
     val iterations: Int,
     val genA: Gen<Value>,
     val testConfig: TestConfig = TestConfig
@@ -41,7 +42,7 @@ data class ConfiguredPropertyScope<Value>(
     /**
      * @param content Test suite block receiving generated values
      */
-    operator fun minus(content: context(PropertyContext) TestSuite.(Value) -> Unit) {
+    operator fun minus(content: context(PropertyContext) TestSuiteScope.(Value) -> Unit) {
         testSuite.checkAllSuitesInternal(
             iterations,
             genA,
@@ -111,14 +112,14 @@ private fun <Value> Gen<Value>.generateSequence(
     }
 }
 
-internal fun <Value> TestSuite.checkAllSuitesInternal(
+internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
     iterations: Int,
     genA: Gen<Value>,
     compact: Boolean,
     maxLength: Int,
     displayNameMaxLength: Int,
     testConfig: TestConfig = TestConfig,
-    content: context(PropertyContext) TestSuite.(Value) -> Unit
+    content: context(PropertyContext) TestSuiteScope.(Value) -> Unit
 ) {
     if (!compact) {
         checkAllSeries(iterations, genA) { iter, value, context ->
@@ -129,7 +130,7 @@ internal fun <Value> TestSuite.checkAllSuitesInternal(
                 name = name.truncated(maxLength).escaped,
                 displayName = name.truncated(displayNameMaxLength).escaped,
                 testConfig = testConfig,
-                content = fun TestSuite.() {
+                content = fun TestSuiteScope.() {
                     with(context) {
                         content(value)
                     }
@@ -178,7 +179,7 @@ internal fun <Value> TestSuite.checkAllSuitesInternal(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param content Test execution block receiving generated values
  */
-internal fun <Value> TestSuite.checkAllInternal(
+internal fun <Value> TestSuiteScope.checkAllInternal(
     iterations: Int,
     genA: Gen<Value>,
     compact: Boolean,

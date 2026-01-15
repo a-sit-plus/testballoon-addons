@@ -3,6 +3,7 @@ package at.asitplus.testballoon
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuite
+import de.infix.testBalloon.framework.core.TestSuiteScope
 import io.kotest.property.Gen
 import io.kotest.property.PropertyContext
 import io.kotest.property.PropertyTesting
@@ -18,7 +19,7 @@ import io.kotest.property.PropertyTesting
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param content Test execution block receiving generated values
  */
-fun <Value> TestSuite.checkAll(
+fun <Value> TestSuiteScope.checkAll(
     genA: Gen<Value>,
     compact: Boolean = PropertyTest.compactByDefault,
     maxLength: Int = PropertyTest.defaultTestNameMaxLength,
@@ -46,7 +47,7 @@ fun <Value> TestSuite.checkAll(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param content Test execution block receiving generated values
  */
-fun <Value> TestSuite.checkAll(
+fun <Value> TestSuiteScope.checkAll(
     iterations: Int,
     genA: Gen<Value>,
     compact: Boolean = PropertyTest.compactByDefault,

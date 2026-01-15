@@ -38,7 +38,7 @@ class GeneratingFixtureScope<T> @PublishedApi internal constructor(
         testConfig: TestConfig = TestConfig,
         content: suspend Test.ExecutionScope.(T) -> Unit
     ) {
-        with(testSuite.testSuiteInScope) {
+        with(testSuite) {
             test(
                 name.truncated(maxLength).escaped,
                 displayName.truncated(maxLength).escaped,
@@ -58,7 +58,7 @@ class GeneratingFixtureScope<T> @PublishedApi internal constructor(
  * @property generator Function that generates new fixture instances
  */
 class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
-    val testSuite: TestSuite,
+    val testSuite: TestSuiteScope,
     val generator: () -> T
 ) {
     /**
@@ -78,7 +78,7 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
         testConfig: TestConfig = TestConfig,
         content: suspend Test.ExecutionScope.(T) -> Unit
     ) {
-        with(testSuite.testSuiteInScope) {
+        with(testSuite) {
             test(
                 name.truncated(maxLength).escaped,
                 displayName.truncated(maxLength).escaped,
@@ -104,7 +104,7 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
         testConfig: TestConfig = TestConfig,
         content: TestSuiteScope.(T) -> Unit
     ) {
-        with(testSuite.testSuiteInScope) {
+        with(testSuite) {
             testSuite(
                 name.truncated(maxLength).escaped,
                 displayName.truncated(maxLength).escaped,
@@ -153,7 +153,7 @@ value class GeneratingSuspendFixtureScopHolder<T>(val scope: GeneratingFixtureSc
  * @param generator The generator function invoked to provide fresh state fo each test
  */
 fun <T> TestSuiteScope.withFixtureGenerator(generator: (() -> T)) = GeneratingFixtureScopHolder(
-    NonSuspendingGeneratingFixtureScope(this.testSuiteInScope, generator)
+    NonSuspendingGeneratingFixtureScope(this, generator)
 )
 
 /**
@@ -182,5 +182,5 @@ fun <T> TestSuiteScope.withFixtureGenerator(generator: (() -> T)) = GeneratingFi
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-fun <T> TestSuite.withFixtureGenerator(generator: suspend (() -> T)) =
-    GeneratingSuspendFixtureScopHolder(GeneratingFixtureScope(this.testSuiteInScope, generator))
+fun <T> TestSuiteScope.withFixtureGenerator(generator: suspend (() -> T)) =
+    GeneratingSuspendFixtureScopHolder(GeneratingFixtureScope(this, generator))

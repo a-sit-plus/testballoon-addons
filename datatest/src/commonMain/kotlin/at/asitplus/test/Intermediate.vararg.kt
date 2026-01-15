@@ -2,6 +2,7 @@ package at.asitplus.testballoon
 
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuite
+import de.infix.testBalloon.framework.core.TestSuiteScope
 
 
 /**
@@ -15,7 +16,7 @@ import de.infix.testBalloon.framework.core.TestSuite
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-fun <Data> TestSuite.withData(
+fun <Data> TestSuiteScope.withData(
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
@@ -44,7 +45,7 @@ fun <Data> TestSuite.withData(
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-fun <Data> TestSuite.withData(
+fun <Data> TestSuiteScope.withData(
     nameFn: (Data) -> String,
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
@@ -73,13 +74,13 @@ fun <Data> TestSuite.withData(
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-fun <Data> TestSuite.withDataSuites(
+fun <Data> TestSuiteScope.withDataSuites(
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    action: TestSuite.(Data) -> Unit
+    action: TestSuiteScope.(Data) -> Unit
 ) = withDataSuitesInternal(
     parameters.map { it.toPrettyString() to it }.asSequence(),
     compact,
@@ -104,14 +105,14 @@ fun <Data> TestSuite.withDataSuites(
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-fun <Data> TestSuite.withDataSuites(
+fun <Data> TestSuiteScope.withDataSuites(
     nameFn: (Data) -> String,
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    action: TestSuite.(Data) -> Unit
+    action: TestSuiteScope.(Data) -> Unit
 ) = withDataSuitesInternal(
     parameters.map { nameFn(it) to it }.asSequence(),
     compact,

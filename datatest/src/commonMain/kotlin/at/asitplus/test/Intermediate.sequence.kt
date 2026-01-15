@@ -2,6 +2,7 @@ package at.asitplus.testballoon
 
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuite
+import de.infix.testBalloon.framework.core.TestSuiteScope
 
 
 /**
@@ -13,7 +14,7 @@ import de.infix.testBalloon.framework.core.TestSuite
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
-fun <Data> TestSuite.withData(
+fun <Data> TestSuiteScope.withData(
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
@@ -40,7 +41,7 @@ fun <Data> TestSuite.withData(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
-fun <Data> TestSuite.withData(
+fun <Data> TestSuiteScope.withData(
     nameFn: (Data) -> String,
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
@@ -66,13 +67,13 @@ fun <Data> TestSuite.withData(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each data item
  */
-fun <Data> TestSuite.withDataSuites(
+fun <Data> TestSuiteScope.withDataSuites(
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    action: TestSuite.(Data) -> Unit
+    action: TestSuiteScope.(Data) -> Unit
 ) = withDataSuitesInternal(
     data.map { it.toPrettyString() to it },
     compact,
@@ -94,14 +95,14 @@ fun <Data> TestSuite.withDataSuites(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each data item
  */
-fun <Data> TestSuite.withDataSuites(
+fun <Data> TestSuiteScope.withDataSuites(
     nameFn: (Data) -> String,
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    action: TestSuite.(Data) -> Unit
+    action: TestSuiteScope.(Data) -> Unit
 ) = withDataSuitesInternal(
     data.map { nameFn(it) to it },
     compact,

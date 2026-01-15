@@ -4,6 +4,7 @@ import at.asitplus.catchingUnwrapped
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuite
+import de.infix.testBalloon.framework.core.TestSuiteScope
 
 /**
  * Global knobs to tweak the behavior of DataTest Addon
@@ -32,10 +33,10 @@ data class ConfiguredDataTestScope<Data>(
     private val compact: Boolean,
     private val maxLength: Int = DataTest.defaultTestNameMaxLength,
     private val displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
-    val testSuite: TestSuite, val map: Sequence<Pair<String, Data>>,
+    val testSuite: TestSuiteScope, val map: Sequence<Pair<String, Data>>,
     val testConfig: TestConfig = TestConfig,
 ) {
-    operator fun minus(action: TestSuite.(Data) -> Unit) =
+    operator fun minus(action: TestSuiteScope.(Data) -> Unit) =
         testSuite.withDataSuitesInternal(map, compact, maxLength, displayNameMaxLength, testConfig, action)
 }
 
@@ -51,7 +52,7 @@ data class ConfiguredDataTestScope<Data>(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test action to execute for each map value
  */
-internal fun <Data> TestSuite.withDataInternal(
+internal fun <Data> TestSuiteScope.withDataInternal(
     map: Sequence<Pair<String, Data>>,
     testConfig: TestConfig = TestConfig,
     compact: Boolean,
@@ -62,7 +63,7 @@ internal fun <Data> TestSuite.withDataInternal(
     if (compact) {
         val (compactName, map) = map.peekTypeNameAndReplay { it.second }
         val testName = "[compacted] $compactName"
-        testSuiteInScope.test(
+        test(
             name = testName.truncated(maxLength).escaped,
             displayName = testName.truncated(displayNameMaxLength).escaped,
             testConfig = testConfig
@@ -81,7 +82,7 @@ internal fun <Data> TestSuite.withDataInternal(
         }
     } else {
         for (d in map) {
-            testSuiteInScope.test(
+            test(
                 name = d.first.truncated(maxLength).escaped,
                 displayName = d.first.truncated(displayNameMaxLength).escaped,
                 testConfig = testConfig
@@ -101,19 +102,19 @@ internal fun <Data> TestSuite.withDataInternal(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each data item
  */
-internal fun <Data> TestSuite.withDataSuitesInternal(
+internal fun <Data> TestSuiteScope.withDataSuitesInternal(
     data: Sequence<Pair<String, Data>>,
     compact: Boolean,
     maxLength: Int,
     displayNameMaxLength: Int,
     testConfig: TestConfig = TestConfig,
-    action: TestSuite.(Data) -> Unit
+    action: TestSuiteScope.(Data) -> Unit
 ) {
 
     if (compact) {
         val (compactName, data) = data.peekTypeNameAndReplay { it.second }
         val testName = "[compacted] $compactName"
-        testSuiteInScope.testSuite(
+        testSuite(
             name = testName.truncated(maxLength).escaped,
             displayName = testName.truncated(displayNameMaxLength).escaped,
             testConfig = testConfig
@@ -134,11 +135,11 @@ internal fun <Data> TestSuite.withDataSuitesInternal(
 
         for (d in data) {
             val name = d.first.escaped
-            testSuiteInScope.testSuite(
+            testSuite(
                 name = name.truncated(maxLength).escaped,
                 displayName = name.truncated(displayNameMaxLength).escaped,
                 testConfig = testConfig,
-                content = fun TestSuite.() {
+                content = fun TestSuiteScope.() {
                     action(d.second)
                 })
         }

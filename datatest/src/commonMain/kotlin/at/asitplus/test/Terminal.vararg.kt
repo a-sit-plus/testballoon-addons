@@ -3,6 +3,7 @@ package at.asitplus.testballoon
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuite
+import de.infix.testBalloon.framework.core.TestSuiteScope
 
 /**
  * Executes a test for each provided data parameter.
@@ -16,7 +17,7 @@ import de.infix.testBalloon.framework.core.TestSuite
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-fun <Data> TestSuite.withData(
+fun <Data> TestSuiteScope.withData(
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
@@ -46,7 +47,7 @@ fun <Data> TestSuite.withData(
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-fun <Data> TestSuite.withData(
+fun <Data> TestSuiteScope.withData(
     nameFn: (Data) -> String,
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,

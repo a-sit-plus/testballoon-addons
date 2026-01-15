@@ -41,7 +41,7 @@ operator fun String.invoke(
     testConfig: TestConfig = TestConfig,
     nested: suspend Test.ExecutionScope.() -> Unit
 ) {
-    with(suite.testSuiteInScope) {
+    with(suite) {
         test(
             freeSpecName(this@invoke).truncated(maxLength).escaped,
             displayName = displayName.truncated(displayNameMaxLength).escaped,
@@ -76,7 +76,7 @@ data class ConfiguredSuite(
      * @param suiteBody The body of the test suite.
      */
     infix operator fun minus(suiteBody: TestSuiteScope.() -> Unit) {
-        with(parent.testSuiteInScope) {
+        with(parent) {
             testSuite(
                 freeSpecName(testName).truncated(maxLength).escaped,
                 displayName = displayName.truncated(displayNameMaxLength).escaped,
@@ -114,7 +114,7 @@ context(suite: TestSuiteScope)
  * @param suiteBody The body of the test suite.
  */
 infix operator fun String.minus(suiteBody: TestSuiteScope.() -> Unit) =
-    with(suite.testSuiteInScope) {
+    with(suite) {
         testSuite(
             name = freeSpecName(this@minus).truncated(FreeSpec.defaultTestNameMaxLength).escaped,
             displayName = freeSpecName(this@minus).truncated(FreeSpec.defaultDisplayNameMaxLength).escaped,

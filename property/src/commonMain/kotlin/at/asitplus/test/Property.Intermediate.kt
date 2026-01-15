@@ -2,6 +2,7 @@ package at.asitplus.testballoon
 
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuite
+import de.infix.testBalloon.framework.core.TestSuiteScope
 import io.kotest.property.Gen
 import io.kotest.property.PropertyContext
 import io.kotest.property.PropertyTesting
@@ -16,7 +17,7 @@ import io.kotest.property.PropertyTesting
  * @param testConfig Optional test configuration
  * @param content Test suite block receiving generated values
  */
-fun <A> TestSuite.checkAll(
+fun <A> TestSuiteScope.checkAll(
     genA: Gen<A>,
     compact: Boolean = PropertyTest.compactByDefault,
     maxLength: Int = PropertyTest.defaultTestNameMaxLength,
@@ -43,7 +44,7 @@ fun <A> TestSuite.checkAll(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
-fun <Value> TestSuite.checkAll(
+fun <Value> TestSuiteScope.checkAll(
     iterations: Int,
     genA: Gen<Value>,
     compact: Boolean = PropertyTest.compactByDefault,
@@ -71,13 +72,13 @@ fun <Value> TestSuite.checkAll(
  * @param testConfig Optional test configuration
  * @param content Test suite block receiving generated values
  */
-fun <A> TestSuite.checkAllSuites(
+fun <A> TestSuiteScope.checkAllSuites(
     genA: Gen<A>,
     compact: Boolean = PropertyTest.compactByDefault,
     maxLength: Int = PropertyTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    content: context(PropertyContext) TestSuite.(A) -> Unit
+    content: context(PropertyContext) TestSuiteScope.(A) -> Unit
 ) = checkAllSuitesInternal(
     PropertyTesting.defaultIterationCount,
     genA,
@@ -101,14 +102,14 @@ fun <A> TestSuite.checkAllSuites(
  * @param testConfig Optional test configuration
  * @param content Test suite block receiving generated values
  */
-fun <Value> TestSuite.checkAllSuites(
+fun <Value> TestSuiteScope.checkAllSuites(
     iterations: Int,
     genA: Gen<Value>,
     compact: Boolean = PropertyTest.compactByDefault,
     maxLength: Int = PropertyTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    content: context(PropertyContext) TestSuite.(Value) -> Unit
+    content: context(PropertyContext) TestSuiteScope.(Value) -> Unit
 ) = checkAllSuitesInternal(
     iterations,
     genA,

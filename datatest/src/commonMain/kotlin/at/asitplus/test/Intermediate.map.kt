@@ -2,7 +2,7 @@ package at.asitplus.testballoon
 
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuite
-
+import de.infix.testBalloon.framework.core.TestSuiteScope
 
 
 /**
@@ -15,7 +15,7 @@ import de.infix.testBalloon.framework.core.TestSuite
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param testConfig Optional test configuration
  */
-fun <Data> TestSuite.withData(
+fun <Data> TestSuiteScope.withData(
     map: Map<String, Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
@@ -41,13 +41,13 @@ fun <Data> TestSuite.withData(
  * @param displayNameMaxLength maximum length of test element **display name**
  * @param action Test suite configuration action for each map value
  */
-fun <Data> TestSuite.withDataSuites(
+fun <Data> TestSuiteScope.withDataSuites(
     map: Map<String, Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
     testConfig: TestConfig = TestConfig,
-    action: TestSuite.(Data) -> Unit
+    action: TestSuiteScope.(Data) -> Unit
 ) = withDataSuitesInternal(
     map.map { (k, v) -> k to v }.asSequence(),
     compact,
