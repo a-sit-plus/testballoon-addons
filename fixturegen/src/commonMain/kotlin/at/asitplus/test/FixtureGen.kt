@@ -152,7 +152,7 @@ value class GeneratingSuspendFixtureScopHolder<T>(val scope: GeneratingFixtureSc
  * @param T The type of fixture object being managed
  * @param generator The generator function invoked to provide fresh state fo each test
  */
-fun <T> TestSuite.withFixtureGenerator(generator: (() -> T)) = GeneratingFixtureScopHolder(
+fun <T> TestSuiteScope.withFixtureGenerator(generator: (() -> T)) = GeneratingFixtureScopHolder(
     NonSuspendingGeneratingFixtureScope(this.testSuiteInScope, generator)
 )
 

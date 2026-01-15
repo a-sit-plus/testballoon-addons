@@ -3,6 +3,7 @@ package at.asitplus.testballoon
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuite
+import de.infix.testBalloon.framework.core.TestSuiteScope
 
 /**
  * Global knobs to tweak the behavior of PropertyTest Addon
@@ -21,7 +22,7 @@ object FreeSpec {
 
 }
 
-context(suite: TestSuite)
+context(suite: TestSuiteScope)
 /**
  * Creates a test case with the specified name and configuration.
  *
@@ -62,7 +63,7 @@ operator fun String.invoke(
  * @property config The configuration for the suite
  */
 data class ConfiguredSuite(
-    val parent: TestSuite,
+    val parent: TestSuiteScope,
     val maxLength: Int = FreeSpec.defaultTestNameMaxLength,
     val displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
     val displayName: String,
@@ -74,7 +75,7 @@ data class ConfiguredSuite(
      *
      * @param suiteBody The body of the test suite.
      */
-    infix operator fun minus(suiteBody: TestSuite.() -> Unit) {
+    infix operator fun minus(suiteBody: TestSuiteScope.() -> Unit) {
         with(parent.testSuiteInScope) {
             testSuite(
                 freeSpecName(testName).truncated(maxLength).escaped,
@@ -87,7 +88,7 @@ data class ConfiguredSuite(
 
 }
 
-context(suite: TestSuite)
+context(suite: TestSuiteScope)
 
 /**
  * Creates a configured suite with the specified name and configuration.
@@ -106,13 +107,13 @@ operator fun String.invoke(
 ) =
     ConfiguredSuite(suite, maxLength, displayNameMaxLength, displayName, this, testConfig)
 
-context(suite: TestSuite)
+context(suite: TestSuiteScope)
 /**
  * Creates a test suite with the specified name and body.
  *
  * @param suiteBody The body of the test suite.
  */
-infix operator fun String.minus(suiteBody: TestSuite.() -> Unit) =
+infix operator fun String.minus(suiteBody: TestSuiteScope.() -> Unit) =
     with(suite.testSuiteInScope) {
         testSuite(
             name = freeSpecName(this@minus).truncated(FreeSpec.defaultTestNameMaxLength).escaped,
