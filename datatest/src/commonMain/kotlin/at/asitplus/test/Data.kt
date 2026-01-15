@@ -62,7 +62,7 @@ internal fun <Data> TestSuite.withDataInternal(
     if (compact) {
         val (compactName, map) = map.peekTypeNameAndReplay { it.second }
         val testName = "[compacted] $compactName"
-        test(
+        testSuiteInScope.test(
             name = testName.truncated(maxLength).escaped,
             displayName = testName.truncated(displayNameMaxLength).escaped,
             testConfig = testConfig
@@ -81,7 +81,7 @@ internal fun <Data> TestSuite.withDataInternal(
         }
     } else {
         for (d in map) {
-            test(
+            testSuiteInScope.test(
                 name = d.first.truncated(maxLength).escaped,
                 displayName = d.first.truncated(displayNameMaxLength).escaped,
                 testConfig = testConfig
@@ -113,7 +113,7 @@ internal fun <Data> TestSuite.withDataSuitesInternal(
     if (compact) {
         val (compactName, data) = data.peekTypeNameAndReplay { it.second }
         val testName = "[compacted] $compactName"
-        testSuite(
+        testSuiteInScope.testSuite(
             name = testName.truncated(maxLength).escaped,
             displayName = testName.truncated(displayNameMaxLength).escaped,
             testConfig = testConfig
@@ -134,7 +134,7 @@ internal fun <Data> TestSuite.withDataSuitesInternal(
 
         for (d in data) {
             val name = d.first.escaped
-            testSuite(
+            testSuiteInScope.testSuite(
                 name = name.truncated(maxLength).escaped,
                 displayName = name.truncated(displayNameMaxLength).escaped,
                 testConfig = testConfig,
