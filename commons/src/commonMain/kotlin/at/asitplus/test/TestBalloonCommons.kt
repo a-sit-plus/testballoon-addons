@@ -3,7 +3,7 @@ package at.asitplus.testballoon
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.disable
 
-const val DEFAULT_TEST_NAME_MAX_LEN = 64
+const val DEFAULT_TEST_NAME_MAX_LEN = -1
 
 fun TestConfig.disableByName(name: String) =
     if (name.startsWith("!")) TestConfig.disable() else this

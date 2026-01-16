@@ -2,6 +2,9 @@
 
 ## 0.x
 
+### 0.6.2-RC2
+* Remove test name workarounds
+
 ### 0.6.2-RC
 * Support TestBalloon 0.8-RC
 
