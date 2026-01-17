@@ -23,8 +23,8 @@ import io.kotest.property.PropertyTesting
 fun <Value> TestSuiteScope.checkAll(
     genA: Gen<Value>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
+    maxLength: Int = PropertyTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
     content: suspend context(PropertyContext) Test.ExecutionScope.(Value) -> Unit
@@ -55,8 +55,8 @@ fun <Value> TestSuiteScope.checkAll(
     iterations: Int,
     genA: Gen<Value>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
+    maxLength: Int = PropertyTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
     content: suspend context(PropertyContext) Test.ExecutionScope.(Value) -> Unit

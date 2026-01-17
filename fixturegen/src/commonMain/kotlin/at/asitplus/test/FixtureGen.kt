@@ -2,7 +2,6 @@ package at.asitplus.testballoon
 
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.TestSuite
 import de.infix.testBalloon.framework.core.TestSuiteScope
 import de.infix.testBalloon.framework.shared.TestDisplayName
 import de.infix.testBalloon.framework.shared.TestElementName
@@ -40,8 +39,8 @@ class GeneratingFixtureScope<T> @PublishedApi internal constructor(
     ) {
         with(testSuite) {
             test(
-                name.truncated(maxLength).escaped,
-                displayName.truncated(maxLength).escaped,
+                (name.truncated(maxLength)),
+                (displayName.truncated(maxLength)),
                 testConfig = testConfig
             ) { content(generator()) }
         }
@@ -80,8 +79,8 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
     ) {
         with(testSuite) {
             test(
-                name.truncated(maxLength).escaped,
-                displayName.truncated(maxLength).escaped,
+                ( name.truncated(maxLength)),
+                ( displayName.truncated(maxLength)),
                 testConfig = testConfig
             ) { content(generator()) }
         }
@@ -106,8 +105,8 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
     ) {
         with(testSuite) {
             testSuite(
-                name.truncated(maxLength).escaped,
-                displayName.truncated(maxLength).escaped,
+                (name.truncated(maxLength)),
+                (displayName.truncated(maxLength)),
                 testConfig = testConfig
             ) { content(generator()) }
         }

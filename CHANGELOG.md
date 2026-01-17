@@ -2,10 +2,11 @@
 
 ## 0.x
 
-### 0.6.2-RC2
-* platform-agnostic test name length defaults
+### 0.7.0-RC
+* Platform-agnostic test name length defaults
 * Prefixes for data test and property test
-* shorter compact names
+* Shorter compact names
+* Global test name length configuration -> deprecate `DEFAULT_TEST_NAME_MAX_LEN`
 
 ### 0.6.2-RC
 * Support TestBalloon 0.8-RC

@@ -18,16 +18,29 @@ object PropertyTest {
     var compactByDefault = false
 
     /**
-     * The default maximum length of test element names (not display name). Default = 64. `-1` means no truncation
+     * The default maximum length of test element names (not display name).
+     * Defaults to [TestBalloonAddons.defaultTestNameMaxLength], but setting it here will take precedence.
+     * * `-1` means no truncation.
+     * * `null` means it will again fall back to [TestBalloonAddons.defaultTestNameMaxLength]
+     *
+     * This property's getter will never return null, but fall back to [TestBalloonAddons.defaultTestNameMaxLength].
      */
-    var defaultTestNameMaxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
+    var defaultTestNameMaxLength: Int? = null
+        get() = field?:TestBalloonAddons.defaultTestNameMaxLength
 
     /**
-     * The default maximum length of test element names (not display name). Default = -1 (no truncation)
+     * The default maximum length of test element display names (not test name).
+     * Defaults to [TestBalloonAddons.defaultDisplayNameMaxLength], but setting it here will take precedence.
+     * * `-1` means no truncation.
+     * * `null` means it will again fall back to [TestBalloonAddons.defaultDisplayNameMaxLength]
+     *
+     * This property's getter will never return null, but fall back to [TestBalloonAddons.defaultDisplayNameMaxLength].
      */
-    var defaultDisplayNameMaxLength: Int = -1
-}
+    var defaultDisplayNameMaxLength: Int? = null
+        get() = field?:TestBalloonAddons.defaultDisplayNameMaxLength
 
+
+}
 
 data class ConfiguredPropertyScope<Value>(
     private val compact: Boolean,
@@ -129,8 +142,8 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
             val type = if (value == null) "null" else value::class.simpleName
             val name = "$prefix${iter + 1} of $iterations ${type}s (${valueStr})"
             this@checkAllSuitesInternal.testSuite(
-                name = name.truncated(maxLength).escaped,
-                displayName = name.truncated(displayNameMaxLength).escaped,
+                name = (name.truncated(maxLength)),
+                displayName = (name.truncated(displayNameMaxLength)),
                 testConfig = testConfig,
                 content = fun TestSuiteScope.() {
                     with(context) {
@@ -144,8 +157,8 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
         val (compactName, series) = sequence.peekTypeNameAndReplay { it }
         val testName = "$prefix[*] $compactName"
         this@checkAllSuitesInternal.testSuite(
-            name = testName.truncated(maxLength).escaped,
-            displayName = testName.truncated(displayNameMaxLength).escaped,
+            name = (testName.truncated(maxLength)),
+            displayName = (testName.truncated(displayNameMaxLength)),
             testConfig = testConfig
         ) {
             val errors = mutableMapOf<String, Throwable?>()
@@ -188,7 +201,7 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
     genA: Gen<Value>,
     compact: Boolean,
     maxLength: Int,
-    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
+    displayNameMaxLength: Int,
     prefix: String,
     testConfig: TestConfig = TestConfig,
     content: suspend context(PropertyContext) Test.ExecutionScope.(Value) -> Unit
@@ -199,8 +212,8 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
         val (compactName, series) = sequence.peekTypeNameAndReplay { it }
         val testName = "$prefix[*] $compactName"
         this@checkAllInternal.test(
-            name = testName.truncated(maxLength).escaped,
-            displayName = testName.truncated(displayNameMaxLength).escaped,
+            name = (testName.truncated(maxLength)),
+            displayName = (testName.truncated(displayNameMaxLength)),
             testConfig = testConfig
         ) {
             val errors = mutableMapOf<String, Throwable?>()
@@ -228,8 +241,8 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
             val name =
                 "$prefix ${iter + 1} of $iterations ${if (value == null) "null" else value::class.simpleName}: $valueStr"
             this@checkAllInternal.test(
-                name = name.truncated(maxLength).escaped,
-                displayName = name.truncated(displayNameMaxLength).escaped,
+                name = (name.truncated(maxLength)),
+                displayName = (name.truncated(displayNameMaxLength)),
                 testConfig = testConfig
             ) {
                 with(context) {

@@ -18,8 +18,8 @@ import de.infix.testBalloon.framework.core.TestSuiteScope
 fun <Data> TestSuiteScope.withData(
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
     action: suspend Test.ExecutionScope.(Data) -> Unit
@@ -50,8 +50,8 @@ fun <Data> TestSuiteScope.withData(
     nameFn: (Data) -> String,
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
     action: suspend Test.ExecutionScope.(Data) -> Unit

@@ -19,6 +19,7 @@ pluginManagement {
 }
 
 include("commons")
+include("internals")
 include("freespec")
 include("property")
 include("datatest")

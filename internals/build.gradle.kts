@@ -30,7 +30,7 @@ publishVersionCatalog = false
 kotlin {
     jvm()
     androidLibrary {
-        namespace = "at.asitplus.testballoon.commons"
+        namespace = "at.asitplus.testballoon.internals"
     }
     macosArm64()
     macosX64()
@@ -69,7 +69,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(project(":internals"))
+                api("at.asitplus:kmmresult:1.9.3")
                 api("de.infix.testBalloon:testBalloon-framework-core:${libs.versions.testballoon.get()}")
             }
         }
@@ -98,7 +98,7 @@ publishing {
         withType<MavenPublication> {
             artifact(javadocJar)
             pom {
-                name.set("TestBalloon Addons Commons")
+                name.set("TestBalloon Addons Internals")
                 description.set("TestBalloon Addons common functionality")
                 url.set("https://github.com/a-sit-plus/testballoon-addons")
                 licenses {

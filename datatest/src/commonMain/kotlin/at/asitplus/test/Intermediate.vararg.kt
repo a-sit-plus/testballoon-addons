@@ -20,8 +20,8 @@ import de.infix.testBalloon.framework.core.TestSuiteScope
 fun <Data> TestSuiteScope.withData(
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig
 ) = ConfiguredDataTestScope<Data>(
@@ -53,8 +53,8 @@ fun <Data> TestSuiteScope.withData(
     nameFn: (Data) -> String,
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig
 ) = ConfiguredDataTestScope<Data>(
@@ -84,8 +84,8 @@ fun <Data> TestSuiteScope.withData(
 fun <Data> TestSuiteScope.withDataSuites(
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
     action: TestSuiteScope.(Data) -> Unit
@@ -119,8 +119,8 @@ fun <Data> TestSuiteScope.withDataSuites(
     nameFn: (Data) -> String,
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
     action: TestSuiteScope.(Data) -> Unit

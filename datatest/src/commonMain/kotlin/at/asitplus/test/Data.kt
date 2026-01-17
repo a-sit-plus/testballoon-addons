@@ -1,6 +1,7 @@
 package at.asitplus.testballoon
 
 import at.asitplus.catchingUnwrapped
+import at.asitplus.testballoon.TestBalloonAddons
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuiteScope
@@ -16,22 +17,34 @@ object DataTest {
     var compactByDefault = false
 
     /**
-     * The default maximum length of test element names (not display name). Default = 64. `-1` means no truncation
+     * The default maximum length of test element names (not display name).
+     * Defaults to [TestBalloonAddons.defaultTestNameMaxLength], but setting it here will take precedence.
+     * * `-1` means no truncation.
+     * * `null` means it will again fall back to [TestBalloonAddons.defaultTestNameMaxLength]
+     * 
+     * This property's getter will never return null, but fall back to [TestBalloonAddons.defaultTestNameMaxLength].
      */
-    var defaultTestNameMaxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
+    var defaultTestNameMaxLength: Int? = null
+        get() = field?:TestBalloonAddons.defaultTestNameMaxLength
 
     /**
-     * The default maximum length of test element names (not display name). Default = -1 (no truncation)
+     * The default maximum length of test element display names (not test name).
+     * Defaults to [TestBalloonAddons.defaultDisplayNameMaxLength], but setting it here will take precedence.
+     * * `-1` means no truncation.
+     * * `null` means it will again fall back to [TestBalloonAddons.defaultDisplayNameMaxLength]
+     * 
+     * This property's getter will never return null, but fall back to [TestBalloonAddons.defaultDisplayNameMaxLength].
      */
-    var defaultDisplayNameMaxLength: Int = -1
+    var defaultDisplayNameMaxLength: Int? = null
+        get() = field?:TestBalloonAddons.defaultDisplayNameMaxLength
 
 }
 
 
 data class ConfiguredDataTestScope<Data>(
     private val compact: Boolean,
-    private val maxLength: Int = DataTest.defaultTestNameMaxLength,
-    private val displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
+    private val maxLength: Int,
+    private val displayNameMaxLength: Int,
     val prefix: String,
     val testSuite: TestSuiteScope, val map: Sequence<Pair<String, Data>>,
     val testConfig: TestConfig = TestConfig,
@@ -67,8 +80,8 @@ internal fun <Data> TestSuiteScope.withDataInternal(
         val (compactName, map) = map.peekTypeNameAndReplay { it.second }
         val testName = "$prefix[*] $compactName"
         test(
-            name = testName.truncated(maxLength).escaped,
-            displayName = testName.truncated(displayNameMaxLength).escaped,
+            name = (testName.truncated(maxLength)),
+            displayName = (testName.truncated(displayNameMaxLength)),
             testConfig = testConfig
         ) {
             val errors = mutableMapOf<String, Throwable?>()
@@ -87,8 +100,8 @@ internal fun <Data> TestSuiteScope.withDataInternal(
         for (d in map) {
             val name = prefix + d.first
             test(
-                name = name.truncated(maxLength).escaped,
-                displayName = name.truncated(displayNameMaxLength).escaped,
+                name = (name.truncated(maxLength)),
+                displayName = (name.truncated(displayNameMaxLength)),
                 testConfig = testConfig
             ) { action(d.second) }
         }
@@ -121,8 +134,8 @@ internal fun <Data> TestSuiteScope.withDataSuitesInternal(
         val (compactName, data) = data.peekTypeNameAndReplay { it.second }
         val testName = "$prefix[*] $compactName"
         testSuite(
-            name = testName.truncated(maxLength).escaped,
-            displayName = testName.truncated(displayNameMaxLength).escaped,
+            name = (testName.truncated(maxLength)),
+            displayName = (testName.truncated(displayNameMaxLength)),
             testConfig = testConfig
         ) {
             val errors = mutableMapOf<String, Throwable?>()
@@ -139,10 +152,10 @@ internal fun <Data> TestSuiteScope.withDataSuitesInternal(
         }
     } else {
         for (d in data) {
-            val name = prefix + d.first.escaped
+            val name = prefix + d.first
             testSuite(
-                name = name.truncated(maxLength).escaped,
-                displayName = name.truncated(displayNameMaxLength).escaped,
+                name = (name.truncated(maxLength)),
+                displayName = (name.truncated(displayNameMaxLength)),
                 testConfig = testConfig,
                 content = fun TestSuiteScope.() {
                     action(d.second)

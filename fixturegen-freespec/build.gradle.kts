@@ -70,7 +70,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(project(":commons"))
+                implementation(project(":internals"))
                 carrier(project(":freespec"))
                 carrier(project(":fixturegen"))
             }

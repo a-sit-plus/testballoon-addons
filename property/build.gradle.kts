@@ -1,12 +1,10 @@
-import at.asitplus.gradle.coroutines
-import at.asitplus.gradle.kmmresult
 import at.asitplus.gradle.kotest
 import at.asitplus.gradle.publishVersionCatalog
 import at.asitplus.gradle.setupDokka
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 
 System.setProperty("KOTEST_NO_ASP_HELPER", "true")
-System.setProperty("TESTBALLOON_NO_ASP_HELPER","true")
+System.setProperty("TESTBALLOON_NO_ASP_HELPER", "true")
 
 plugins {
     alias(libs.plugins.kmp)
@@ -71,7 +69,8 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(project(":commons"))
+                implementation(project(":internals"))
+                api(project(":commons"))
                 api(kotest("property"))
                 api("de.infix.testBalloon:testBalloon-framework-core:${libs.versions.testballoon.get()}")
             }

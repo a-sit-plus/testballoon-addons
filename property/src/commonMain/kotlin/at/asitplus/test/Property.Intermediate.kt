@@ -20,8 +20,8 @@ import io.kotest.property.PropertyTesting
 fun <A> TestSuiteScope.checkAll(
     genA: Gen<A>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
+    maxLength: Int = PropertyTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredPropertyScope(
@@ -51,8 +51,8 @@ fun <Value> TestSuiteScope.checkAll(
     iterations: Int,
     genA: Gen<Value>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
+    maxLength: Int = PropertyTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredPropertyScope(
@@ -81,8 +81,8 @@ fun <Value> TestSuiteScope.checkAll(
 fun <A> TestSuiteScope.checkAllSuites(
     genA: Gen<A>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
+    maxLength: Int = PropertyTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
     content: context(PropertyContext) TestSuiteScope.(A) -> Unit
@@ -115,8 +115,8 @@ fun <Value> TestSuiteScope.checkAllSuites(
     iterations: Int,
     genA: Gen<Value>,
     compact: Boolean = PropertyTest.compactByDefault,
-    maxLength: Int = PropertyTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
+    maxLength: Int = PropertyTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
     content: context(PropertyContext) TestSuiteScope.(Value) -> Unit

@@ -1,4 +1,5 @@
 import at.asitplus.testballoon.PropertyTest
+import at.asitplus.testballoon.TestBalloonAddons
 import at.asitplus.testballoon.checkAll
 import at.asitplus.testballoon.checkAllSuites
 import de.infix.testBalloon.framework.core.testSuite
