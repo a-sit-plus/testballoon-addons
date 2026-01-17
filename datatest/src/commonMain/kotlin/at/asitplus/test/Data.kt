@@ -78,7 +78,7 @@ internal fun <Data> TestSuiteScope.withDataInternal(
     val prefix = if (prefix.isNotEmpty()) "$prefix " else ""
     if (compact) {
         val (compactName, map) = map.peekTypeNameAndReplay { it.second }
-        val testName = "$prefix[*] $compactName"
+        val testName = "${prefix}Σ$compactName"
         test(
             name = (testName.truncated(maxLength)),
             displayName = (testName.truncated(displayNameMaxLength)),
@@ -132,7 +132,7 @@ internal fun <Data> TestSuiteScope.withDataSuitesInternal(
     val prefix = if (prefix.isNotEmpty()) "$prefix " else ""
     if (compact) {
         val (compactName, data) = data.peekTypeNameAndReplay { it.second }
-        val testName = "$prefix[*] $compactName"
+        val testName = "${prefix}Σ$compactName"
         testSuite(
             name = (testName.truncated(maxLength)),
             displayName = (testName.truncated(displayNameMaxLength)),

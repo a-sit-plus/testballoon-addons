@@ -28,11 +28,11 @@ surface, we can get the best of both worlds.
 **TestBalloonAddons provide:**
 * data-driven testing
 * property-testing
-* pers-suite and per-test fixture generation
+* per-suite and per-test fixture generation
 * [FreeSpec](https://kotest.io/docs/framework/testing-styles.html#free-spec) test style as known from [Kotest](https://kotest.io/)
 
 
-## Overview
+## Feature Overview
 
 This project consists of the following modules:
 
@@ -49,7 +49,7 @@ This project consists of the following modules:
 `at.asitplus.testballoon:fixturegen-freespec:$version`
 > dependency manually to your project.
 
-## Test Names
+### Test Name Truncation
 
 > [!CAUTION]  
 > TestBalloon jumps to quite some hoops to not have the shortcomings of the underlying Gradle-based test infrastructure and
@@ -62,22 +62,64 @@ All modules allow for setting global defaults wrt. test name truncation. These p
 * `defaultTestNameLength`
 * `defaultDisplayNameLength`
 
-The former defaults to 64 characters, while display names are not truncated by default.
+The former generally defaults to 64 characters (15 on Android), while display names are not truncated by default.
 Both properties can be set in two ways:
 * **globally** (e.g., `TestBalloonAddons.defaultTestNameLength = 15`)
 * **per test style** (e.g., `FreeSpec.defaultTestNameLength = 10`, `PropertyTest.defaultDisplayNameLength = 100`)
 
-Per-Style configuration takes precedence over global configuration. Hence, per-style configuration property setters are nullable,
-**even though their getters will never return null**, as they fall back to the global configuration properties automatically.
 
+Per-Style configuration takes precedence over global configuration. Hence, per-style configuration property setters are nullable,
+**even though their getters will never return null**, as they fall back to the global configuration properties automatically.  
 It is also possible to set test name length and display name length for individual tests by passing the `maxLength` and
-`displayNameMaxLength` parameters, respectively.  
+`displayNameMaxLength` parameters, respectively. Truncated names are ellipsised in the middle and not just cut off at the end.
+
 **→ Check out [the full API docs](https://a-sit-plus.github.io/testballoon-addons/) for each test style for all configuration options!**
 
-In Addition, TestBalloon Addons use sane default stringification for test names of collection and arrays types
+### By-Default Sane Test Names
+
+TestBalloon Addons use sane default stringification for test names of collections and arrays types inside data-driven tests and property tests:
+
 * All primitive arrays are correctly joined to string (i.e. `[-1, 4, -643, 34310]`)
 * All unsigned arrays are correctly joined to string (i.e. `[9, 76, 145, 9365]`)
 * `ByteArray` and `UByteArray` use hex uppercase notation (i.e. `CA:FE:BA:BE`)
+
+### Compacting Test Series
+
+Data-driven testing and property testing can easily produce millions of individual cases being tested.
+To not make the test runner's heap explode in such cases, the `datatest` and `property` module allow for compating
+test series.  
+Just set pass the `compact = true` parameter when creating data-driven tests or property tests (see examples in the
+module descriptions for [data-driven testing](#data-driven-testing), and [property testing](#property-testing)).  
+The names of such compacted test series consist of an uppercase sigma (`Σ`) followed by the test series' dataype (e.g.,
+`ΣULong`, `ΣByteArray`, …).
+
+To still get intelligible outputs about which precise data point(s) caused failing tests, the error message of the resulting
+failed assertion will precisely list everything that failed and which succeeded:
+
+```
+java.lang.AssertionError: ΣString
+Error: 1: 4: expected:<three> but was:<4>
+Error: 2: one: expected:<three> but was:<one>
+Error: 3: null: Expected "three" but actual was null
+Error: 4: null: Expected "three" but actual was null
+Error: 5: null: Expected "three" but actual was null
+Error: 6: two: expected:<three> but was:<two>
+OK:    7: three
+Error: 8: four: expected:<three> but was:<four>
+----------------------------------------
+```
+
+The stack trace of the thrown exception is the stack trace of the first error (which is equal to the stack traces of all
+failed assertions). As such, you can directly navigate to the error with the same convenience as ever!
+On the JVM: the individual exception of all failed test series' individual tests are added to the toplevel assertion error as suppressed exceptions.
+
+To globally enable compacting test series for data-driven testing and property testing, set `DataTest.compactByDefault = true` and `PropertyTest.compactByDefault = true`,
+respectively.  
+**Compacting works on test and suite level!**  
+In addition, it is possible to specify a `prefix` parameter when defining data-driven tests or property tests, which will be prepended to
+generated test names (in front of the sigma). This helps navigate large test graphs.
+
+**→ Check out [the full API docs](https://a-sit-plus.github.io/testballoon-addons/) for each test style for all configuration options!**
 
 ## Modules
 

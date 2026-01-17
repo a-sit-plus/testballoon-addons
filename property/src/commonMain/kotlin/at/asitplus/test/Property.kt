@@ -155,7 +155,7 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
 
         val (context, sequence) = genA.generateSequence(iterations)
         val (compactName, series) = sequence.peekTypeNameAndReplay { it }
-        val testName = "$prefix[*] $compactName"
+        val testName = "${prefix}Σ$compactName"
         this@checkAllSuitesInternal.testSuite(
             name = (testName.truncated(maxLength)),
             displayName = (testName.truncated(displayNameMaxLength)),
@@ -210,7 +210,7 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
     if (compact) {
         val (context, sequence) = genA.generateSequence(iterations)
         val (compactName, series) = sequence.peekTypeNameAndReplay { it }
-        val testName = "$prefix[*] $compactName"
+        val testName = "${prefix}Σ$compactName"
         this@checkAllInternal.test(
             name = (testName.truncated(maxLength)),
             displayName = (testName.truncated(displayNameMaxLength)),
