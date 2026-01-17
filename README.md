@@ -13,28 +13,24 @@
 [![Java](https://img.shields.io/badge/java-17-blue.svg?logo=OPENJDK)](https://www.oracle.com/java/technologies/downloads/#java17)
 [![Maven Central](https://img.shields.io/maven-central/v/at.asitplus.testballoon/datatest)](https://mvnrepository.com/artifact/at.asitplus.testballoon/datatest)
 
+**This project provides addons for [TestBalloon](https://infix-de.github.io/testBalloon/), _the_ next generation KMP-first,
+coroutine-first testing framework.**
+
 </div>
 
-This project provides addons for [TestBalloon](https://infix-de.github.io/testBalloon/), _the_ next generation Kotlin
-test
-framework, built from the ground up for Kotlin Multiplatform and coroutines.
-
-> [!IMPORTANT]  
-> Always explicitly add `de.infix.testBalloon:testBalloon-framework-core` **&ge; 0.8.0-RC** to your test dependencies!
-> This
-
-The code here started as a shim to make migration from Kotest easier, after being dissatisfied with the Kotest
+Originally, this project started as a shim to make migration from Kotest easier, after being dissatisfied with the Kotest
 _framework's_
 second-class KMP, and third-class Android support.
 At the same time, **the Kotest _libraries_, like its assertions, the way it models property testing, etc. are still
 unrivaled** and don't suffer from the framework's shortcomings. Paired with TestBalloon's flexibility and its small API
 surface, we can get the best of both worlds.
 
+**TestBalloonAddons provide:**
+* data-driven testing
+* property-testing
+* pers-suite and per-test fixture generation
+* [FreeSpec](https://kotest.io/docs/framework/testing-styles.html#free-spec) test style as known from [Kotest](https://kotest.io/)
 
-> [!CAUTION]  
-> TestBalloon jumps to quite some hoops to not have the shortcomings of the underlying Gradle-based test infrastructure and
-> file system limitations eat your cat. However, deep nesting and exceptionally long test names can still cause
-> errors or even crashes. This is especially true for Android device/emulator-based test execution, which is a wondrous mess!
 
 ## Overview
 
@@ -42,7 +38,7 @@ This project consists of the following modules:
 
 * `datatest` replicates Kotest's data-driven testing features for TestBalloon
 * `property` bringing Kotest's property testing to TestBalloon
-* `fixturegen` introducing per-test fixture generation for TestBalloon without boilerplate
+* `fixturegen` introducing per-test fixture generation for TestBalloon without boilerplate and beyond TestBalloon's current fixture generation capabilities.
 * `freespec` emulating Kotest's `FreeSpec` test style for TestBalloon
 
 > [!TIP]  
@@ -55,7 +51,13 @@ This project consists of the following modules:
 
 ## Test Names
 
-All modules allow for setting global defaults wrt. test names. These properties are called:
+> [!CAUTION]  
+> TestBalloon jumps to quite some hoops to not have the shortcomings of the underlying Gradle-based test infrastructure and
+> file system limitations eat your cat. However, deep nesting and exceptionally long test names (both of which are easily produced
+> when using data-driven testing or property testing) can still cause
+> errors or even crashes. This is especially true for Android device/emulator-based test execution, which is a wondrous mess!
+
+All modules allow for setting global defaults wrt. test name truncation. These properties are called:
 
 * `defaultTestNameLength`
 * `defaultDisplayNameLength`
