@@ -15,7 +15,7 @@ import io.kotest.property.arbitrary.uLong
 val propertySuite by testSuite {
     PropertyTest.compactByDefault = false
 
-    checkAllSuites(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte())) { byteArray ->
+    checkAllSuites(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte()), prefix = "first") { byteArray ->
         checkAll(iterations = 10, Arb.uLong(100u, 200u)) { number ->
             byteArray shouldBe byteArray
             number shouldBe byteArray.size.toULong()
@@ -58,7 +58,7 @@ val propertySuite by testSuite {
 val compactingSuite by testSuite {
     PropertyTest.compactByDefault = true
 
-    checkAllSuites(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte())) { byteArray ->
+    checkAllSuites(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte()), prefix = "first") { byteArray ->
         checkAll(iterations = 10, Arb.uLong(100u, 200u)) { number ->
             byteArray shouldBe byteArray
             number shouldBe byteArray.size.toULong()

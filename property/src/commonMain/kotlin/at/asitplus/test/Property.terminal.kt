@@ -13,10 +13,11 @@ import io.kotest.property.PropertyTesting
  * Executes property-based tests with generated values.
  *
  * @param genA Generator for test values
- * @param testConfig Optional test configuration
  * @param compact whether to compact all generated child test elements into one
  * @param maxLength maximum length of test element name (not display name)
  * @param displayNameMaxLength maximum length of test element **display name**
+ * @param prefix an optional prefix to add to the test name
+ * @param testConfig Optional test configuration
  * @param content Test execution block receiving generated values
  */
 fun <Value> TestSuiteScope.checkAll(
@@ -24,6 +25,7 @@ fun <Value> TestSuiteScope.checkAll(
     compact: Boolean = PropertyTest.compactByDefault,
     maxLength: Int = PropertyTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
+    prefix: String = "",
     testConfig: TestConfig = TestConfig,
     content: suspend context(PropertyContext) Test.ExecutionScope.(Value) -> Unit
 ) = checkAll(
@@ -32,6 +34,7 @@ fun <Value> TestSuiteScope.checkAll(
     compact,
     maxLength,
     displayNameMaxLength,
+    prefix,
     testConfig,
     content
 )
@@ -41,10 +44,11 @@ fun <Value> TestSuiteScope.checkAll(
  *
  * @param iterations Number of test iterations to perform
  * @param genA Generator for test values
- * @param testConfig Optional test configuration
  * @param compact whether to compact all generated child test elements into one
  * @param maxLength maximum length of test element name (not display name)
  * @param displayNameMaxLength maximum length of test element **display name**
+ * @param prefix an optional prefix to add to the test name
+ * @param testConfig Optional test configuration
  * @param content Test execution block receiving generated values
  */
 fun <Value> TestSuiteScope.checkAll(
@@ -53,6 +57,7 @@ fun <Value> TestSuiteScope.checkAll(
     compact: Boolean = PropertyTest.compactByDefault,
     maxLength: Int = PropertyTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
+    prefix: String = "",
     testConfig: TestConfig = TestConfig,
     content: suspend context(PropertyContext) Test.ExecutionScope.(Value) -> Unit
 ) = checkAllInternal(
@@ -61,5 +66,6 @@ fun <Value> TestSuiteScope.checkAll(
     compact,
     maxLength,
     displayNameMaxLength,
+    prefix,
     testConfig,
 ) { content(it) }

@@ -10,6 +10,10 @@ import de.infix.testBalloon.framework.core.TestSuiteScope
  * Executes a test for each item in the provided iterable data.
  *
  * @param data The iterable collection of test data
+ * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
+ * @param maxLength maximum length of test element name (not display name)
+ * @param displayNameMaxLength maximum length of test element **display name**
+ * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each data item
  */
@@ -18,6 +22,7 @@ fun <Data> TestSuiteScope.withData(
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
+    prefix: String = "",
     testConfig: TestConfig = TestConfig,
     action: suspend Test.ExecutionScope.(Data) -> Unit
 ) = withDataInternal(
@@ -26,6 +31,7 @@ fun <Data> TestSuiteScope.withData(
     compact,
     maxLength,
     displayNameMaxLength,
+    prefix,
     action
 )
 
@@ -39,6 +45,7 @@ fun <Data> TestSuiteScope.withData(
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
  * @param displayNameMaxLength maximum length of test element **display name**
+ * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each data item
  */
@@ -48,6 +55,7 @@ fun <Data> TestSuiteScope.withData(
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
+    prefix: String = "",
     testConfig: TestConfig = TestConfig,
     action: suspend Test.ExecutionScope.(Data) -> Unit
 ) = withDataInternal(
@@ -56,6 +64,7 @@ fun <Data> TestSuiteScope.withData(
     compact,
     maxLength,
     displayNameMaxLength,
+    prefix,
     action
 )
 

@@ -3,7 +3,17 @@ package at.asitplus.testballoon
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.disable
 
-const val DEFAULT_TEST_NAME_MAX_LEN = -1
+/**
+ * The default maximum length of test names and test suite names created using:
+ * * `withData`
+ * * `withDataSuites`
+ * * `checkAll`
+ * * `checkAllSuites`
+ * * FreeSoec
+ *
+ * On Android this is `10`. On all other Platforms this is unlimited (`-1`)
+ */
+expect val DEFAULT_TEST_NAME_MAX_LEN : Int
 
 fun TestConfig.disableByName(name: String) =
     if (name.startsWith("!")) TestConfig.disable() else this

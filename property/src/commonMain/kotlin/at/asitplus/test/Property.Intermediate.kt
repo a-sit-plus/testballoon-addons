@@ -14,19 +14,21 @@ import io.kotest.property.PropertyTesting
  * @param compact whether to compact all generated child test elements into one
  * @param maxLength maximum length of test element name (not display name)
  * @param displayNameMaxLength maximum length of test element **display name**
+ * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
- * @param content Test suite block receiving generated values
  */
 fun <A> TestSuiteScope.checkAll(
     genA: Gen<A>,
     compact: Boolean = PropertyTest.compactByDefault,
     maxLength: Int = PropertyTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
+    prefix: String = "",
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredPropertyScope(
     compact,
     maxLength,
     displayNameMaxLength,
+    prefix,
     this,
     PropertyTesting.defaultIterationCount,
     genA,
@@ -42,6 +44,7 @@ fun <A> TestSuiteScope.checkAll(
  * @param compact whether to compact all generated child test elements into one
  * @param maxLength maximum length of test element name (not display name)
  * @param displayNameMaxLength maximum length of test element **display name**
+ * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
  */
 fun <Value> TestSuiteScope.checkAll(
@@ -50,11 +53,13 @@ fun <Value> TestSuiteScope.checkAll(
     compact: Boolean = PropertyTest.compactByDefault,
     maxLength: Int = PropertyTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
+    prefix: String = "",
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredPropertyScope(
     compact,
     maxLength,
     displayNameMaxLength,
+    prefix,
     this,
     iterations,
     genA,
@@ -69,6 +74,7 @@ fun <Value> TestSuiteScope.checkAll(
  * @param compact whether to compact all generated child test elements into one
  * @param maxLength maximum length of test element name (not display name)
  * @param displayNameMaxLength maximum length of test element **display name**
+ * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
  * @param content Test suite block receiving generated values
  */
@@ -77,6 +83,7 @@ fun <A> TestSuiteScope.checkAllSuites(
     compact: Boolean = PropertyTest.compactByDefault,
     maxLength: Int = PropertyTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
+    prefix: String = "",
     testConfig: TestConfig = TestConfig,
     content: context(PropertyContext) TestSuiteScope.(A) -> Unit
 ) = checkAllSuitesInternal(
@@ -85,6 +92,7 @@ fun <A> TestSuiteScope.checkAllSuites(
     compact,
     maxLength,
     displayNameMaxLength,
+    prefix,
     testConfig,
     content
 )
@@ -99,6 +107,7 @@ fun <A> TestSuiteScope.checkAllSuites(
  * @param compact whether to compact all generated child test elements into one
  * @param maxLength maximum length of test element name (not display name)
  * @param displayNameMaxLength maximum length of test element **display name**
+ * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
  * @param content Test suite block receiving generated values
  */
@@ -108,6 +117,7 @@ fun <Value> TestSuiteScope.checkAllSuites(
     compact: Boolean = PropertyTest.compactByDefault,
     maxLength: Int = PropertyTest.defaultTestNameMaxLength,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
+    prefix: String = "",
     testConfig: TestConfig = TestConfig,
     content: context(PropertyContext) TestSuiteScope.(Value) -> Unit
 ) = checkAllSuitesInternal(
@@ -116,5 +126,6 @@ fun <Value> TestSuiteScope.checkAllSuites(
     compact,
     maxLength,
     displayNameMaxLength,
+    prefix,
     testConfig
 ) { content(it) }

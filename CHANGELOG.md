@@ -3,7 +3,9 @@
 ## 0.x
 
 ### 0.6.2-RC2
-* Remove test name workarounds
+* platform-agnostic test name length defaults
+* Prefixes for data test and property test
+* shorter compact names
 
 ### 0.6.2-RC
 * Support TestBalloon 0.8-RC

@@ -3,7 +3,6 @@ package at.asitplus.testballoon
 import at.asitplus.catchingUnwrapped
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.TestSuite
 import de.infix.testBalloon.framework.core.TestSuiteScope
 import io.kotest.property.*
 
@@ -34,6 +33,7 @@ data class ConfiguredPropertyScope<Value>(
     private val compact: Boolean,
     private val maxLength: Int,
     private val displayNameMaxLength: Int,
+    val prefix: String,
     val testSuite: TestSuiteScope,
     val iterations: Int,
     val genA: Gen<Value>,
@@ -49,6 +49,7 @@ data class ConfiguredPropertyScope<Value>(
             compact,
             maxLength,
             displayNameMaxLength,
+            prefix,
             testConfig,
             content
         )
@@ -91,7 +92,6 @@ private fun <Value> checkAllSeries(
  * Internal helper that produces a lazy sequence of generated values.
  *
  * @param iterations Number of elements to generate
- * @param genA Generator for values
  */
 private fun <Value> Gen<Value>.generateSequence(
     iterations: Int,
@@ -118,14 +118,16 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
     compact: Boolean,
     maxLength: Int,
     displayNameMaxLength: Int,
+    prefix: String,
     testConfig: TestConfig = TestConfig,
     content: context(PropertyContext) TestSuiteScope.(Value) -> Unit
 ) {
+    val prefix = if (prefix.isNotEmpty()) "$prefix " else ""
     if (!compact) {
         checkAllSeries(iterations, genA) { iter, value, context ->
             val valueStr = value.toPrettyString()
-            val prefix = if (value == null) "null" else value::class.simpleName
-            val name = "${iter + 1} of $iterations ${prefix}s (${valueStr})"
+            val type = if (value == null) "null" else value::class.simpleName
+            val name = "$prefix${iter + 1} of $iterations ${type}s (${valueStr})"
             this@checkAllSuitesInternal.testSuite(
                 name = name.truncated(maxLength).escaped,
                 displayName = name.truncated(displayNameMaxLength).escaped,
@@ -140,7 +142,7 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
 
         val (context, sequence) = genA.generateSequence(iterations)
         val (compactName, series) = sequence.peekTypeNameAndReplay { it }
-        val testName = "[compacted] $compactName"
+        val testName = "$prefix[*] $compactName"
         this@checkAllSuitesInternal.testSuite(
             name = testName.truncated(maxLength).escaped,
             displayName = testName.truncated(displayNameMaxLength).escaped,
@@ -174,9 +176,11 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
  *
  * @param iterations Number of test iterations to perform
  * @param genA Generator for test values
- * @param testConfig Optional test configuration
+ * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
  * @param displayNameMaxLength maximum length of test element **display name**
+ * @param prefix an optional prefix to add to the test name
+ * @param testConfig Optional test configuration
  * @param content Test execution block receiving generated values
  */
 internal fun <Value> TestSuiteScope.checkAllInternal(
@@ -185,14 +189,15 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
     compact: Boolean,
     maxLength: Int,
     displayNameMaxLength: Int = PropertyTest.defaultDisplayNameMaxLength,
+    prefix: String,
     testConfig: TestConfig = TestConfig,
     content: suspend context(PropertyContext) Test.ExecutionScope.(Value) -> Unit
 ) {
-
+    val prefix = if (prefix.isNotEmpty()) "$prefix " else ""
     if (compact) {
         val (context, sequence) = genA.generateSequence(iterations)
         val (compactName, series) = sequence.peekTypeNameAndReplay { it }
-        val testName = "[compacted] $compactName"
+        val testName = "$prefix[*] $compactName"
         this@checkAllInternal.test(
             name = testName.truncated(maxLength).escaped,
             displayName = testName.truncated(displayNameMaxLength).escaped,
@@ -220,7 +225,8 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
     } else {
         checkAllSeries(iterations, genA) { iter, value, context ->
             val valueStr = value.toPrettyString()
-            val name = "${iter + 1} of $iterations ${if (value == null) "null" else value::class.simpleName}: $valueStr"
+            val name =
+                "$prefix ${iter + 1} of $iterations ${if (value == null) "null" else value::class.simpleName}: $valueStr"
             this@checkAllInternal.test(
                 name = name.truncated(maxLength).escaped,
                 displayName = name.truncated(displayNameMaxLength).escaped,

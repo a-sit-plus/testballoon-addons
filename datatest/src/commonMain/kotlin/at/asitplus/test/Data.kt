@@ -3,7 +3,6 @@ package at.asitplus.testballoon
 import at.asitplus.catchingUnwrapped
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.TestSuite
 import de.infix.testBalloon.framework.core.TestSuiteScope
 
 /**
@@ -33,11 +32,12 @@ data class ConfiguredDataTestScope<Data>(
     private val compact: Boolean,
     private val maxLength: Int = DataTest.defaultTestNameMaxLength,
     private val displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
+    val prefix: String,
     val testSuite: TestSuiteScope, val map: Sequence<Pair<String, Data>>,
     val testConfig: TestConfig = TestConfig,
 ) {
     operator fun minus(action: TestSuiteScope.(Data) -> Unit) =
-        testSuite.withDataSuitesInternal(map, compact, maxLength, displayNameMaxLength, testConfig, action)
+        testSuite.withDataSuitesInternal(map, compact, maxLength, displayNameMaxLength, prefix, testConfig, action)
 }
 
 
@@ -50,6 +50,7 @@ data class ConfiguredDataTestScope<Data>(
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
  * @param displayNameMaxLength maximum length of test element **display name**
+ * @param prefix an optional prefix to add to the test name
  * @param action Test action to execute for each map value
  */
 internal fun <Data> TestSuiteScope.withDataInternal(
@@ -58,11 +59,13 @@ internal fun <Data> TestSuiteScope.withDataInternal(
     compact: Boolean,
     maxLength: Int,
     displayNameMaxLength: Int,
+    prefix: String,
     action: suspend Test.ExecutionScope.(Data) -> Unit
 ) {
+    val prefix = if (prefix.isNotEmpty()) "$prefix " else ""
     if (compact) {
         val (compactName, map) = map.peekTypeNameAndReplay { it.second }
-        val testName = "[compacted] $compactName"
+        val testName = "$prefix[*] $compactName"
         test(
             name = testName.truncated(maxLength).escaped,
             displayName = testName.truncated(displayNameMaxLength).escaped,
@@ -82,9 +85,10 @@ internal fun <Data> TestSuiteScope.withDataInternal(
         }
     } else {
         for (d in map) {
+            val name = prefix + d.first
             test(
-                name = d.first.truncated(maxLength).escaped,
-                displayName = d.first.truncated(displayNameMaxLength).escaped,
+                name = name.truncated(maxLength).escaped,
+                displayName = name.truncated(displayNameMaxLength).escaped,
                 testConfig = testConfig
             ) { action(d.second) }
         }
@@ -100,6 +104,7 @@ internal fun <Data> TestSuiteScope.withDataInternal(
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
  * @param displayNameMaxLength maximum length of test element **display name**
+ * @param prefix an optional prefix to add to the test name
  * @param action Test suite configuration action for each data item
  */
 internal fun <Data> TestSuiteScope.withDataSuitesInternal(
@@ -107,13 +112,14 @@ internal fun <Data> TestSuiteScope.withDataSuitesInternal(
     compact: Boolean,
     maxLength: Int,
     displayNameMaxLength: Int,
+    prefix: String,
     testConfig: TestConfig = TestConfig,
     action: TestSuiteScope.(Data) -> Unit
 ) {
-
+    val prefix = if (prefix.isNotEmpty()) "$prefix " else ""
     if (compact) {
         val (compactName, data) = data.peekTypeNameAndReplay { it.second }
-        val testName = "[compacted] $compactName"
+        val testName = "$prefix[*] $compactName"
         testSuite(
             name = testName.truncated(maxLength).escaped,
             displayName = testName.truncated(displayNameMaxLength).escaped,
@@ -132,9 +138,8 @@ internal fun <Data> TestSuiteScope.withDataSuitesInternal(
             collateErrors(errors, testName)
         }
     } else {
-
         for (d in data) {
-            val name = d.first.escaped
+            val name = prefix + d.first.escaped
             testSuite(
                 name = name.truncated(maxLength).escaped,
                 displayName = name.truncated(displayNameMaxLength).escaped,

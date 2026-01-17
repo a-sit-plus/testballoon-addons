@@ -24,21 +24,21 @@ val aDataDrivenSuite by testSuite(testConfig = TestConfig.testScope(isEnabled = 
         }
     }
 
-    withDataSuites(dummyDataSuites) {
-        withData(dummyData) {
+    withDataSuites(dummyDataSuites, prefix = "DS") {
+        withData(dummyData, prefix = "DT") {
             delay(Random.nextLong(10000))
             it shouldBe it
         }
     }
 
 
-    withData(Random.nextBytes(2), Random.nextUBytes(20), Random.nextBytes(4), Random.nextBytes(6)) {
+    withData(Random.nextBytes(2), Random.nextUBytes(20), Random.nextBytes(4), Random.nextBytes(6), prefix = "empty") {
 
     }
 
 
-    withDataSuites(null, null, 1, 2, 3, 4, compact = true) { number ->
-        withData(number.toString(), "one", null, null, null, "two", "three", "four", compact = true) { word ->
+    withDataSuites(null, null, 1, 2, 3, 4, compact = true, prefix = "S nullable") { number ->
+        withData(number.toString(), "one", null, null, null, "two", "three", "four", compact = true, prefix = "nullable") { word ->
             number shouldBe number
             word shouldBe "three"
 
@@ -47,14 +47,14 @@ val aDataDrivenSuite by testSuite(testConfig = TestConfig.testScope(isEnabled = 
 
     //Alternative syntax for withDataSuites
     // -> NOTE the minus ↙↙↙
-    withData(1, 2, 3, 4) - { number ->
+    withData(1, 2, 3, 4, prefix = "alt") - { number ->
         withData(null, "one", "two", "three", "four", compact = true) { word ->
             number shouldBe number
             word shouldBe "three"
         }
     }
 
-    withData(null, 1, 2, 3, 4, compact = true) - { number ->
+    withData(null, 1, 2, 3, 4, compact = true, prefix = "alt") - { number ->
         withData("one", "two", "three", "four") { word ->
             number shouldBe number
             word shouldBe "three"
