@@ -166,6 +166,9 @@ val aDataDrivenSuite by testSuite {
 }
 ```
 
+It is possible to specify a `prefix` parameter when defining data-driven tests and suites, which will be prepended to
+generated test names. This helps navigate large test reports.
+
 > [!NOTE]  
 > Running individual tests from the gutter is not possible, as the test suite structure and the names of
 > suites and tests are computed at runtime.
@@ -212,6 +215,10 @@ val propertySuite by testSuite {
     }
 }
 ```
+
+
+It is possible to specify a `prefix` parameter when defining property tests and suites, which will be prepended to
+generated test names. This helps navigate large test reports.
 
 > [!NOTE]  
 > Running individual tests from the gutter is not possible, as the test suite structure and the names of
