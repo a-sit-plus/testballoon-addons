@@ -32,9 +32,9 @@ surface, we can get the best of both worlds.
 
 
 > [!CAUTION]  
-> On Android (JVM, not native), forward slashed in test names and display names are **always** replaced
-> with the `⧸` character because the Android test runner cannot deal with slashes in test names. This can bite you when
-> using base64-encoded data inside test names.
+> TestBalloon jumps to quite some hoops to not have the shortcomings of the underlying Gradle-based test infrastructure and
+> file system limitations eat your cat. However, deep nesting and exceptionally long test names can still cause
+> errors or even crashes. This is especially true for Android device/emulator-based test execution, which is a wondrous mess!
 
 ## Modules
 
