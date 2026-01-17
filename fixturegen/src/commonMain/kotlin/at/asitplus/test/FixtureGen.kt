@@ -38,8 +38,10 @@ class GeneratingFixtureScope<T> @PublishedApi internal constructor(
         content: suspend Test.ExecutionScope.(T) -> Unit
     ) {
         with(testSuite) {
+            val truncatedName = name.truncated(maxLength)
+            testSuiteInScope.checkPathLenIncluding(truncatedName)
             test(
-                (name.truncated(maxLength)),
+                truncatedName,
                 (displayName.truncated(maxLength)),
                 testConfig = testConfig
             ) { content(generator()) }
@@ -78,8 +80,10 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
         content: suspend Test.ExecutionScope.(T) -> Unit
     ) {
         with(testSuite) {
+            val truncatedName = name.truncated(maxLength)
+            testSuiteInScope.checkPathLenIncluding(truncatedName)
             test(
-                ( name.truncated(maxLength)),
+                truncatedName,
                 ( displayName.truncated(maxLength)),
                 testConfig = testConfig
             ) { content(generator()) }
@@ -104,8 +108,10 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
         content: TestSuiteScope.(T) -> Unit
     ) {
         with(testSuite) {
+            val truncatedName = name.truncated(maxLength)
+            testSuiteInScope.checkPathLenIncluding(truncatedName)
             testSuite(
-                (name.truncated(maxLength)),
+                truncatedName,
                 (displayName.truncated(maxLength)),
                 testConfig = testConfig
             ) { content(generator()) }

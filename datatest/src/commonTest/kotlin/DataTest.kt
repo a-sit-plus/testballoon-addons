@@ -1,3 +1,6 @@
+package wombat
+
+
 import at.asitplus.testballoon.withData
 import at.asitplus.testballoon.withDataSuites
 import de.infix.testBalloon.framework.core.TestSuite

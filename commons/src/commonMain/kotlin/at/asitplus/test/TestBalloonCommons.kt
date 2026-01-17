@@ -1,8 +1,5 @@
 package at.asitplus.testballoon
 
-import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.disable
-
 /**
  * The default maximum length of test names and test suite names created using:
  * * `withData`
@@ -14,7 +11,6 @@ import de.infix.testBalloon.framework.core.disable
  * On Android this is `10`. On all other platforms this is 64
  */
 internal expect val defaultMaxLen: Int
-
 
 /**
  * Global configuration properties for all TestBalloon Addons used to override properties of **all addons in one place**.
@@ -47,6 +43,20 @@ object TestBalloonAddons {
      * Defaults to `-1` (= no truncation).
      */
     var defaultDisplayNameMaxLength: Int = -1
+
+    /**
+     * Hard limit of the maximum path length of a test (i.e. the fully qualified name including all layers from the root suite
+     * down to the test case).
+     * **This defaults to `200` on Android** due to hardcoded limits somewhere deep into the Android device test pipeline.
+     * On all other platforms, no hard limit is enforced by default.
+     * The intent of this hard limit is to have Android device tests fail in a controlled manner, as test names
+     * exceeding an (utterly undocumented)
+     */
+    var overallMaxTestPathLength: Int
+        get() = totalMaxLen
+        set(value) {
+            totalMaxLen = value
+        }
 
 }
 

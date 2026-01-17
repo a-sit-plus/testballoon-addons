@@ -53,8 +53,10 @@ operator fun String.invoke(
     nested: suspend Test.ExecutionScope.() -> Unit
 ) {
     with(suite) {
+        val truncatedName = freeSpecName(this@invoke).truncated(maxLength)
+        testSuiteInScope.checkPathLenIncluding(truncatedName)
         test(
-            (freeSpecName(this@invoke).truncated(maxLength)),
+            truncatedName,
             displayName = (displayName.truncated(displayNameMaxLength)),
             testConfig = testConfig.disableByName(this@invoke),
             nested
@@ -88,8 +90,10 @@ data class ConfiguredSuite(
      */
     infix operator fun minus(suiteBody: TestSuiteScope.() -> Unit) {
         with(parent) {
+            val truncatedName = freeSpecName(testName).truncated(maxLength)
+            testSuiteInScope.checkPathLenIncluding(truncatedName)
             testSuite(
-                (freeSpecName(testName).truncated(maxLength)),
+                truncatedName,
                 displayName = (displayName.truncated(displayNameMaxLength)),
                 testConfig = config.disableByName(displayName),
                 content = suiteBody
@@ -126,8 +130,10 @@ context(suite: TestSuiteScope)
  */
 infix operator fun String.minus(suiteBody: TestSuiteScope.() -> Unit) =
     with(suite) {
+        val truncatedName = freeSpecName(this@minus).truncated(FreeSpec.defaultTestNameMaxLength!!)
+        testSuiteInScope.checkPathLenIncluding(truncatedName)
         testSuite(
-            name = (freeSpecName(this@minus).truncated(FreeSpec.defaultTestNameMaxLength!!)),
+            name = truncatedName,
             displayName = (freeSpecName(this@minus).truncated(FreeSpec.defaultDisplayNameMaxLength!!)),
             testConfig = TestConfig.disableByName(this@minus),
             content = suiteBody

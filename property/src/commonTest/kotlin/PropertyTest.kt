@@ -54,8 +54,6 @@ val propertySuite by testSuite {
 }
 
 
-
-
 val compactingSuite by testSuite {
     PropertyTest.compactByDefault = true
 

@@ -2,6 +2,19 @@ package at.asitplus.testballoon
 
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.disable
+import de.infix.testBalloon.framework.shared.AbstractTestElement
+
+expect var totalMaxLen: Int
+
+
+fun AbstractTestElement.checkPathLenIncluding(str: String) {
+    if (totalMaxLen < 0) return
+    if ((testElementPath.toString().length + str.length) > totalMaxLen) {
+        val substr = testElementPath.toString().dropLast(1)
+        val last = testElementPath.toString().last()
+        throw IllegalArgumentException("Test Element ${substr}↘$str$last exceeds $totalMaxLen characters. Note: the default max length is 200 for Android tests")
+    }
+}
 
 fun TestConfig.disableByName(name: String) =
     if (name.startsWith("!")) TestConfig.disable() else this
@@ -19,7 +32,6 @@ private fun String.ellipsizeMiddle(maxLength: Int): String {
     val right = keep - left
     return substring(0, left) + ellipsis + substring(length - right)
 }
-
 
 fun <T> Sequence<T>.peekTypeNameAndReplay(
     valueSelector: (T) -> Any?

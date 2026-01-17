@@ -1,3 +1,3 @@
 package at.asitplus.testballoon
 
-actual val defaultMaxLen : Int = 64
+internal actual val defaultMaxLen : Int = 64

@@ -56,6 +56,7 @@ This project consists of the following modules:
 > file system limitations eat your cat. However, deep nesting and exceptionally long test names (both of which are easily produced
 > when using data-driven testing or property testing) can still cause
 > errors or even crashes. This is especially true for Android device/emulator-based test execution, which is a wondrous mess!
+> As TestBalloon can only shorten test names and not suite names, truncation becomes useful.
 
 All modules allow for setting global defaults wrt. test name truncation. These properties are called:
 

@@ -1,7 +1,6 @@
 package at.asitplus.testballoon
 
 import at.asitplus.catchingUnwrapped
-import at.asitplus.testballoon.TestBalloonAddons
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuiteScope
@@ -25,7 +24,7 @@ object DataTest {
      * This property's getter will never return null, but fall back to [TestBalloonAddons.defaultTestNameMaxLength].
      */
     var defaultTestNameMaxLength: Int? = null
-        get() = field?:TestBalloonAddons.defaultTestNameMaxLength
+        get() = field ?: TestBalloonAddons.defaultTestNameMaxLength
 
     /**
      * The default maximum length of test element display names (not test name).
@@ -36,7 +35,7 @@ object DataTest {
      * This property's getter will never return null, but fall back to [TestBalloonAddons.defaultDisplayNameMaxLength].
      */
     var defaultDisplayNameMaxLength: Int? = null
-        get() = field?:TestBalloonAddons.defaultDisplayNameMaxLength
+        get() = field ?: TestBalloonAddons.defaultDisplayNameMaxLength
 
 }
 
@@ -79,8 +78,10 @@ internal fun <Data> TestSuiteScope.withDataInternal(
     if (compact) {
         val (compactName, map) = map.peekTypeNameAndReplay { it.second }
         val testName = "${prefix}Σ$compactName"
+        val truncatedName = testName.truncated(maxLength)
+        testSuiteInScope.checkPathLenIncluding(truncatedName)
         test(
-            name = (testName.truncated(maxLength)),
+            name = truncatedName,
             displayName = (testName.truncated(displayNameMaxLength)),
             testConfig = testConfig
         ) {
@@ -99,8 +100,10 @@ internal fun <Data> TestSuiteScope.withDataInternal(
     } else {
         for (d in map) {
             val name = prefix + d.first
+            val truncatedName = name.truncated(maxLength)
+            testSuiteInScope.checkPathLenIncluding(truncatedName)
             test(
-                name = (name.truncated(maxLength)),
+                name = truncatedName,
                 displayName = (name.truncated(displayNameMaxLength)),
                 testConfig = testConfig
             ) { action(d.second) }
@@ -133,8 +136,10 @@ internal fun <Data> TestSuiteScope.withDataSuitesInternal(
     if (compact) {
         val (compactName, data) = data.peekTypeNameAndReplay { it.second }
         val testName = "${prefix}Σ$compactName"
+        val truncatedName = testName.truncated(maxLength)
+        testSuiteInScope.checkPathLenIncluding(truncatedName)
         testSuite(
-            name = (testName.truncated(maxLength)),
+            name = truncatedName,
             displayName = (testName.truncated(displayNameMaxLength)),
             testConfig = testConfig
         ) {
@@ -153,8 +158,10 @@ internal fun <Data> TestSuiteScope.withDataSuitesInternal(
     } else {
         for (d in data) {
             val name = prefix + d.first
+            val truncatedName = name.truncated(maxLength)
+            testSuiteInScope.checkPathLenIncluding(truncatedName)
             testSuite(
-                name = (name.truncated(maxLength)),
+                name = truncatedName,
                 displayName = (name.truncated(displayNameMaxLength)),
                 testConfig = testConfig,
                 content = fun TestSuiteScope.() {

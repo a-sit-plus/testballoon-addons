@@ -23,8 +23,10 @@ operator fun <T> String.invoke(
     nested: suspend Test.ExecutionScope.(T) -> Unit
 ) {
     with(fixture.testSuite) {
+        val truncatedName = freeSpecName(this@invoke).truncated(maxLength)
+        testSuiteInScope.checkPathLenIncluding(truncatedName)
         test(
-            (freeSpecName(this@invoke).truncated(maxLength)),
+            truncatedName,
             displayName = (displayName.truncated(displayNameMaxLength)),
             testConfig = testConfig.disableByName(this@invoke)
         ) {
@@ -101,8 +103,10 @@ operator fun <T> String.invoke(
 
 context(fixture: NonSuspendingGeneratingFixtureScope<T>)
 infix operator fun <T> ConfiguredSuite.minus(suiteBody: TestSuiteScope.(T) -> Unit) = with(fixture.testSuite) {
+    var truncatedName = testName.truncated(maxLength)
+    testSuiteInScope.checkPathLenIncluding(truncatedName)
     testSuite(
-        (testName.truncated(maxLength)),
+        truncatedName,
         (displayName.truncated(displayNameMaxLength)),
         testConfig = config.disableByName(testName)
     ) { suiteBody(fixture.generator()) }
