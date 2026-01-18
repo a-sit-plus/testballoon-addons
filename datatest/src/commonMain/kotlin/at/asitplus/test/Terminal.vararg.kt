@@ -1,8 +1,8 @@
 package at.asitplus.testballoon
 
+import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.TestExecutionScope
-import de.infix.testBalloon.framework.core.TestSuite
+import de.infix.testBalloon.framework.core.TestSuiteScope
 
 /**
  * Executes a test for each provided data parameter.
@@ -11,24 +11,27 @@ import de.infix.testBalloon.framework.core.TestSuite
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
  * @param displayNameMaxLength maximum length of test element **display name**
+ * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each parameter
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-fun <Data> TestSuite.withData(
+fun <Data> TestSuiteScope.withData(
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength!!,
+    prefix: String = "",
     testConfig: TestConfig = TestConfig,
-    action: suspend TestExecutionScope.(Data) -> Unit
+    action: suspend Test.ExecutionScope.(Data) -> Unit
 ) = withDataInternal(
     parameters.asSequence().map { it.toPrettyString() to it },
     testConfig,
     compact,
     maxLength,
     displayNameMaxLength,
+    prefix,
     action
 )
 
@@ -37,28 +40,31 @@ fun <Data> TestSuite.withData(
  * Uses provided function to generate test names.
  *
  * @param nameFn Function to generate test name from data
- * @param arguments The data parameters to test with
+ * @param parameters The data parameters to test with
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
  * @param displayNameMaxLength maximum length of test element **display name**
+ * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
  * @param action Test action to execute for each parameter
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-fun <Data> TestSuite.withData(
+fun <Data> TestSuiteScope.withData(
     nameFn: (Data) -> String,
     vararg parameters: Data,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength!!,
+    prefix: String = "",
     testConfig: TestConfig = TestConfig,
-    action: suspend TestExecutionScope.(Data) -> Unit
+    action: suspend Test.ExecutionScope.(Data) -> Unit
 ) = withDataInternal(
     parameters.asSequence().map { nameFn(it) to it },
     testConfig,
     compact,
     maxLength,
     displayNameMaxLength,
+    prefix,
     action
 )

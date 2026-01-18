@@ -1,8 +1,8 @@
 package at.asitplus.testballoon
 
+import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.TestExecutionScope
-import de.infix.testBalloon.framework.core.TestSuite
+import de.infix.testBalloon.framework.core.TestSuiteScope
 import de.infix.testBalloon.framework.shared.TestDisplayName
 import de.infix.testBalloon.framework.shared.TestElementName
 import de.infix.testBalloon.framework.shared.TestRegistering
@@ -17,7 +17,7 @@ import kotlin.jvm.JvmInline
  * @property generator Suspending function that generates new fixture instances
  */
 class GeneratingFixtureScope<T> @PublishedApi internal constructor(
-    val testSuite: TestSuite,
+    val testSuite: TestSuiteScope,
     val generator: suspend () -> T
 ) {
     /**
@@ -35,13 +35,17 @@ class GeneratingFixtureScope<T> @PublishedApi internal constructor(
         @TestDisplayName displayName: String = name,
         maxLength: Int = DEFAULT_TEST_NAME_MAX_LEN,
         testConfig: TestConfig = TestConfig,
-        content: suspend TestExecutionScope.(T) -> Unit
+        content: suspend Test.ExecutionScope.(T) -> Unit
     ) {
-        testSuite.test(
-            name.truncated(maxLength).escaped,
-            displayName.truncated(maxLength).escaped,
-            testConfig = testConfig
-        ) { content(generator()) }
+        with(testSuite) {
+            val truncatedName = name.truncated(maxLength)
+            testSuiteInScope.checkPathLenIncluding(truncatedName)
+            test(
+                truncatedName,
+                (displayName.truncated(maxLength)),
+                testConfig = testConfig
+            ) { content(generator()) }
+        }
     }
 }
 
@@ -55,7 +59,7 @@ class GeneratingFixtureScope<T> @PublishedApi internal constructor(
  * @property generator Function that generates new fixture instances
  */
 class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
-    val testSuite: TestSuite,
+    val testSuite: TestSuiteScope,
     val generator: () -> T
 ) {
     /**
@@ -73,13 +77,17 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
         @TestDisplayName displayName: String = name,
         maxLength: Int = DEFAULT_TEST_NAME_MAX_LEN,
         testConfig: TestConfig = TestConfig,
-        content: suspend TestExecutionScope.(T) -> Unit
+        content: suspend Test.ExecutionScope.(T) -> Unit
     ) {
-        testSuite.test(
-            name.truncated(maxLength).escaped,
-            displayName.truncated(maxLength).escaped,
-            testConfig = testConfig
-        ) { content(generator()) }
+        with(testSuite) {
+            val truncatedName = name.truncated(maxLength)
+            testSuiteInScope.checkPathLenIncluding(truncatedName)
+            test(
+                truncatedName,
+                ( displayName.truncated(maxLength)),
+                testConfig = testConfig
+            ) { content(generator()) }
+        }
     }
 
     /**
@@ -97,13 +105,17 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
         @TestDisplayName displayName: String = name,
         maxLength: Int = DEFAULT_TEST_NAME_MAX_LEN,
         testConfig: TestConfig = TestConfig,
-        content: TestSuite.(T) -> Unit
+        content: TestSuiteScope.(T) -> Unit
     ) {
-        testSuite.testSuite(
-            name.truncated(maxLength).escaped,
-            displayName.truncated(maxLength).escaped,
-            testConfig = testConfig
-        ) { content(generator()) }
+        with(testSuite) {
+            val truncatedName = name.truncated(maxLength)
+            testSuiteInScope.checkPathLenIncluding(truncatedName)
+            testSuite(
+                truncatedName,
+                (displayName.truncated(maxLength)),
+                testConfig = testConfig
+            ) { content(generator()) }
+        }
     }
 }
 
@@ -145,7 +157,7 @@ value class GeneratingSuspendFixtureScopHolder<T>(val scope: GeneratingFixtureSc
  * @param T The type of fixture object being managed
  * @param generator The generator function invoked to provide fresh state fo each test
  */
-fun <T> TestSuite.withFixtureGenerator(generator: (() -> T)) = GeneratingFixtureScopHolder(
+fun <T> TestSuiteScope.withFixtureGenerator(generator: (() -> T)) = GeneratingFixtureScopHolder(
     NonSuspendingGeneratingFixtureScope(this, generator)
 )
 
@@ -175,5 +187,5 @@ fun <T> TestSuite.withFixtureGenerator(generator: (() -> T)) = GeneratingFixture
  */
 @Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
 @kotlin.internal.LowPriorityInOverloadResolution
-fun <T> TestSuite.withFixtureGenerator(generator: suspend (() -> T)) =
+fun <T> TestSuiteScope.withFixtureGenerator(generator: suspend (() -> T)) =
     GeneratingSuspendFixtureScopHolder(GeneratingFixtureScope(this, generator))

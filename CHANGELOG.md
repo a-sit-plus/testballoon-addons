@@ -2,6 +2,16 @@
 
 ## 0.x
 
+### 0.7.0-RC
+* Platform-agnostic test name length defaults
+* Prefixes for data test and property test
+* Shorter compact names
+* Global test name length configuration -> deprecate `DEFAULT_TEST_NAME_MAX_LEN`
+* Hard fails on too long overall test names on Android
+
+### 0.6.2-RC
+* Support TestBalloon 0.8-RC
+
 ### 0.6.1
 * Add missing TestExecutionScope to data-driven test leaves
 

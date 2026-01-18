@@ -1,8 +1,8 @@
 package at.asitplus.testballoon
 
+import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.TestExecutionScope
-import de.infix.testBalloon.framework.core.TestSuite
+import de.infix.testBalloon.framework.core.TestSuiteScope
 
 /**
  * Global knobs to tweak the behavior of PropertyTest Addon
@@ -10,18 +10,30 @@ import de.infix.testBalloon.framework.core.TestSuite
 object FreeSpec {
 
     /**
-     * The default maximum length of test element names (not display name). Default = 64. `-1` means no truncation
+     * The default maximum length of test element names (not display name).
+     * Defaults to [TestBalloonAddons.defaultTestNameMaxLength], but setting it here will take precedence.
+     * * `-1` means no truncation.
+     * * `null` means it will again fall back to [TestBalloonAddons.defaultTestNameMaxLength]
+     *
+     * This property's getter will never return null, but fall back to [TestBalloonAddons.defaultTestNameMaxLength].
      */
-    var defaultTestNameMaxLength: Int = DEFAULT_TEST_NAME_MAX_LEN
+    var defaultTestNameMaxLength: Int? = null
+        get() = field?:TestBalloonAddons.defaultTestNameMaxLength
 
     /**
-     * The default maximum length of test element names (not display name). Default = -1 (no truncation)
+     * The default maximum length of test element display names (not test name).
+     * Defaults to [TestBalloonAddons.defaultDisplayNameMaxLength], but setting it here will take precedence.
+     * * `-1` means no truncation.
+     * * `null` means it will again fall back to [TestBalloonAddons.defaultDisplayNameMaxLength]
+     *
+     * This property's getter will never return null, but fall back to [TestBalloonAddons.defaultDisplayNameMaxLength].
      */
-    var defaultDisplayNameMaxLength: Int = -1
+    var defaultDisplayNameMaxLength: Int? = null
+        get() = field?:TestBalloonAddons.defaultDisplayNameMaxLength
 
 }
 
-context(suite: TestSuite)
+context(suite: TestSuiteScope)
 /**
  * Creates a test case with the specified name and configuration.
  *
@@ -35,17 +47,21 @@ context(suite: TestSuite)
 @kotlin.internal.LowPriorityInOverloadResolution
 operator fun String.invoke(
     displayName: String = this,
-    maxLength: Int = FreeSpec.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
+    maxLength: Int = FreeSpec.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength!!,
     testConfig: TestConfig = TestConfig,
-    nested: suspend TestExecutionScope.() -> Unit
+    nested: suspend Test.ExecutionScope.() -> Unit
 ) {
-    suite.test(
-        freeSpecName(this).truncated(maxLength).escaped,
-        displayName = displayName.truncated(displayNameMaxLength).escaped,
-        testConfig = testConfig.disableByName(this),
-        nested
-    )
+    with(suite) {
+        val truncatedName = freeSpecName(this@invoke).truncated(maxLength)
+        testSuiteInScope.checkPathLenIncluding(truncatedName)
+        test(
+            truncatedName,
+            displayName = (displayName.truncated(displayNameMaxLength)),
+            testConfig = testConfig.disableByName(this@invoke),
+            nested
+        )
+    }
 }
 
 
@@ -60,9 +76,9 @@ operator fun String.invoke(
  * @property config The configuration for the suite
  */
 data class ConfiguredSuite(
-    val parent: TestSuite,
-    val maxLength: Int = FreeSpec.defaultTestNameMaxLength,
-    val displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
+    val parent: TestSuiteScope,
+    val maxLength: Int = FreeSpec.defaultTestNameMaxLength!!,
+    val displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength!!,
     val displayName: String,
     val testName: String,
     val config: TestConfig
@@ -72,18 +88,22 @@ data class ConfiguredSuite(
      *
      * @param suiteBody The body of the test suite.
      */
-    infix operator fun minus(suiteBody: TestSuite.() -> Unit) {
-        parent.testSuite(
-            freeSpecName(testName).truncated(maxLength).escaped,
-            displayName = displayName.truncated(displayNameMaxLength).escaped,
-            testConfig = config.disableByName(displayName),
-            content = suiteBody
-        )
+    infix operator fun minus(suiteBody: TestSuiteScope.() -> Unit) {
+        with(parent) {
+            val truncatedName = freeSpecName(testName).truncated(maxLength)
+            testSuiteInScope.checkPathLenIncluding(truncatedName)
+            testSuite(
+                truncatedName,
+                displayName = (displayName.truncated(displayNameMaxLength)),
+                testConfig = config.disableByName(displayName),
+                content = suiteBody
+            )
+        }
     }
 
 }
 
-context(suite: TestSuite)
+context(suite: TestSuiteScope)
 
 /**
  * Creates a configured suite with the specified name and configuration.
@@ -96,25 +116,28 @@ context(suite: TestSuite)
  */
 operator fun String.invoke(
     displayName: String = this,
-    maxLength: Int = FreeSpec.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
+    maxLength: Int = FreeSpec.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength!!,
     testConfig: TestConfig = TestConfig
 ) =
     ConfiguredSuite(suite, maxLength, displayNameMaxLength, displayName, this, testConfig)
 
-context(suite: TestSuite)
+context(suite: TestSuiteScope)
 /**
  * Creates a test suite with the specified name and body.
  *
  * @param suiteBody The body of the test suite.
  */
-infix operator fun String.minus(suiteBody: TestSuite.() -> Unit) {
+infix operator fun String.minus(suiteBody: TestSuiteScope.() -> Unit) =
+    with(suite) {
+        val truncatedName = freeSpecName(this@minus).truncated(FreeSpec.defaultTestNameMaxLength!!)
+        testSuiteInScope.checkPathLenIncluding(truncatedName)
+        testSuite(
+            name = truncatedName,
+            displayName = (freeSpecName(this@minus).truncated(FreeSpec.defaultDisplayNameMaxLength!!)),
+            testConfig = TestConfig.disableByName(this@minus),
+            content = suiteBody
+        )
+    }
 
-    suite.testSuite(
-        name = freeSpecName(this).truncated(FreeSpec.defaultTestNameMaxLength).escaped,
-        displayName = freeSpecName(this).truncated(FreeSpec.defaultDisplayNameMaxLength).escaped,
-        testConfig = TestConfig.disableByName(this),
-        content = suiteBody
-    )
-}
 

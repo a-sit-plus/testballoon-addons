@@ -1,3 +1,3 @@
 package at.asitplus.testballoon
 
-actual val String.escaped: String get() = replace('/', '⧸')
+internal actual val defaultMaxLen : Int = 15

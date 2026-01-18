@@ -9,41 +9,37 @@
 [![A-SIT Plus Official](https://raw.githubusercontent.com/a-sit-plus/a-sit-plus.github.io/709e802b3e00cb57916cbb254ca5e1a5756ad2a8/A-SIT%20Plus_%20official_opt.svg)](https://plus.a-sit.at/open-source.html)
 [![GitHub license](https://img.shields.io/badge/license-Apache%20License%202.0-brightgreen.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 [![Kotlin](https://img.shields.io/badge/kotlin-multiplatform-orange.svg?logo=kotlin)](http://kotlinlang.org)
-[![Kotlin](https://img.shields.io/badge/kotlin-2.2.21-blue.svg?logo=kotlin)](http://kotlinlang.org)
+[![Kotlin](https://img.shields.io/badge/kotlin-2.3.0-blue.svg?logo=kotlin)](http://kotlinlang.org)
 [![Java](https://img.shields.io/badge/java-17-blue.svg?logo=OPENJDK)](https://www.oracle.com/java/technologies/downloads/#java17)
 [![Maven Central](https://img.shields.io/maven-central/v/at.asitplus.testballoon/datatest)](https://mvnrepository.com/artifact/at.asitplus.testballoon/datatest)
 
+**This project provides addons for [TestBalloon](https://infix-de.github.io/testBalloon/), _the_ next generation KMP-first,
+coroutine-first testing framework.**
+
 </div>
 
-This project provides addons for [TestBalloon](https://infix-de.github.io/testBalloon/), _the_ next generation Kotlin
-test
-framework, built from the ground up for Kotlin Multiplatform and coroutines.
-
-> [!IMPORTANT]  
-> Always explicitly add `de.infix.testBalloon:testBalloon-framework-core` **&ge; 0.7.0** to your test dependencies!
-> You will run into an unresolved dependency error otherwise!
-
-The code here started as a shim to make migration from Kotest easier, after being dissatisfied with the Kotest
+Originally, this project started as a shim to make migration from Kotest easier, after being dissatisfied with the Kotest
 _framework's_
 second-class KMP, and third-class Android support.
 At the same time, **the Kotest _libraries_, like its assertions, the way it models property testing, etc. are still
 unrivaled** and don't suffer from the framework's shortcomings. Paired with TestBalloon's flexibility and its small API
 surface, we can get the best of both worlds.
 
+**TestBalloonAddons provide:**
+* data-driven testing
+* property-testing
+* per-suite and per-test fixture generation
+* [FreeSpec](https://kotest.io/docs/framework/testing-styles.html#free-spec) test style as known from [Kotest](https://kotest.io/)
 
-> [!CAUTION]  
-> On Android (JVM, not native), forward slashed in test names and display names are **always** replaced
-> with the `⧸` character because the Android test runner cannot deal with slashes in test names. This can bite you when
-> using base64-encoded data inside test names.
 
-## Modules
+## Feature Overview
 
 This project consists of the following modules:
 
-* `freespec` emulating Kotest's `FreeSpec` test style for TestBalloon
 * `datatest` replicates Kotest's data-driven testing features for TestBalloon
 * `property` bringing Kotest's property testing to TestBalloon
-* `fixturegen` introducing per-test fixture generation for TestBalloon without boilerplate
+* `fixturegen` introducing per-test fixture generation for TestBalloon without boilerplate and beyond TestBalloon's current fixture generation capabilities.
+* `freespec` emulating Kotest's `FreeSpec` test style for TestBalloon
 
 > [!TIP]  
 > `freespec` and `fixturegen` are [modulated](https://github.com/a-sit-plus/modulator) into the `fixturegen-freespec`
@@ -53,82 +49,80 @@ This project consists of the following modules:
 `at.asitplus.testballoon:fixturegen-freespec:$version`
 > dependency manually to your project.
 
+### Test Name Truncation
 
-All modules allow for setting global defaults wrt. test names. These properties are called:
+> [!CAUTION]  
+> TestBalloon jumps to quite some hoops to not have the shortcomings of the underlying Gradle-based test infrastructure and
+> file system limitations eat your cat. However, deep nesting and exceptionally long test names (both of which are easily produced
+> when using data-driven testing or property testing) can still cause
+> errors or even crashes. This is especially true for Android device/emulator-based test execution, which is a wondrous mess!
+> As TestBalloon can only shorten test names and not suite names, truncation becomes useful.
+
+All modules allow for setting global defaults wrt. test name truncation. These properties are called:
 
 * `defaultTestNameLength`
 * `defaultDisplayNameLength`
 
-The former defaults to 64 characters, while display names are not truncated by default.
-Both properties can be set per test style (e.g., `FreeSpec.defaultTestNameLength = 10`,
-`PropertyTest.defaultDisplayNameLength = 100`)
-It is also possible to set test name length and display name length for individual tests by passing the `maxLength` and
-`displayNameMaxLength` parameters, respectively.
+The former generally defaults to 64 characters (15 on Android), while display names are not truncated by default.
+Both properties can be set in two ways:
+* **globally** (e.g., `TestBalloonAddons.defaultTestNameLength = 15`)
+* **per test style** (e.g., `FreeSpec.defaultTestNameLength = 10`, `PropertyTest.defaultDisplayNameLength = 100`)
 
-In Addition, TestBalloon Addons use sane default stringification for test names of collection and arrays types
+
+Per-Style configuration takes precedence over global configuration. Hence, per-style configuration property setters are nullable,
+**even though their getters will never return null**, as they fall back to the global configuration properties automatically.  
+It is also possible to set test name length and display name length for individual tests by passing the `maxLength` and
+`displayNameMaxLength` parameters, respectively. Truncated names are ellipsised in the middle and not just cut off at the end.
+
+**→ Check out [the full API docs](https://a-sit-plus.github.io/testballoon-addons/) for each test style for all configuration options!**
+
+### By-Default Sane Test Names
+
+TestBalloon Addons use sane default stringification for test names of collections and arrays types inside data-driven tests and property tests:
+
 * All primitive arrays are correctly joined to string (i.e. `[-1, 4, -643, 34310]`)
 * All unsigned arrays are correctly joined to string (i.e. `[9, 76, 145, 9365]`)
-* `ByteArray` and `UByteArray` use hex notation (i.e. `CA:FE:BA:BE`)
+* `ByteArray` and `UByteArray` use hex uppercase notation (i.e. `CA:FE:BA:BE`)
 
-### FreeSpec
+### Compacting Test Series
 
-| Maven Coordinates | `at.asitplus.testballoon:freespec:$version` |
-|-------------------|---------------------------------------------|
+Data-driven testing and property testing can easily produce millions of individual cases being tested.
+To not make the test runner's heap explode in such cases, the `datatest` and `property` module allow for compating
+test series.  
+Just set pass the `compact = true` parameter when creating data-driven tests or property tests (see examples in the
+module descriptions for [data-driven testing](#data-driven-testing), and [property testing](#property-testing)).  
+The names of such compacted test series consist of an uppercase sigma (`Σ`) followed by the test series' dataype (e.g.,
+`ΣULong`, `ΣByteArray`, …).
 
-At A-SIT Plus, we've been using Kotest's [FreeSpec](https://kotest.io/docs/framework/testing-styles.html#free-spec) for
-its expressiveness, as it allows modeling tests and test dependencies close to natural language.
+To still get intelligible outputs about which precise data point(s) caused failing tests, the error message of the resulting
+failed assertion will precisely list everything that failed and which succeeded:
 
-TestBalloon is flexible enough to emulate FreeSpec with very little code, **if** you have
-[context parameters](https://kotlinlang.org/docs/context-parameters.html) enabled for your codebase:
-
-<details>
-<summary>Setting up context parameters</summary>
-
-```kotlin
-// build.gradle.kts
-kotlin {
-    compilerOptions {
-        freeCompilerArgs.add("-Xcontext-parameters")
-    }
-}
+```
+java.lang.AssertionError: ΣString
+Error: 1: 4: expected:<three> but was:<4>
+Error: 2: one: expected:<three> but was:<one>
+Error: 3: null: Expected "three" but actual was null
+Error: 4: null: Expected "three" but actual was null
+Error: 5: null: Expected "three" but actual was null
+Error: 6: two: expected:<three> but was:<two>
+OK:    7: three
+Error: 8: four: expected:<three> but was:<four>
+----------------------------------------
 ```
 
-</details>
+The stack trace of the thrown exception is the stack trace of the first error (which is equal to the stack traces of all
+failed assertions). As such, you can directly navigate to the error with the same convenience as ever!
+On the JVM: the individual exception of all failed test series' individual tests are added to the toplevel assertion error as suppressed exceptions.
 
-```kotlin
-import at.asitplus.testballoon.invoke
-import at.asitplus.testballoon.minus
-import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.TestInvocation
-import de.infix.testBalloon.framework.core.invocation
-import de.infix.testBalloon.framework.core.singleThreaded
-import de.infix.testBalloon.framework.core.testSuite
+To globally enable compacting test series for data-driven testing and property testing, set `DataTest.compactByDefault = true` and `PropertyTest.compactByDefault = true`,
+respectively.  
+**Compacting works on test and suite level!**  
+In addition, it is possible to specify a `prefix` parameter when defining data-driven tests or property tests, which will be prepended to
+generated test names (in front of the sigma). This helps navigate large test graphs.
 
-val aFreeSpecSuite by testSuite {
-    //testConfigs are supported for suites
-    "The outermost blue code"(testConfig = TestConfig.singleThreaded()) - {
-        "contains some more blue code" - {
-            ", some green code inside the lambda" {
-                // your test logic here
-            }
-            //testConfigs are supported for Tests
-            ", and some more green code inside the second lambda"(testConfig = TestConfig.invocation(TestInvocation.SEQUENTIAL)) {
-                // more test logic here
-            }
-        }
-        "And finally some more blue code" - {
-            "!With some final disabled green code in this lambda" {
-                //additional, disabled test logic here
-            }
-        }
-    }
-}
-```
+**→ Check out [the full API docs](https://a-sit-plus.github.io/testballoon-addons/) for each test style for all configuration options!**
 
-> [!NOTE]  
-> Running individual tests from the gutter is not (yet) possible, due to the intricacies of how code analysis works.
-> Hence, you must run the entire suite (but you can manually filter using wildcards).  
-> (You can, of course, just migrate off FreeSpec and use TestBalloon's native functions to create suites and tests.)
+## Modules
 
 ### Data-Driven Testing
 
@@ -166,10 +160,12 @@ val aDataDrivenSuite by testSuite {
 }
 ```
 
-> [!NOTE]  
-> Running individual tests from the gutter is not possible, as the test suite structure and the names of
-> suites and tests are computed at runtime.
-> Hence, you must run the entire suite (but you can manually filter using wildcards)
+It is possible to specify a `prefix` parameter when defining data-driven tests and suites, which will be prepended to
+generated test names. This helps navigate large test reports.
+
+Running individual tests from the gutter is not possible, as the test suite structure and the names of
+suites and tests are computed at runtime.
+Hence, you must run the entire suite (but you can manually filter using wildcards)
 
 ### Property Testing
 
@@ -178,7 +174,7 @@ val aDataDrivenSuite by testSuite {
 
 > [!NOTE]  
 > Deep nesting will produce a large number of tests, making the heap explode. Either manually compact tests as in the
-> second example below (works for both `checkAll` and `checkAllSuites`), or set the global
+> first example below (works for both `checkAll` and `checkAllSuites`), or set the global
 > `PropertyTest.compactByDefault = true` to automatically compact all data-driven tests.
 
 Although it comes with some warts, `kotest-property` is still extremely helpful to generate a large corpus of test data,
@@ -213,12 +209,15 @@ val propertySuite by testSuite {
 }
 ```
 
-> [!NOTE]  
-> Running individual tests from the gutter is not possible, as the test suite structure and the names of
-> suites and tests are computed at runtime.
-> Hence, you must run the entire suite (but you can manually filter using wildcards)
 
-### Per-Test Fixture Generation
+It is possible to specify a `prefix` parameter when defining property tests and suites, which will be prepended to
+generated test names. This helps navigate large test reports.
+
+Running individual tests from the gutter is not possible, as the test suite structure and the names of
+suites and tests are computed at runtime.
+Hence, you must run the entire suite (but you can manually filter using wildcards)
+
+### On-Demand Fixture Generation
 
 | Maven Coordinates | `at.asitplus.testballoon:fixturegen:$version` |
 |-------------------|-----------------------------------------------|
@@ -230,7 +229,11 @@ Hence, ye olde JUnit4-style `@Before` and `@After` hacks mutating global state a
 Sometimes, though, you really want fresh data for every test or suite&mdash;in effect, **you want to generate a fresh test
 fixture for every test/suite**.
 
-Look no further:
+> [!NOTE]  
+> Fixture generation as provided by the addons do not use TestBalloon's native fixtures, as those only work in green code.
+> The flavour of fixture generation provided by TestBalloon Addons works for suites (blue code) and tests (green code)
+> as shown below.
+
 
 ```kotlin
 import at.asitplus.testballoon.withFixtureGenerator //<- Look ma, only a single import!
@@ -339,8 +342,69 @@ val aGeneratingSuite by testSuite {
 > }
 > ```
 
+
+### FreeSpec
+
+| Maven Coordinates | `at.asitplus.testballoon:freespec:$version` |
+|-------------------|---------------------------------------------|
+
+At A-SIT Plus, we've been using Kotest's [FreeSpec](https://kotest.io/docs/framework/testing-styles.html#free-spec) for
+its expressiveness, as it allows modeling tests and test dependencies close to natural language.
+
+TestBalloon is flexible enough to emulate FreeSpec with very little code, **if** you have
+[context parameters](https://kotlinlang.org/docs/context-parameters.html) enabled for your codebase:
+
 <details>
-<summary>Combining with FreeSpec</summary> 
+<summary>Setting up context parameters</summary>
+
+```kotlin
+// build.gradle.kts
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xcontext-parameters")
+    }
+}
+```
+
+</details>
+
+```kotlin
+import at.asitplus.testballoon.invoke
+import at.asitplus.testballoon.minus
+import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.TestInvocation
+import de.infix.testBalloon.framework.core.invocation
+import de.infix.testBalloon.framework.core.singleThreaded
+import de.infix.testBalloon.framework.core.testSuite
+
+val aFreeSpecSuite by testSuite {
+    //testConfigs are supported for suites
+    "The outermost blue code"(testConfig = TestConfig.singleThreaded()) - {
+        "contains some more blue code" - {
+            ", some green code inside the lambda" {
+                // your test logic here
+            }
+            //testConfigs are supported for Tests
+            ", and some more green code inside the second lambda"(testConfig = TestConfig.invocation(TestInvocation.SEQUENTIAL)) {
+                // more test logic here
+            }
+        }
+        "And finally some more blue code" - {
+            "!With some final disabled green code in this lambda" {
+                //additional, disabled test logic here
+            }
+        }
+    }
+}
+```
+
+Running individual tests from the gutter is not (yet) possible, due to the intricacies of how code analysis works.
+Hence, you must run the entire suite (but you can manually filter using wildcards).  
+(You can, of course, just migrate off FreeSpec and use TestBalloon's native functions to create suites and tests.)
+
+
+<details>
+<summary>Combining with FixtureGen</summary> 
 
 | Maven Coordinates (if not using [modulator](https://github.com/a-sit-plus/modulator)) | `at.asitplus.testballoon:fixturegen-freespec:$version` |
 |---------------------------------------------------------------------------------------|--------------------------------------------------------|
@@ -401,6 +465,7 @@ val aGeneratingFreeSpecSuite by testSuite {
 ```
 
 </details>
+
 
 ## Contributing
 

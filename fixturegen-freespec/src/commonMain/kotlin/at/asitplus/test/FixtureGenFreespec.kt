@@ -1,8 +1,8 @@
 package at.asitplus.testballoon
 
+import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.TestExecutionScope
-import de.infix.testBalloon.framework.core.TestSuite
+import de.infix.testBalloon.framework.core.TestSuiteScope
 
 
 context(fixture: GeneratingFixtureScope<T>)
@@ -17,17 +17,21 @@ context(fixture: GeneratingFixtureScope<T>)
  */
 operator fun <T> String.invoke(
     displayName: String = this,
-    maxLength: Int = FreeSpec.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
+    maxLength: Int = FreeSpec.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength!!,
     testConfig: TestConfig = TestConfig,
-    nested: suspend TestExecutionScope.(T) -> Unit
+    nested: suspend Test.ExecutionScope.(T) -> Unit
 ) {
-    fixture.testSuite.test(
-        freeSpecName(this@invoke).truncated(maxLength).escaped,
-        displayName = displayName.truncated(displayNameMaxLength).escaped,
-        testConfig = testConfig.disableByName(this@invoke)
-    ) {
-        nested(fixture.generator())
+    with(fixture.testSuite) {
+        val truncatedName = freeSpecName(this@invoke).truncated(maxLength)
+        testSuiteInScope.checkPathLenIncluding(truncatedName)
+        test(
+            truncatedName,
+            displayName = (displayName.truncated(displayNameMaxLength)),
+            testConfig = testConfig.disableByName(this@invoke)
+        ) {
+            nested(fixture.generator())
+        }
     }
 }
 
@@ -46,14 +50,14 @@ context(fixture: NonSuspendingGeneratingFixtureScope<T>)
 @kotlin.internal.LowPriorityInOverloadResolution
 operator fun <T> String.invoke(
     displayName: String = this,
-    maxLength: Int = FreeSpec.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
+    maxLength: Int = FreeSpec.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength!!,
     testConfig: TestConfig = TestConfig,
-    nested: suspend TestExecutionScope.(T) -> Unit
+    nested: suspend Test.ExecutionScope.(T) -> Unit
 ) {
     fixture.test(
-        freeSpecName(this@invoke),
-        displayName = freeSpecName(displayName),
+        (freeSpecName(this@invoke).truncated(maxLength)),
+        displayName = (freeSpecName(displayName).truncated(displayNameMaxLength)),
         testConfig = testConfig.disableByName(this@invoke)
     ) {
         nested(fixture.generator())
@@ -67,7 +71,7 @@ context(fixture: NonSuspendingGeneratingFixtureScope<T>)
  *
  * @param suiteBody The test suite body to execute.
  */
-infix operator fun <T> String.minus(suiteBody: TestSuite.(T) -> Unit) = fixture.testSuite(
+infix operator fun <T> String.minus(suiteBody: TestSuiteScope.(T) -> Unit) = fixture.testSuite(
     freeSpecName(this),
     testConfig = TestConfig.disableByName(this),
     content = suiteBody
@@ -83,17 +87,27 @@ context(fixture: NonSuspendingGeneratingFixtureScope<T>)
  * @param displayName Optional display name override
  * @return A new [ConfiguredSuite] instance.
  */
-operator fun <T>String.invoke(
+operator fun <T> String.invoke(
     displayName: String = this,
-    maxLength: Int = FreeSpec.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength,
+    maxLength: Int = FreeSpec.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = FreeSpec.defaultDisplayNameMaxLength!!,
     testConfig: TestConfig = TestConfig
-) =    ConfiguredSuite(fixture.testSuite, maxLength, displayNameMaxLength, freeSpecName(displayName), freeSpecName(this), testConfig)
+) = ConfiguredSuite(
+    fixture.testSuite,
+    maxLength,
+    displayNameMaxLength,
+    freeSpecName(displayName),
+    freeSpecName(this),
+    testConfig
+)
 
 context(fixture: NonSuspendingGeneratingFixtureScope<T>)
-infix operator fun <T>ConfiguredSuite.minus(suiteBody: TestSuite.(T) -> Unit) =  fixture.testSuite.testSuite(
-    testName.truncated(maxLength).escaped,
-    displayName.truncated(displayNameMaxLength).escaped,
-    testConfig = config.disableByName(testName)
-) { suiteBody(fixture.generator()) }
-
+infix operator fun <T> ConfiguredSuite.minus(suiteBody: TestSuiteScope.(T) -> Unit) = with(fixture.testSuite) {
+    var truncatedName = testName.truncated(maxLength)
+    testSuiteInScope.checkPathLenIncluding(truncatedName)
+    testSuite(
+        truncatedName,
+        (displayName.truncated(displayNameMaxLength)),
+        testConfig = config.disableByName(testName)
+    ) { suiteBody(fixture.generator()) }
+}

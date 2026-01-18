@@ -1,7 +1,7 @@
 import at.asitplus.testballoon.invoke
 import at.asitplus.testballoon.minus
+import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.TestInvocation
 import de.infix.testBalloon.framework.core.invocation
 import de.infix.testBalloon.framework.core.singleThreaded
 import de.infix.testBalloon.framework.core.testSuite
@@ -15,7 +15,7 @@ val aFreeSpecSuite by testSuite {
             ", some green code inside the lambda" {
                 true.shouldBeTrue()
             }
-            ", and some more green code inside the second lambda"(testConfig = TestConfig.invocation(TestInvocation.SEQUENTIAL)) {
+            ", and some more green code inside the second lambda"(testConfig = TestConfig.invocation(TestConfig.Invocation.Sequential)) {
                 1 shouldBe 1
             }
         }

@@ -2,6 +2,7 @@ package at.asitplus.testballoon
 
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuite
+import de.infix.testBalloon.framework.core.TestSuiteScope
 
 
 /**
@@ -11,18 +12,21 @@ import de.infix.testBalloon.framework.core.TestSuite
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
  * @param displayNameMaxLength maximum length of test element **display name**
+ * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
  */
-fun <Data> TestSuite.withData(
+fun <Data> TestSuiteScope.withData(
     data: Iterable<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength!!,
+    prefix: String = "",
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredDataTestScope<Data>(
     compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
+    prefix = prefix,
     this,
     data.asSequence().map { it.toPrettyString() to it },
     testConfig
@@ -38,19 +42,22 @@ fun <Data> TestSuite.withData(
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
  * @param displayNameMaxLength maximum length of test element **display name**
+ * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
  */
-fun <Data> TestSuite.withData(
+fun <Data> TestSuiteScope.withData(
     nameFn: (Data) -> String,
     data: Iterable<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength!!,
+    prefix: String = "",
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredDataTestScope<Data>(
     compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
+    prefix = prefix,
     this,
     data.asSequence().map { nameFn(it) to it },
     testConfig
@@ -61,24 +68,27 @@ fun <Data> TestSuite.withData(
  * Creates a test suite for each item in the provided iterable data.
  *
  * @param data The iterable collection of test data
- * @param testConfig Optional test configuration
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
  * @param displayNameMaxLength maximum length of test element **display name**
+ * @param testConfig Optional test configuration
+ * @param prefix an optional prefix to add to the test name
  * @param action Test suite configuration action for each data item
  */
-fun <Data> TestSuite.withDataSuites(
+fun <Data> TestSuiteScope.withDataSuites(
     data: Iterable<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength!!,
+    prefix: String = "",
     testConfig: TestConfig = TestConfig,
-    action: TestSuite.(Data) -> Unit
+    action: TestSuiteScope.(Data) -> Unit
 ) = withDataSuitesInternal(
     data.map { it.toPrettyString() to it }.asSequence(),
     compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
+    prefix = prefix,
     testConfig,
     action
 )
@@ -89,25 +99,28 @@ fun <Data> TestSuite.withDataSuites(
  *
  * @param nameFn Function to generate suite name from data
  * @param data The iterable collection of test data
- * @param testConfig Optional test configuration
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
  * @param displayNameMaxLength maximum length of test element **display name**
+ * @param prefix an optional prefix to add to the test name
+ * @param testConfig Optional test configuration
  * @param action Test suite configuration action for each data item
  */
-fun <Data> TestSuite.withDataSuites(
+fun <Data> TestSuiteScope.withDataSuites(
     nameFn: (Data) -> String,
     data: Iterable<Data>,
     compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength,
-    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength,
+    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
+    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength!!,
+    prefix: String = "",
     testConfig: TestConfig = TestConfig,
-    action: TestSuite.(Data) -> Unit
+    action: TestSuiteScope.(Data) -> Unit
 ) = withDataSuitesInternal(
     data.map { nameFn(it) to it }.asSequence(),
     compact,
     maxLength,
     displayNameMaxLength = displayNameMaxLength,
+    prefix = prefix,
     testConfig,
     action
 )
