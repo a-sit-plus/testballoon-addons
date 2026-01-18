@@ -1,6 +1,8 @@
 package at.asitplus.testballoon
 
+import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.TestSuite
 import de.infix.testBalloon.framework.core.disable
 import de.infix.testBalloon.framework.shared.AbstractTestElement
 
@@ -9,10 +11,12 @@ expect var totalMaxLen: Int
 
 fun AbstractTestElement.checkPathLenIncluding(str: String) {
     if (totalMaxLen < 0) return
-    if ((testElementPath.toString().length + str.length) > totalMaxLen) {
-        val substr = testElementPath.toString().dropLast(1)
-        val last = testElementPath.toString().last()
-        throw IllegalArgumentException("Test Element ${substr}↘$str$last exceeds $totalMaxLen characters. Note: the default max length is 200 for Android tests")
+    val path = testElementPath.toString()
+    val relevantPath = path.substringAfter("↘", "»")
+    val root = path.substringBefore("↘", path.dropLast(1))
+    val currentLen= relevantPath.length
+    if ((currentLen + str.length) > totalMaxLen) {
+        throw IllegalArgumentException("Test Path «${relevantPath.dropLast(1)}↘$str» exceeds $totalMaxLen characters. Note: the root element's FQN($root») does not count towards this limit. The default max length is 122 for Android tests. There is no default limit for other platforms.")
     }
 }
 

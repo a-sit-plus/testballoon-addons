@@ -19,21 +19,21 @@ internal expect val defaultMaxLen: Int
 object TestBalloonAddons {
 
     /**
-     * The default maximum length of test names and test suite names created using:
+     * The default maximum length of test element names created using:
      * * `withData`
      * * `withDataSuites`
      * * `checkAll`
      * * `checkAllSuites`
      * * FreeSoec
      *
-     * On Android this is `10`. On all other platforms this is 64.
+     * On Android this is `15`. On all other platforms this is 64.
      *
      * `-1` means no truncation.
      */
     var defaultTestNameMaxLength: Int = defaultMaxLen
 
     /**
-     * The default maximum length of display names of tests and suites created using:
+     * The default maximum length of display names of test elements created using:
      * * `withData`
      * * `withDataSuites`
      * * `checkAll`
@@ -45,12 +45,11 @@ object TestBalloonAddons {
     var defaultDisplayNameMaxLength: Int = -1
 
     /**
-     * Hard limit of the maximum path length of a test (i.e. the fully qualified name including all layers from the root suite
-     * down to the test case).
-     * **This defaults to `200` on Android** due to hardcoded limits somewhere deep into the Android device test pipeline.
+     * Hard limit of the maximum path length of a test (i.e. all layers after the root suite's FQN down to the test case).
+     * **This defaults to `122` on Android** due to hardcoded limits somewhere deep into the Android device test pipeline.
      * On all other platforms, no hard limit is enforced by default.
      * The intent of this hard limit is to have Android device tests fail in a controlled manner, as test names
-     * exceeding an (utterly undocumented)
+     * exceeding an (utterly undocumented) limit will cause unintelligible failures inside UTP.
      */
     var overallMaxTestPathLength: Int
         get() = totalMaxLen
