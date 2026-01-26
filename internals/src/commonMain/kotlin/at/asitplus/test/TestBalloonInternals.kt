@@ -14,7 +14,7 @@ fun AbstractTestElement.checkPathLenIncluding(str: String) {
     val root = path.substringBefore("↘", path.dropLast(1))
     val currentLen= relevantPath.length
     if ((currentLen + str.length) > totalMaxLen) {
-        throw IllegalArgumentException("Test Path «${relevantPath.dropLast(1)}↘$str» exceeds $totalMaxLen characters. Note: the root element's FQN($root») does not count towards this limit. The default max length is 122 for Android tests. There is no default limit for other platforms.")
+        throw IllegalArgumentException("Test Path «${relevantPath.dropLast(1)}↘$str» exceeds $totalMaxLen characters. Note: the root element's FQN($root») does not count towards this limit.")
     }
 }
 

@@ -31,6 +31,39 @@ surface, this provides the best of both worlds.
 * per-suite and per-test fixture generation
 * [FreeSpec](https://kotest.io/docs/framework/testing-styles.html#free-spec) test style as known from [Kotest](https://kotest.io/)
 
+The real strength of TestBalloon Addons emerges when multiple features are combined—especially when FreeSpec allows entire test hierarchies to be expressed almost like natural language.
+By eliminating boilerplate and ceremony, this keeps the focus squarely on the tests themselves, so a test suite already tells its story at first glance.
+The following example demonstrates how this looks like in practice.
+
+```kotlin
+val combinedFeaturesSuite by testSuite {
+
+    // Generate a fresh fixture for every test
+    withFixtureGenerator { Random.nextInt() } - {
+
+        "A FreeSpec-style suite with generated fixtures" - { freshSeed ->
+
+            // Data-driven tests
+            withData(1, 2, 3) { multiplier ->
+                "works for simple data-driven cases" {
+                    val result = freshSeed * multiplier
+                    // assert something about result
+                }
+            }
+
+            // Property-based tests
+            checkAll(iterations = 50, Arb.int(0..10)) { value ->
+                "also supports property testing" {
+                    val result = freshSeed + value
+                    // assert an invariant about result
+                }
+            }
+        }
+    }
+}
+```
+
+
 ## Feature Overview
 
 This project consists of the following modules:

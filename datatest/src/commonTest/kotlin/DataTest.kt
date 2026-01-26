@@ -7,9 +7,12 @@ import kotlin.random.Random
 import kotlin.random.nextUBytes
 
 val aDataDrivenSuite by testSuite {
-    withData(Random.nextBytes(2),Random.nextUBytes(20),Random.nextBytes(4),Random.nextBytes(6)){
+    withData("foo" to 13) {
 
     }
+    withData(mapOf("foo" to 13)) {
+    }
+
 
 
     withDataSuites(null, null, 1, 2, 3, 4, compact = true) { number ->
