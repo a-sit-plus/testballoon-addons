@@ -50,6 +50,8 @@ object TestBalloonAddons {
      * On all other platforms, no hard limit is enforced by default.
      * The intent of this hard limit is to have Android device tests fail in a controlled manner, as test names
      * exceeding an (utterly undocumented) limit will cause unintelligible failures inside UTP.
+     *
+     * TestBalloon 0.8.0 stable does not need this any more
      */
     var overallMaxTestPathLength: Int
         get() = totalMaxLen

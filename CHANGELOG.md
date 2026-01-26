@@ -2,7 +2,11 @@
 
 ## 0.x
 
-### 0.7.0-RC
+### 0.7.0-RC2
+* Kotest libraries 6.1.1
+* Fix incorrect internal reference to max length
+
+### 0.7.0-RC2
 * Platform-agnostic test name length defaults
 * Prefixes for data test and property test
 * Shorter compact names
