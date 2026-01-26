@@ -1,8 +1,6 @@
 package at.asitplus.testballoon
 
-import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.TestSuite
 import de.infix.testBalloon.framework.core.disable
 import de.infix.testBalloon.framework.shared.AbstractTestElement
 
