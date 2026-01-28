@@ -82,6 +82,15 @@ This project consists of the following modules:
 > `at.asitplus.testballoon:fixturegen-freespec:$version`
 > dependency manually to your project.
 
+### Compatibility Matrix
+
+| TestBalloon Addons | TestBalloon                 |
+|--------------------|-----------------------------|
+| `0.7.0` - `0.7.1`  | `0.8.2` (Kotlin `2.3.0`)    |
+| `0.7.0-RC`         | `0.8.0-RC` (Kotlin `2.3.0`) |
+| `0.1.1`–`0.6.1`    | `0.7.1` (Kotlin `2.2.21`)   |
+| `0.1.0`            | `0.7.0` (Kotlin `2.2.21`)   |
+
 ### Test Name Truncation
 
 > [!CAUTION]  

@@ -140,8 +140,6 @@ fun <Data> TestSuiteScope.withDataSuites(
  * @param testConfig Optional test configuration
  * @param action Test suite configuration action for each parameter
  */
-@Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
-@kotlin.internal.LowPriorityInOverloadResolution
 fun <Data> TestSuiteScope.withDataSuites(
     vararg parameters: Pair<String,Data>,
     compact: Boolean = DataTest.compactByDefault,
