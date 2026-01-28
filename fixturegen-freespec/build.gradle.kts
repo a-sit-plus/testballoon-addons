@@ -77,6 +77,8 @@ kotlin {
         }
         commonTest.dependencies {
             implementation("de.infix.testBalloon:testBalloon-integration-kotest-assertions:${libs.versions.testballoon.get()}")
+            implementation(project(":datatest"))
+            implementation(project(":property"))
         }
     }
 }

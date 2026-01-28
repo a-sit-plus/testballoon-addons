@@ -18,18 +18,50 @@ coroutine-first testing framework.**
 
 </div>
 
-Originally, this project started as a shim to make migration from Kotest easier, after being dissatisfied with the Kotest
-_framework's_
-second-class KMP, and third-class Android support.
-At the same time, **the Kotest _libraries_, like its assertions, the way it models property testing, etc. are still
-unrivaled** and don't suffer from the framework's shortcomings. Paired with TestBalloon's flexibility and its small API
-surface, we can get the best of both worlds.
+This project originally started as a shim to make migration from Kotest easier, after being dissatisfied with the Kotest
+_framework's_ second-class KMP support and third-class Android support.
 
-**TestBalloonAddons provide:**
+At the same time, **the Kotest _libraries_**—its assertions, the way it models property testing, etc.—are still
+**unrivaled** and don’t suffer from the framework’s shortcomings. Paired with TestBalloon’s flexibility and small API
+surface, this provides the best of both worlds.
+
+**TestBalloon Addons provide:**
 * data-driven testing
-* property-testing
+* property testing
 * per-suite and per-test fixture generation
 * [FreeSpec](https://kotest.io/docs/framework/testing-styles.html#free-spec) test style as known from [Kotest](https://kotest.io/)
+
+The real strength of TestBalloon Addons emerges when multiple features are combined—especially when FreeSpec allows entire test hierarchies to be expressed almost like natural language.
+By eliminating boilerplate and ceremony, this keeps the focus squarely on the tests themselves, so a test suite already tells its story at first glance.
+The following example demonstrates how this looks like in practice.
+
+```kotlin
+val combinedFeaturesSuite by testSuite {
+
+    // Generate a fresh fixture for every test
+    withFixtureGenerator { Random.nextInt() } - {
+
+        "A FreeSpec-style suite with generated fixtures" - { freshSeed ->
+
+            // Data-driven tests
+            withData(1, 2, 3) { multiplier ->
+                "works for simple data-driven cases" {
+                    val result = freshSeed * multiplier
+                    // assert something about result
+                }
+            }
+
+            // Property-based tests
+            checkAll(iterations = 50, Arb.int(0..10)) { value ->
+                "also supports property testing" {
+                    val result = freshSeed + value
+                    // assert an invariant about result
+                }
+            }
+        }
+    }
+}
+```
 
 
 ## Feature Overview
@@ -37,48 +69,61 @@ surface, we can get the best of both worlds.
 This project consists of the following modules:
 
 * `datatest` replicates Kotest's data-driven testing features for TestBalloon
-* `property` bringing Kotest's property testing to TestBalloon
-* `fixturegen` introducing per-test fixture generation for TestBalloon without boilerplate and beyond TestBalloon's current fixture generation capabilities.
-* `freespec` emulating Kotest's `FreeSpec` test style for TestBalloon
+* `property` brings Kotest's property testing to TestBalloon
+* `fixturegen` introduces per-test fixture generation for TestBalloon without boilerplate, and beyond TestBalloon's current fixture generation capabilities
+* `freespec` emulates Kotest's `FreeSpec` test style for TestBalloon
 
 > [!TIP]  
 > `freespec` and `fixturegen` are [modulated](https://github.com/a-sit-plus/modulator) into the `fixturegen-freespec`
-> module, meaning that if you add the
-> `at.asitplus.modulator` gradle plugin to any project that uses both, you can automagically combine FreeSpec syntax
-> and per-test fixture generation! If you don't want to use modulator, you can just add the
-`at.asitplus.testballoon:fixturegen-freespec:$version`
+> module. This means: if you add the `at.asitplus.modulator` Gradle plugin to any project that uses both, you can
+> automagically combine FreeSpec syntax and per-test fixture generation.
+>
+> If you don't want to use modulator, you can add the
+> `at.asitplus.testballoon:fixturegen-freespec:$version`
 > dependency manually to your project.
+
+### Compatibility Matrix
+
+| TestBalloon Addons | TestBalloon                 |
+|--------------------|-----------------------------|
+| `0.7.0` - `0.7.1`  | `0.8.2` (Kotlin `2.3.0`)    |
+| `0.7.0-RC`         | `0.8.0-RC` (Kotlin `2.3.0`) |
+| `0.1.1`–`0.6.1`    | `0.7.1` (Kotlin `2.2.21`)   |
+| `0.1.0`            | `0.7.0` (Kotlin `2.2.21`)   |
 
 ### Test Name Truncation
 
 > [!CAUTION]  
-> TestBalloon jumps to quite some hoops to not have the shortcomings of the underlying Gradle-based test infrastructure and
-> file system limitations eat your cat. However, deep nesting and exceptionally long test names (both of which are easily produced
-> when using data-driven testing or property testing) can still cause
-> errors or even crashes. This is especially true for Android device/emulator-based test execution, which is a wondrous mess!
-> As TestBalloon can only shorten test names and not suite names, truncation becomes useful.
+> TestBalloon jumps through quite some hoops to avoid the shortcomings of the underlying Gradle-based test infrastructure
+> and file system limitations eating your cat. However, deep nesting and exceptionally long test names (both of which are
+> easily produced when using data-driven testing or property testing) can still cause errors or even crashes.
+>
+> This is especially true for Android device/emulator-based test execution, which is a wondrous mess!
+>
+> Because TestBalloon can only shorten test names (not suite names), truncation becomes useful.
 
-All modules allow for setting global defaults wrt. test name truncation. These properties are called:
+All modules allow setting global defaults with regard to test name truncation. These properties are called:
 
 * `defaultTestNameLength`
 * `defaultDisplayNameLength`
 
-The former generally defaults to 64 characters (15 on Android), while display names are not truncated by default.
+The former generally defaults to 64 characters (15 on Android). Display names are not truncated by default.
+
 Both properties can be set in two ways:
 * **globally** (e.g., `TestBalloonAddons.defaultTestNameLength = 15`)
 * **per test style** (e.g., `FreeSpec.defaultTestNameLength = 10`, `PropertyTest.defaultDisplayNameLength = 100`)
 
+Per-style configuration takes precedence over global configuration. Hence, per-style configuration property setters are nullable,
+**even though their getters will never return null**, as they fall back to the global configuration properties automatically.
 
-Per-Style configuration takes precedence over global configuration. Hence, per-style configuration property setters are nullable,
-**even though their getters will never return null**, as they fall back to the global configuration properties automatically.  
 It is also possible to set test name length and display name length for individual tests by passing the `maxLength` and
-`displayNameMaxLength` parameters, respectively. Truncated names are ellipsised in the middle and not just cut off at the end.
+`displayNameMaxLength` parameters, respectively. Truncated names are ellipsised in the middle, not just cut off at the end.
 
 **→ Check out [the full API docs](https://a-sit-plus.github.io/testballoon-addons/) for each test style for all configuration options!**
 
 ### By-Default Sane Test Names
 
-TestBalloon Addons use sane default stringification for test names of collections and arrays types inside data-driven tests and property tests:
+TestBalloon Addons use sane default stringification for test names of collection and array types inside data-driven tests and property tests:
 
 * All primitive arrays are correctly joined to string (i.e. `[-1, 4, -643, 34310]`)
 * All unsigned arrays are correctly joined to string (i.e. `[9, 76, 145, 9365]`)
@@ -87,15 +132,17 @@ TestBalloon Addons use sane default stringification for test names of collection
 ### Compacting Test Series
 
 Data-driven testing and property testing can easily produce millions of individual cases being tested.
-To not make the test runner's heap explode in such cases, the `datatest` and `property` module allow for compating
-test series.  
-Just set pass the `compact = true` parameter when creating data-driven tests or property tests (see examples in the
-module descriptions for [data-driven testing](#data-driven-testing), and [property testing](#property-testing)).  
-The names of such compacted test series consist of an uppercase sigma (`Σ`) followed by the test series' dataype (e.g.,
+To avoid making the test runner's heap explode in such cases, the `datatest` and `property` modules allow for compacting
+test series.
+
+Just pass the `compact = true` parameter when creating data-driven tests or property tests (see examples in the module
+descriptions for [data-driven testing](#data-driven-testing) and [property testing](#property-testing)).
+
+The names of compacted test series consist of an uppercase sigma (`Σ`) followed by the test series' datatype (e.g.,
 `ΣULong`, `ΣByteArray`, …).
 
-To still get intelligible outputs about which precise data point(s) caused failing tests, the error message of the resulting
-failed assertion will precisely list everything that failed and which succeeded:
+To still get intelligible output about which precise data point(s) caused failing tests, the error message of the resulting
+failed assertion will list everything that failed and which succeeded:
 
 ```
 java.lang.AssertionError: ΣString
@@ -112,13 +159,17 @@ Error: 8: four: expected:<three> but was:<four>
 
 The stack trace of the thrown exception is the stack trace of the first error (which is equal to the stack traces of all
 failed assertions). As such, you can directly navigate to the error with the same convenience as ever!
-On the JVM: the individual exception of all failed test series' individual tests are added to the toplevel assertion error as suppressed exceptions.
 
-To globally enable compacting test series for data-driven testing and property testing, set `DataTest.compactByDefault = true` and `PropertyTest.compactByDefault = true`,
-respectively.  
-**Compacting works on test and suite level!**  
-In addition, it is possible to specify a `prefix` parameter when defining data-driven tests or property tests, which will be prepended to
-generated test names (in front of the sigma). This helps navigate large test graphs.
+On the JVM: the individual exceptions of all failed test series' individual tests are added to the top-level assertion
+error as suppressed exceptions.
+
+To globally enable compacting test series for data-driven testing and property testing, set
+`DataTest.compactByDefault = true` and `PropertyTest.compactByDefault = true`, respectively.
+
+**Compacting works on test and suite level!**
+
+In addition, it is possible to specify a `prefix` parameter when defining data-driven tests or property tests. The prefix
+is prepended to generated test names (in front of the sigma), which helps navigate large test graphs.
 
 **→ Check out [the full API docs](https://a-sit-plus.github.io/testballoon-addons/) for each test style for all configuration options!**
 
@@ -160,12 +211,11 @@ val aDataDrivenSuite by testSuite {
 }
 ```
 
-It is possible to specify a `prefix` parameter when defining data-driven tests and suites, which will be prepended to
-generated test names. This helps navigate large test reports.
+It is possible to specify a `prefix` parameter when defining data-driven tests and suites. The prefix is prepended to
+generated test names, which helps navigate large test reports.
 
-Running individual tests from the gutter is not possible, as the test suite structure and the names of
-suites and tests are computed at runtime.
-Hence, you must run the entire suite (but you can manually filter using wildcards)
+Running individual tests from the gutter is not possible, as the test suite structure and the names of suites and tests are computed at runtime.
+Hence, you must run the entire suite (but you can manually filter using wildcards).
 
 ### Property Testing
 
@@ -177,8 +227,8 @@ Hence, you must run the entire suite (but you can manually filter using wildcard
 > first example below (works for both `checkAll` and `checkAllSuites`), or set the global
 > `PropertyTest.compactByDefault = true` to automatically compact all data-driven tests.
 
-Although it comes with some warts, `kotest-property` is still extremely helpful to generate a large corpus of test data,
-especially as it covers many edge cases out of the box. Again, since TestBalloon has been specifically crafted to be
+Although it comes with some warts, `kotest-property` is still extremely helpful for generating a large corpus of test
+data—especially as it covers many edge cases out of the box. Again, since TestBalloon has been specifically crafted to be
 flexible and extensible, we did just that:
 
 ```kotlin
@@ -192,7 +242,7 @@ import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.uLong
 
 val propertySuite by testSuite {
-    // DON'T Generate a suite for each item. Instead: aggregate >->-->------------↘↘↘↘↘↘↘↘↘↘↘↘
+    // DON'T generate a suite for each item. Instead: aggregate >->-->------------↘↘↘↘↘↘↘↘↘↘↘↘
     checkAllSuites(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte()), compact = true) { byteArray ->
         checkAll(iterations = 10, Arb.uLong()) { number ->
             //test with byte arrays and number for fun and profit
@@ -209,31 +259,28 @@ val propertySuite by testSuite {
 }
 ```
 
+It is possible to specify a `prefix` parameter when defining property tests and suites. The prefix is prepended to
+generated test names, which helps navigate large test reports.
 
-It is possible to specify a `prefix` parameter when defining property tests and suites, which will be prepended to
-generated test names. This helps navigate large test reports.
-
-Running individual tests from the gutter is not possible, as the test suite structure and the names of
-suites and tests are computed at runtime.
-Hence, you must run the entire suite (but you can manually filter using wildcards)
+Running individual tests from the gutter is not possible, as the test suite structure and the names of suites and tests are computed at runtime.
+Hence, you must run the entire suite (but you can manually filter using wildcards).
 
 ### On-Demand Fixture Generation
 
 | Maven Coordinates | `at.asitplus.testballoon:fixturegen:$version` |
 |-------------------|-----------------------------------------------|
 
-TestBalloon enforces a strict separation between blue code and green code. This is a good thing, especially for deeply
-nested
-test suites, and it supports deep concurrency,
-Hence, ye olde JUnit4-style `@Before` and `@After` hacks mutating global state are deliberately not supported.
+TestBalloon enforces a strict separation between blue code and green code. This is a good thing—especially for deeply
+nested test suites—and it supports deep concurrency. Hence, ye olde JUnit4-style `@Before` and `@After` hacks mutating
+global state are deliberately not supported.
+
 Sometimes, though, you really want fresh data for every test or suite&mdash;in effect, **you want to generate a fresh test
 fixture for every test/suite**.
 
 > [!NOTE]  
-> Fixture generation as provided by the addons do not use TestBalloon's native fixtures, as those only work in green code.
-> The flavour of fixture generation provided by TestBalloon Addons works for suites (blue code) and tests (green code)
+> Fixture generation as provided by the addons does not use TestBalloon's native fixtures, as those only work in green code.
+> The flavour of fixture generation provided by TestBalloon Addons works for suites (blue code) and tests (green code),
 > as shown below.
-
 
 ```kotlin
 import at.asitplus.testballoon.withFixtureGenerator //<- Look ma, only a single import!
@@ -254,7 +301,6 @@ val aGeneratingSuite by testSuite {
             }
         }
 
-
         testSuite("Generated Suite with fresh randomness") { freshFixture ->
             test("using the outer fixture") {
                 //your logic based on freshFixture here
@@ -267,7 +313,6 @@ val aGeneratingSuite by testSuite {
             }
         }
     }
-
 
     //seed the RNG for reproducible tests
     val random = Random(42)
@@ -283,7 +328,6 @@ val aGeneratingSuite by testSuite {
             //test something different, with a fresh float
         }
     }
-
 
     //always-the-same fixtures also work, of course
     withFixtureGenerator {
@@ -302,7 +346,6 @@ val aGeneratingSuite by testSuite {
         }
     }
 
-
     //Let's test some nasty bug that shows itself only sometimes functionality
     val ageRNG = Random(seed = 26)
     withFixtureGenerator {
@@ -318,7 +361,7 @@ val aGeneratingSuite by testSuite {
     } - {
         repeat(1000) {
             test("Generated test accessing restricted resources") {
-                //test `restrictedAction` across a wide age range 
+                //test `restrictedAction` across a wide age range
                 //a thousand times to unveil the bug
             }
         }
@@ -329,6 +372,7 @@ val aGeneratingSuite by testSuite {
 > [!WARNING]  
 > A fixture-generating scope is intended to be consumed by the scope directly below it (i.e. the outermost test suite,
 > or directly by a test). Programmatically, you can mix this up and it will compile, but it will not run!
+>
 > The following is an antipattern:
 > ```kotlin
 > val outermostSuite by testSuite {
@@ -336,20 +380,19 @@ val aGeneratingSuite by testSuite {
 >     testSuite("outer") { /*fixture implicitly available as `it`*/
 >       test("nested") { float -> /**`it` is not available, explicit parameter specification messes things up*/
 >         //This will throw a runtime error, because "nested" will be erroneously wired directly below the outermos suite
->       } 
+>       }
 >     }
 >   }
 > }
 > ```
-
 
 ### FreeSpec
 
 | Maven Coordinates | `at.asitplus.testballoon:freespec:$version` |
 |-------------------|---------------------------------------------|
 
-At A-SIT Plus, we've been using Kotest's [FreeSpec](https://kotest.io/docs/framework/testing-styles.html#free-spec) for
-its expressiveness, as it allows modeling tests and test dependencies close to natural language.
+At A-SIT Plus, we've been using Kotest's [FreeSpec](https://kotest.io/docs/framework/testing-styles.html#free-spec) for its
+expressiveness, as it allows modeling tests and test dependencies close to natural language.
 
 TestBalloon is flexible enough to emulate FreeSpec with very little code, **if** you have
 [context parameters](https://kotlinlang.org/docs/context-parameters.html) enabled for your codebase:
@@ -402,15 +445,13 @@ Running individual tests from the gutter is not (yet) possible, due to the intri
 Hence, you must run the entire suite (but you can manually filter using wildcards).  
 (You can, of course, just migrate off FreeSpec and use TestBalloon's native functions to create suites and tests.)
 
-
 <details>
-<summary>Combining with FixtureGen</summary> 
+<summary>Combining with FixtureGen</summary>
 
 | Maven Coordinates (if not using [modulator](https://github.com/a-sit-plus/modulator)) | `at.asitplus.testballoon:fixturegen-freespec:$version` |
 |---------------------------------------------------------------------------------------|--------------------------------------------------------|
 
-
-> WARNING!  
+> [!WARNING]  
 > As without FreeSpec syntax, a fixture-generating scope is intended to be consumed by the scope directly below it (i.e. the outermost test suite,
 > or directly by a test). To disambiguate and be explicit about this, explicit parameter specification is required, starting with TestBalloon Addons 0.6.0.
 
@@ -437,7 +478,7 @@ val aGeneratingFreeSpecSuite by testSuite {
                     //and fixed freshFixture from outer scope
                 }
             }
-            
+
         }
 
         repeat(100) {
@@ -465,7 +506,6 @@ val aGeneratingFreeSpecSuite by testSuite {
 ```
 
 </details>
-
 
 ## Contributing
 

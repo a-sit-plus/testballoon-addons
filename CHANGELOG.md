@@ -2,6 +2,11 @@
 
 ## 0.x
 
+### 0.7.0 - 0.7.1
+* treat varags of `Pair<String,*>` the same as `Map<String,*>` in data-driven tests
+* TestBalloon 0.8.2
+* Fix incorrect internal reference to max length
+
 ### 0.7.0-RC
 * Platform-agnostic test name length defaults
 * Prefixes for data test and property test

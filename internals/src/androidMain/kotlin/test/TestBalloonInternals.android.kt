@@ -1,4 +1,4 @@
 package at.asitplus.testballoon
 
 
-actual var totalMaxLen: Int = 122
+actual var totalMaxLen: Int = -1

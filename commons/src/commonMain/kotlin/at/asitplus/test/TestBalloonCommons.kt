@@ -46,10 +46,10 @@ object TestBalloonAddons {
 
     /**
      * Hard limit of the maximum path length of a test (i.e. all layers after the root suite's FQN down to the test case).
-     * **This defaults to `122` on Android** due to hardcoded limits somewhere deep into the Android device test pipeline.
-     * On all other platforms, no hard limit is enforced by default.
-     * The intent of this hard limit is to have Android device tests fail in a controlled manner, as test names
-     * exceeding an (utterly undocumented) limit will cause unintelligible failures inside UTP.
+     * The intent of this hard limit is to have tests fail in a controlled manner, in case test names
+     * exceed some undocumented limitation of the underlying platform.
+     *
+     * This defaults to `-1` (i.e. no limit).
      */
     var overallMaxTestPathLength: Int
         get() = totalMaxLen

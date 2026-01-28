@@ -33,7 +33,7 @@ class GeneratingFixtureScope<T> @PublishedApi internal constructor(
     fun test(
         @TestElementName name: String,
         @TestDisplayName displayName: String = name,
-        maxLength: Int = DEFAULT_TEST_NAME_MAX_LEN,
+        maxLength: Int = TestBalloonAddons.defaultTestNameMaxLength,
         testConfig: TestConfig = TestConfig,
         content: suspend Test.ExecutionScope.(T) -> Unit
     ) {
@@ -75,7 +75,7 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
     fun test(
         @TestElementName name: String,
         @TestDisplayName displayName: String = name,
-        maxLength: Int = DEFAULT_TEST_NAME_MAX_LEN,
+        maxLength: Int = TestBalloonAddons.defaultTestNameMaxLength,
         testConfig: TestConfig = TestConfig,
         content: suspend Test.ExecutionScope.(T) -> Unit
     ) {
@@ -103,7 +103,7 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
     fun testSuite(
         @TestElementName name: String,
         @TestDisplayName displayName: String = name,
-        maxLength: Int = DEFAULT_TEST_NAME_MAX_LEN,
+        maxLength: Int = TestBalloonAddons.defaultTestNameMaxLength,
         testConfig: TestConfig = TestConfig,
         content: TestSuiteScope.(T) -> Unit
     ) {
