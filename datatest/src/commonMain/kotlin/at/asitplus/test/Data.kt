@@ -26,30 +26,18 @@ object DataTest {
     var defaultTestNameMaxLength: Int? = null
         get() = field ?: TestBalloonAddons.defaultTestNameMaxLength
 
-    /**
-     * The default maximum length of test element display names (not test name).
-     * Defaults to [TestBalloonAddons.defaultDisplayNameMaxLength], but setting it here will take precedence.
-     * * `-1` means no truncation.
-     * * `null` means it will again fall back to [TestBalloonAddons.defaultDisplayNameMaxLength]
-     * 
-     * This property's getter will never return null, but fall back to [TestBalloonAddons.defaultDisplayNameMaxLength].
-     */
-    var defaultDisplayNameMaxLength: Int? = null
-        get() = field ?: TestBalloonAddons.defaultDisplayNameMaxLength
-
 }
 
 
 data class ConfiguredDataTestScope<Data>(
     private val compact: Boolean,
     private val maxLength: Int,
-    private val displayNameMaxLength: Int,
     val prefix: String,
     val testSuite: TestSuiteScope, val map: Sequence<Pair<String, Data>>,
     val testConfig: TestConfig = TestConfig,
 ) {
     operator fun minus(action: TestSuiteScope.(Data) -> Unit) =
-        testSuite.withDataSuitesInternal(map, compact, maxLength, displayNameMaxLength, prefix, testConfig, action)
+        testSuite.withDataSuitesInternal(map, compact, maxLength, prefix, testConfig, action)
 }
 
 
@@ -61,7 +49,6 @@ data class ConfiguredDataTestScope<Data>(
  * @param testConfig Optional test configuration
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
- * @param displayNameMaxLength maximum length of test element **display name**
  * @param prefix an optional prefix to add to the test name
  * @param action Test action to execute for each map value
  */
@@ -70,7 +57,6 @@ internal fun <Data> TestSuiteScope.withDataInternal(
     testConfig: TestConfig = TestConfig,
     compact: Boolean,
     maxLength: Int,
-    displayNameMaxLength: Int,
     prefix: String,
     action: suspend Test.ExecutionScope.(Data) -> Unit
 ) {
@@ -82,7 +68,6 @@ internal fun <Data> TestSuiteScope.withDataInternal(
         testSuiteInScope.checkPathLenIncluding(truncatedName)
         test(
             name = truncatedName,
-            displayName = (testName.truncated(displayNameMaxLength)),
             testConfig = testConfig
         ) {
             val errors = mutableMapOf<String, Throwable?>()
@@ -104,7 +89,6 @@ internal fun <Data> TestSuiteScope.withDataInternal(
             testSuiteInScope.checkPathLenIncluding(truncatedName)
             test(
                 name = truncatedName,
-                displayName = (name.truncated(displayNameMaxLength)),
                 testConfig = testConfig
             ) { action(d.second) }
         }
@@ -119,7 +103,6 @@ internal fun <Data> TestSuiteScope.withDataInternal(
  * @param testConfig Optional test configuration
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
- * @param displayNameMaxLength maximum length of test element **display name**
  * @param prefix an optional prefix to add to the test name
  * @param action Test suite configuration action for each data item
  */
@@ -127,7 +110,6 @@ internal fun <Data> TestSuiteScope.withDataSuitesInternal(
     data: Sequence<Pair<String, Data>>,
     compact: Boolean,
     maxLength: Int,
-    displayNameMaxLength: Int,
     prefix: String,
     testConfig: TestConfig = TestConfig,
     action: TestSuiteScope.(Data) -> Unit
@@ -140,7 +122,6 @@ internal fun <Data> TestSuiteScope.withDataSuitesInternal(
         testSuiteInScope.checkPathLenIncluding(truncatedName)
         testSuite(
             name = truncatedName,
-            displayName = (testName.truncated(displayNameMaxLength)),
             testConfig = testConfig
         ) {
             val errors = mutableMapOf<String, Throwable?>()
@@ -162,7 +143,6 @@ internal fun <Data> TestSuiteScope.withDataSuitesInternal(
             testSuiteInScope.checkPathLenIncluding(truncatedName)
             testSuite(
                 name = truncatedName,
-                displayName = (name.truncated(displayNameMaxLength)),
                 testConfig = testConfig,
                 content = fun TestSuiteScope.() {
                     action(d.second)

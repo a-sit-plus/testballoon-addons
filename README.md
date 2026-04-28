@@ -86,7 +86,7 @@ This project consists of the following modules:
 
 | TestBalloon Addons | TestBalloon                 |
 |--------------------|-----------------------------|
-| `0.7.0` - `0.7.1`  | `0.8.2+` (Kotlin `2.3.0`)   |
+| `0.7.0` - `0.8.0`  | `0.8.2+` (Kotlin `2.3.0+`)  |
 | `0.7.0-RC`         | `0.8.0-RC` (Kotlin `2.3.0`) |
 | `0.1.1`–`0.6.1`    | `0.7.1` (Kotlin `2.2.21`)   |
 | `0.1.0`            | `0.7.0` (Kotlin `2.2.21`)   |
@@ -105,19 +105,18 @@ This project consists of the following modules:
 All modules allow setting global defaults with regard to test name truncation. These properties are called:
 
 * `defaultTestNameLength`
-* `defaultDisplayNameLength`
 
 The former generally defaults to 64 characters (15 on Android). Display names are not truncated by default.
 
 Both properties can be set in two ways:
 * **globally** (e.g., `TestBalloonAddons.defaultTestNameLength = 15`)
-* **per test style** (e.g., `FreeSpec.defaultTestNameLength = 10`, `PropertyTest.defaultDisplayNameLength = 100`)
+* **per test style** (e.g., `FreeSpec.defaultTestNameLength = 10`)
 
 Per-style configuration takes precedence over global configuration. Hence, per-style configuration property setters are nullable,
 **even though their getters will never return null**, as they fall back to the global configuration properties automatically.
 
-It is also possible to set test name length and display name length for individual tests by passing the `maxLength` and
-`displayNameMaxLength` parameters, respectively. Truncated names are ellipsised in the middle, not just cut off at the end.
+It is also possible to set test name length for individual tests by passing the `maxLength` arameter.
+Truncated names are ellipsised in the middle, not just cut off at the end.
 
 **→ Check out [the full API docs](https://a-sit-plus.github.io/testballoon-addons/) for each test style for all configuration options!**
 

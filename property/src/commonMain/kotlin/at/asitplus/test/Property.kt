@@ -29,23 +29,14 @@ object PropertyTest {
         get() = field?:TestBalloonAddons.defaultTestNameMaxLength
 
     /**
-     * The default maximum length of test element display names (not test name).
-     * Defaults to [TestBalloonAddons.defaultDisplayNameMaxLength], but setting it here will take precedence.
-     * * `-1` means no truncation.
-     * * `null` means it will again fall back to [TestBalloonAddons.defaultDisplayNameMaxLength]
-     *
-     * This property's getter will never return null, but fall back to [TestBalloonAddons.defaultDisplayNameMaxLength].
+     * Default number of iterations for property testing (`1000`)
      */
-    var defaultDisplayNameMaxLength: Int? = null
-        get() = field?:TestBalloonAddons.defaultDisplayNameMaxLength
-
-
+    var defaultIterationCount: Int =1000
 }
 
 data class ConfiguredPropertyScope<Value>(
     private val compact: Boolean,
     private val maxLength: Int,
-    private val displayNameMaxLength: Int,
     val prefix: String,
     val testSuite: TestSuiteScope,
     val iterations: Int,
@@ -61,7 +52,6 @@ data class ConfiguredPropertyScope<Value>(
             genA,
             compact,
             maxLength,
-            displayNameMaxLength,
             prefix,
             testConfig,
             content
@@ -130,7 +120,6 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
     genA: Gen<Value>,
     compact: Boolean,
     maxLength: Int,
-    displayNameMaxLength: Int,
     prefix: String,
     testConfig: TestConfig = TestConfig,
     content: context(PropertyContext) TestSuiteScope.(Value) -> Unit
@@ -143,7 +132,6 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
             val name = "$prefix${iter + 1} of $iterations ${type}s (${valueStr})"
             this@checkAllSuitesInternal.testSuite(
                 name = (name.truncated(maxLength)),
-                displayName = (name.truncated(displayNameMaxLength)),
                 testConfig = testConfig,
                 content = fun TestSuiteScope.() {
                     with(context) {
@@ -158,7 +146,6 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
         val testName = "${prefix}Σ$compactName"
         this@checkAllSuitesInternal.testSuite(
             name = (testName.truncated(maxLength)),
-            displayName = (testName.truncated(displayNameMaxLength)),
             testConfig = testConfig
         ) {
             val errors = mutableMapOf<String, Throwable?>()
@@ -191,7 +178,6 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
  * @param genA Generator for test values
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
- * @param displayNameMaxLength maximum length of test element **display name**
  * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
  * @param content Test execution block receiving generated values
@@ -201,7 +187,6 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
     genA: Gen<Value>,
     compact: Boolean,
     maxLength: Int,
-    displayNameMaxLength: Int,
     prefix: String,
     testConfig: TestConfig = TestConfig,
     content: suspend context(PropertyContext) Test.ExecutionScope.(Value) -> Unit
@@ -213,7 +198,6 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
         val testName = "${prefix}Σ$compactName"
         this@checkAllInternal.test(
             name = (testName.truncated(maxLength)),
-            displayName = (testName.truncated(displayNameMaxLength)),
             testConfig = testConfig
         ) {
             val errors = mutableMapOf<String, Throwable?>()
@@ -242,7 +226,6 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
                 "$prefix ${iter + 1} of $iterations ${if (value == null) "null" else value::class.simpleName}: $valueStr"
             this@checkAllInternal.test(
                 name = (name.truncated(maxLength)),
-                displayName = (name.truncated(displayNameMaxLength)),
                 testConfig = testConfig
             ) {
                 with(context) {

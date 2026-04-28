@@ -3,7 +3,6 @@ package at.asitplus.testballoon
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuiteScope
-import de.infix.testBalloon.framework.shared.TestDisplayName
 import de.infix.testBalloon.framework.shared.TestElementName
 import de.infix.testBalloon.framework.shared.TestRegistering
 import kotlin.jvm.JvmInline
@@ -24,7 +23,6 @@ class GeneratingFixtureScope<T> @PublishedApi internal constructor(
      * Registers a test that uses a fresh fixture instance as a child of the current [testSuite].
      *
      * @param name The name of the test
-     * @param displayName The display name of the test
      * @param maxLength maximum length of test element name (not display name)
      * @param testConfig Configuration for test execution
      * @param content Test block that receives a newly generated fixture instance
@@ -32,7 +30,6 @@ class GeneratingFixtureScope<T> @PublishedApi internal constructor(
     @TestRegistering
     fun test(
         @TestElementName name: String,
-        @TestDisplayName displayName: String = name,
         maxLength: Int = TestBalloonAddons.defaultTestNameMaxLength,
         testConfig: TestConfig = TestConfig,
         content: suspend Test.ExecutionScope.(T) -> Unit
@@ -42,7 +39,6 @@ class GeneratingFixtureScope<T> @PublishedApi internal constructor(
             testSuiteInScope.checkPathLenIncluding(truncatedName)
             test(
                 truncatedName,
-                (displayName.truncated(maxLength)),
                 testConfig = testConfig
             ) { content(generator()) }
         }
@@ -66,7 +62,6 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
      * Registers a test that uses a fresh fixture instance as a child of the current [testSuite].
      *
      * @param name The name of the test
-     * @param displayName The display name of the test
      * @param maxLength maximum length of test element name (not display name)
      * @param testConfig Configuration for test execution
      * @param content Test block that receives a newly generated fixture instance
@@ -74,7 +69,6 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
     @TestRegistering
     fun test(
         @TestElementName name: String,
-        @TestDisplayName displayName: String = name,
         maxLength: Int = TestBalloonAddons.defaultTestNameMaxLength,
         testConfig: TestConfig = TestConfig,
         content: suspend Test.ExecutionScope.(T) -> Unit
@@ -84,7 +78,6 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
             testSuiteInScope.checkPathLenIncluding(truncatedName)
             test(
                 truncatedName,
-                ( displayName.truncated(maxLength)),
                 testConfig = testConfig
             ) { content(generator()) }
         }
@@ -94,7 +87,6 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
      * Registers a test suite that uses a fresh fixture instance as a child of the current [testSuite].
      *
      * @param name The name of the suite
-     * @param displayName The display name of the test
      * @param maxLength maximum length of test element name (not display name)
      * @param testConfig Configuration for test execution
      * @param content Test suite block that receives a newly generated fixture instance
@@ -102,7 +94,6 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
     @TestRegistering
     fun testSuite(
         @TestElementName name: String,
-        @TestDisplayName displayName: String = name,
         maxLength: Int = TestBalloonAddons.defaultTestNameMaxLength,
         testConfig: TestConfig = TestConfig,
         content: TestSuiteScope.(T) -> Unit
@@ -112,7 +103,6 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
             testSuiteInScope.checkPathLenIncluding(truncatedName)
             testSuite(
                 truncatedName,
-                (displayName.truncated(maxLength)),
                 testConfig = testConfig
             ) { content(generator()) }
         }
