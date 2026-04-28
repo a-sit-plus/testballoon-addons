@@ -11,7 +11,6 @@ import de.infix.testBalloon.framework.core.TestSuiteScope
  * @param data The sequence of test data
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
- * @param displayNameMaxLength maximum length of test element **display name**
  * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
  */
@@ -19,13 +18,11 @@ fun <Data> TestSuiteScope.withData(
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength!!,
-    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig
 ) = ConfiguredDataTestScope<Data>(
     compact,
     maxLength,
-    displayNameMaxLength = displayNameMaxLength,
     prefix = prefix,
     this,
     data.map { it.toPrettyString() to it },
@@ -41,7 +38,6 @@ fun <Data> TestSuiteScope.withData(
  * @param data The sequence of test data
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
- * @param displayNameMaxLength maximum length of test element **display name**
  * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
  */
@@ -50,13 +46,11 @@ fun <Data> TestSuiteScope.withData(
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength!!,
-    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
 ) = ConfiguredDataTestScope<Data>(
     compact,
     maxLength,
-    displayNameMaxLength = displayNameMaxLength,
     prefix = prefix,
     this,
     data.map { nameFn(it) to it },
@@ -69,16 +63,15 @@ fun <Data> TestSuiteScope.withData(
  * @param data The sequence of test data
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
- * @param displayNameMaxLength maximum length of test element **display name**
  * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
  * @param action Test suite configuration action for each data item
  */
+@Deprecated("will be removed in 0.9.0", ReplaceWith("withData(data, compact, maxLength, prefix, testConfig) - {}"))
 fun <Data> TestSuiteScope.withDataSuites(
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength!!,
-    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
     action: TestSuiteScope.(Data) -> Unit
@@ -86,7 +79,6 @@ fun <Data> TestSuiteScope.withDataSuites(
     data.map { it.toPrettyString() to it },
     compact,
     maxLength,
-    displayNameMaxLength = displayNameMaxLength,
     prefix = prefix,
     testConfig,
     action
@@ -100,17 +92,16 @@ fun <Data> TestSuiteScope.withDataSuites(
  * @param data The sequence of test data
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
- * @param displayNameMaxLength maximum length of test element **display name**
  * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
  * @param action Test suite configuration action for each data item
  */
+@Deprecated("will be removed in 0.9.0", ReplaceWith("withData(nameFn, data, compact, maxLength, prefix, testConfig) - {}"))
 fun <Data> TestSuiteScope.withDataSuites(
     nameFn: (Data) -> String,
     data: Sequence<Data>,
     compact: Boolean = DataTest.compactByDefault,
     maxLength: Int = DataTest.defaultTestNameMaxLength!!,
-    displayNameMaxLength: Int = DataTest.defaultDisplayNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
     action: TestSuiteScope.(Data) -> Unit
@@ -118,7 +109,6 @@ fun <Data> TestSuiteScope.withDataSuites(
     data.map { nameFn(it) to it },
     compact,
     maxLength,
-    displayNameMaxLength = displayNameMaxLength,
     prefix = prefix,
     testConfig,
     action

@@ -2,6 +2,10 @@
 
 ## 0.x
 
+## 0.8.0
+* Remove `displayName` and `displayNameLength`
+* Remove deprecated `DEFAULT_TEST_NAME_MAX_LEN`
+
 ### 0.7.0 - 0.7.1
 * treat varags of `Pair<String,*>` the same as `Map<String,*>` in data-driven tests
 * TestBalloon 0.8.2

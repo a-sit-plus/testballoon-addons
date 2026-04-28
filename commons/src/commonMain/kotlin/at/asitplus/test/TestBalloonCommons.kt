@@ -33,18 +33,6 @@ object TestBalloonAddons {
     var defaultTestNameMaxLength: Int = defaultMaxLen
 
     /**
-     * The default maximum length of display names of test elements created using:
-     * * `withData`
-     * * `withDataSuites`
-     * * `checkAll`
-     * * `checkAllSuites`
-     * * FreeSoec
-     *
-     * Defaults to `-1` (= no truncation).
-     */
-    var defaultDisplayNameMaxLength: Int = -1
-
-    /**
      * Hard limit of the maximum path length of a test (i.e. all layers after the root suite's FQN down to the test case).
      * The intent of this hard limit is to have tests fail in a controlled manner, in case test names
      * exceed some undocumented limitation of the underlying platform.
@@ -58,9 +46,3 @@ object TestBalloonAddons {
         }
 
 }
-
-@Deprecated(
-    "To be removed in 0.8.", replaceWith = ReplaceWith("TestBalloonAddons.defaultTestNameMaxLength"),
-    DeprecationLevel.WARNING
-)
-val DEFAULT_TEST_NAME_MAX_LEN: Int get() = TestBalloonAddons.defaultTestNameMaxLength
