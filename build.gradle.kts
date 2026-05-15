@@ -21,6 +21,9 @@ tasks.getByName("dokkaHtmlMultiModule") {
 subprojects { repositories {mavenLocal()} }
 
 allprojects {
+    repositories {
+        mavenLocal()
+    }
     apply(plugin = "org.jetbrains.dokka")
     group = rootProject.group
 }

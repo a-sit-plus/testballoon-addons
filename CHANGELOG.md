@@ -2,7 +2,14 @@
 
 ## 0.x
 
-## 0.8.0
+### 0.9.0
+* TestBalloon 1.0.0
+* Remove deprecated functions marked for removal. Refactor as follows:
+  * `withDataSuites(…) {…}` -> `withData(…) - {…}` (note the dash)
+  * `checkAllSuites(…) {…}` -> `checkAll(…) - {…}` (note the dash)
+
+
+### 0.8.0
 * Remove `displayName` and `displayNameLength`
 * Remove deprecated `DEFAULT_TEST_NAME_MAX_LEN`
 
