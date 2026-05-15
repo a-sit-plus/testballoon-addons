@@ -97,20 +97,14 @@ val compactingSuite by testSuite {
 val iterationsTest by testSuite(testConfig = DefaultConfiguration.invocation(TestConfig.Invocation.Concurrent)) {
     PropertyTest.compactByDefault = true
     val factor = 5
-    checkAll(iterations = factor, Arb.int()) - { one->
-        checkAll(iterations = factor, Arb.int()) - { two ->
-            checkAll(iterations = factor, Arb.int()) - { three ->
-                checkAll(iterations = factor, Arb.int()) - { four ->
-                    checkAll(iterations = factor, Arb.int()) - { five ->
-                        checkAll(iterations = factor, Arb.int()) - { six ->
-                            checkAll(iterations = factor, Arb.int()) - { seven ->
-                                checkAll(iterations = factor, Arb.int()) - { eight ->
-                                    checkAll(iterations = factor, Arb.int()) - { nine ->
-                                        checkAll(iterations = factor, Arb.int())  { ten ->
-                                            ten shouldBeGreaterThan Int.MAX_VALUE-1
-                                        }
-                                    }
-                                }
+    checkAll(iterations = factor, Arb.int()) - { four ->
+        checkAll(iterations = factor, Arb.int()) - { five ->
+            checkAll(iterations = factor, Arb.int()) - { six ->
+                checkAll(iterations = factor, Arb.int()) - { seven ->
+                    checkAll(iterations = factor, Arb.int()) - { eight ->
+                        checkAll(iterations = factor, Arb.int()) - { nine ->
+                            checkAll(iterations = factor, Arb.int()) { ten ->
+                                ten shouldBeGreaterThan Int.MAX_VALUE - 1
                             }
                         }
                     }
