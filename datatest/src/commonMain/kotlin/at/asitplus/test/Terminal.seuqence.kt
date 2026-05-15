@@ -22,7 +22,7 @@ fun <Data> TestSuiteScope.withData(
     testConfig: TestConfig = TestConfig,
     action: suspend Test.ExecutionScope.(Data) -> Unit
 ) = withDataInternal(
-    data.map { it.toPrettyString() to it },
+    data.map { generatedDataName(it, compact, maxLength, prefix) to it },
     testConfig,
     compact,
     maxLength,
@@ -58,4 +58,3 @@ fun <Data> TestSuiteScope.withData(
     prefix,
     action
 )
-

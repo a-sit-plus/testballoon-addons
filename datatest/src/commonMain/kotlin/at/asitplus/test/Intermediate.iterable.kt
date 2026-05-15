@@ -25,7 +25,7 @@ fun <Data> TestSuiteScope.withData(
     maxLength,
     prefix = prefix,
     this,
-    data.asSequence().map { it.toPrettyString() to it },
+    data.asSequence().map { generatedDataName(it, compact, maxLength, prefix) to it },
     testConfig
 )
 

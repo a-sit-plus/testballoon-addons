@@ -24,7 +24,7 @@ fun <Data> TestSuiteScope.withData(
     testConfig: TestConfig = TestConfig,
     action: suspend Test.ExecutionScope.(Data) -> Unit
 ) = withDataInternal(
-    parameters.asSequence().map { it.toPrettyString() to it },
+    parameters.asSequence().map { generatedDataName(it, compact, maxLength, prefix) to it },
     testConfig,
     compact,
     maxLength,

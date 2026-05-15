@@ -27,7 +27,7 @@ fun <Data> TestSuiteScope.withData(
     maxLength,
     prefix = prefix,
     this,
-    parameters.asSequence().map { it.toPrettyString() to it },
+    parameters.asSequence().map { generatedDataName(it, compact, maxLength, prefix) to it },
     testConfig
 )
 
@@ -85,4 +85,3 @@ fun <Data> TestSuiteScope.withData(
     parameters.asSequence().map { nameFn(it) to it },
     testConfig
 )
-

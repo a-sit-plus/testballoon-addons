@@ -45,4 +45,12 @@ object TestBalloonAddons {
             totalMaxLen = value
         }
 
+    /**
+     * Whether compacted failure reports should attach every failed input as a suppressed throwable.
+     *
+     * This affects compacted `withData`, `withDataSuites`, `checkAll`, and `checkAllSuites` reports. The rendered
+     * failure message still includes the stack trace of the first failure either way.
+     */
+    var addSuppressedErrorsToCompactedFailures: Boolean = false
+
 }

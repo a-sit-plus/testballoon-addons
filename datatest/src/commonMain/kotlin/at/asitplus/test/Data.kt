@@ -26,10 +26,23 @@ object DataTest {
     var defaultTestNameMaxLength: Int? = null
         get() = field ?: TestBalloonAddons.defaultTestNameMaxLength
 
+    /**
+     * Whether compacted failure reports should attach every failed input as a suppressed throwable.
+     *
+     * This affects compacted `withData`, `withDataSuites`, `checkAll`, and `checkAllSuites` reports. The rendered
+     * failure message still includes the stack trace of the first failure either way.
+     *
+     * `null` means it will again fall back to [TestBalloonAddons.addSuppressedErrorsToCompactedFailures]
+     *
+     *  This property's getter will never return null, but fall back to [TestBalloonAddons.addSuppressedErrorsToCompactedFailures].
+     */
+    var addSuppressedErrorsToCompactedFailures: Boolean? = null
+        get() = field ?: TestBalloonAddons.addSuppressedErrorsToCompactedFailures
+
 }
 
 
-data class ConfiguredDataTestScope<Data>(
+class ConfiguredDataTestScope<Data>(
     private val compact: Boolean,
     private val maxLength: Int,
     val prefix: String,
@@ -39,6 +52,20 @@ data class ConfiguredDataTestScope<Data>(
     operator fun minus(action: TestSuiteScope.(Data) -> Unit) =
         testSuite.withDataSuitesInternal(map, compact, maxLength, prefix, testConfig, action)
 }
+
+internal fun generatedDataName(
+    data: Any?,
+    compact: Boolean,
+    maxLength: Int,
+    prefix: String
+): String = if (compact) {
+    data.toPrettyString()
+} else {
+    data.toPrettyString(maxLength, generatedDataNamePrefixLength(prefix))
+}
+
+private fun generatedDataNamePrefixLength(prefix: String): Int =
+    if (prefix.isEmpty()) 0 else prefix.length + 1
 
 
 /**
@@ -70,17 +97,17 @@ internal fun <Data> TestSuiteScope.withDataInternal(
             name = truncatedName,
             testConfig = testConfig
         ) {
-            val errors = mutableMapOf<String, Throwable?>()
+            val errors = CollatedTestFailures(testName, DataTest.addSuppressedErrorsToCompactedFailures!!)
             map.forEachIndexed { i, d ->
                 val name = "${i + 1}: ${d.first}"
                 catchingUnwrapped {
                     action(d.second)
-                    errors["OK:    $name"] = null
+                    errors.recordOk(name)
                 }.onFailure {
-                    errors["Error: $name"] = it
+                    errors.recordError(name, it)
                 }
             }
-            collateErrors(errors, testName)
+            errors.throwIfAny()
         }
     } else {
         for (d in map) {
@@ -124,17 +151,17 @@ internal fun <Data> TestSuiteScope.withDataSuitesInternal(
             name = truncatedName,
             testConfig = testConfig
         ) {
-            val errors = mutableMapOf<String, Throwable?>()
+            val errors = CollatedTestFailures(testName, DataTest.addSuppressedErrorsToCompactedFailures!!)
             data.forEachIndexed { i, d ->
                 val name = "${i + 1}: ${d.first}"
                 catchingUnwrapped {
                     action(d.second)
-                    errors["OK:    $name"] = null
+                    errors.recordOk(name)
                 }.onFailure {
-                    errors["Error: $name"] = it
+                    errors.recordError(name, it)
                 }
             }
-            collateErrors(errors, testName)
+            errors.throwIfAny()
         }
     } else {
         for (d in data) {

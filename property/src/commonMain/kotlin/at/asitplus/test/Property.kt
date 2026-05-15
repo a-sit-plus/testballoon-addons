@@ -31,10 +31,23 @@ object PropertyTest {
     /**
      * Default number of iterations for property testing (`1000`)
      */
-    var defaultIterationCount: Int =1000
+    var defaultIterationCount: Int = 1000
+
+    /**
+     * Whether compacted failure reports should attach every failed input as a suppressed throwable.
+     *
+     * This affects compacted `withData`, `withDataSuites`, `checkAll`, and `checkAllSuites` reports. The rendered
+     * failure message still includes the stack trace of the first failure either way.
+     *
+     * `null` means it will again fall back to [TestBalloonAddons.addSuppressedErrorsToCompactedFailures]
+     *
+     *  This property's getter will never return null, but fall back to [TestBalloonAddons.addSuppressedErrorsToCompactedFailures].
+     */
+    var addSuppressedErrorsToCompactedFailures: Boolean? = null
+        get() = field ?: TestBalloonAddons.addSuppressedErrorsToCompactedFailures
 }
 
-data class ConfiguredPropertyScope<Value>(
+class ConfiguredPropertyScope<Value>(
     private val compact: Boolean,
     private val maxLength: Int,
     val prefix: String,
@@ -127,8 +140,9 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
     val prefix = if (prefix.isNotEmpty()) "$prefix " else ""
     if (!compact) {
         checkAllSeries(iterations, genA) { iter, value, context ->
-            val valueStr = value.toPrettyString()
             val type = if (value == null) "null" else value::class.simpleName
+            val namePrefix = "$prefix${iter + 1} of $iterations ${type}s ("
+            val valueStr = value.toPrettyString(maxLength, namePrefix.length + 1)
             val name = "$prefix${iter + 1} of $iterations ${type}s (${valueStr})"
             this@checkAllSuitesInternal.testSuite(
                 name = (name.truncated(maxLength)),
@@ -148,7 +162,7 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
             name = (testName.truncated(maxLength)),
             testConfig = testConfig
         ) {
-            val errors = mutableMapOf<String, Throwable?>()
+            val errors = CollatedTestFailures(testName, PropertyTest.addSuppressedErrorsToCompactedFailures!!)
             series.forEachIndexed { iter, value ->
                 with(context) {
                     markEvaluation()
@@ -158,14 +172,14 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
                     catchingUnwrapped {
                         content(value)
                         markSuccess()
-                        errors["OK:    $name"] = null
+                        errors.recordOk(name)
                     }.onFailure {
                         markFailure()
-                        errors["Error: $name"] = it
+                        errors.recordError(name, it)
                     }
                 }
             }
-            collateErrors(errors, testName)
+            errors.throwIfAny()
         }
     }
 }
@@ -200,7 +214,7 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
             name = (testName.truncated(maxLength)),
             testConfig = testConfig
         ) {
-            val errors = mutableMapOf<String, Throwable?>()
+            val errors = CollatedTestFailures(testName, PropertyTest.addSuppressedErrorsToCompactedFailures!!)
             series.forEachIndexed { iter, value ->
                 with(context) {
                     markEvaluation()
@@ -210,20 +224,22 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
                     catchingUnwrapped {
                         content(value)
                         markSuccess()
-                        errors["OK:    $name"] = null
+                        errors.recordOk(name)
                     }.onFailure {
                         markFailure()
-                        errors["Error: $name"] = it
+                        errors.recordError(name, it)
                     }
                 }
             }
-            collateErrors(errors, testName)
+            errors.throwIfAny()
         }
     } else {
         checkAllSeries(iterations, genA) { iter, value, context ->
-            val valueStr = value.toPrettyString()
+            val type = if (value == null) "null" else value::class.simpleName
+            val namePrefix = "$prefix ${iter + 1} of $iterations $type: "
+            val valueStr = value.toPrettyString(maxLength, namePrefix.length)
             val name =
-                "$prefix ${iter + 1} of $iterations ${if (value == null) "null" else value::class.simpleName}: $valueStr"
+                "$prefix ${iter + 1} of $iterations $type: $valueStr"
             this@checkAllInternal.test(
                 name = (name.truncated(maxLength)),
                 testConfig = testConfig
