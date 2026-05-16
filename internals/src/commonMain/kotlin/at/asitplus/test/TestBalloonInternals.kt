@@ -87,6 +87,36 @@ fun <T> Sequence<T>.compactTestNameAndReplay(
 fun Any?.typeDisplayName(): String =
     if (this == null) "null" else this::class.simpleName ?: "anonymous class"
 
+private sealed interface CollatedFailure {
+    val collatedSummary: String
+
+    class Assertion(
+        override val collatedSummary: String,
+        message: String,
+        cause: Throwable
+    ) : AssertionError(message, cause), CollatedFailure
+
+    class Runtime(
+        override val collatedSummary: String,
+        message: String,
+        cause: Throwable
+    ) : RuntimeException(message, cause), CollatedFailure
+}
+
+fun Throwable.collatedSummary(): String? =
+    when (this) {
+        is CollatedFailure.Assertion -> collatedSummary
+        is CollatedFailure.Runtime -> collatedSummary
+        else -> message?.lineSequence()?.firstOrNull { it.isNotBlank() }
+    }
+
+fun Throwable.stackTraceForCollatedReport(): String {
+    return when (this) {
+        is CollatedFailure.Assertion -> cause?.stackTraceToString() ?: stackTraceToString()
+        is CollatedFailure.Runtime -> cause?.stackTraceToString() ?: stackTraceToString()
+        else -> stackTraceToString()
+    }
+}
 
 class CollatedTestFailures(private val testName: String, private val addSuppressedErrors: Boolean) {
     private val lines = mutableListOf<String>()
@@ -98,7 +128,7 @@ class CollatedTestFailures(private val testName: String, private val addSuppress
 
     fun recordError(name: String, throwable: Throwable) {
         val label = "Error: $name"
-        lines += label + (throwable.message?.let { ": $it" } ?: "")
+        lines += label + (throwable.collatedSummary()?.let { ": $it" } ?: "")
         failures += label to throwable
     }
 
@@ -111,10 +141,15 @@ class CollatedTestFailures(private val testName: String, private val addSuppress
             appendLine(lines.joinToString("\n"))
             appendLine("----------------------------------------")
             appendLine("Stack trace of first error: $primaryLabel")
-            appendLine(primary.stackTraceToString())
+            appendLine(primary.stackTraceForCollatedReport())
             appendLine("----------------------------------------")
         }
-        val ex = if (failures.all { it.second is AssertionError }) AssertionError(msg) else RuntimeException(msg)
+        val firstFailure = failures.first().second
+        val ex = if (failures.all { it.second is AssertionError }) {
+            CollatedFailure.Assertion(testName, msg, firstFailure)
+        } else {
+            CollatedFailure.Runtime(testName, msg, firstFailure)
+        }
         if (addSuppressedErrors) failures.forEach { ex.addSuppressed(it.second) }
 
         throw ex
