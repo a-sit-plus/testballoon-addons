@@ -121,10 +121,10 @@ val iterationsTest by testSuite(
     PropertyTest.compactByDefault = true
     val prefix = Uuid.random().toHexDashString() + Uuid.random().toHexDashString() + Uuid.random().toHexDashString()
     val factor = 33
-    checkAll(iterations = factor, Arb.int(), prefix = prefix) - { seven ->
-        checkAll(iterations = factor, Arb.int(), prefix = prefix) - { eight ->
-            checkAll(iterations = factor, Arb.int(), prefix = prefix) - { nine ->
-                checkAll(iterations = factor, Arb.int(), prefix = prefix) { ten ->
+    checkAll(iterations = factor, Arb.byteArray(Arb.int(100, 200), Arb.byte()), prefix = prefix) - { seven ->
+        checkAll(iterations = factor, Arb.byteArray(Arb.int(100, 200), Arb.byte()), prefix = prefix) - { eight ->
+            checkAll(iterations = factor, Arb.byteArray(Arb.int(100, 200), Arb.byte()), prefix = prefix) - { nine ->
+                checkAll(iterations = factor, Arb.byteArray(Arb.int(100, 200), Arb.byte()), prefix = prefix) { ten ->
                     ten shouldNotBe ten
                 }
             }
