@@ -67,6 +67,41 @@ internal fun generatedDataName(
 private fun generatedDataNamePrefixLength(prefix: String): Int =
     if (prefix.isEmpty()) 0 else prefix.length + 1
 
+private fun dataCaseName(index: Int, data: Pair<String, *>): String =
+    "${index + 1}: ${data.first}"
+
+private inline fun <Data> runCompactedDataResults(
+    data: Sequence<Pair<String, Data>>,
+    testName: String,
+    action: (Data) -> Result<Unit>
+) {
+    val run = CollatedTestRun(testName, DataTest.addSuppressedErrorsToCompactedFailures!!)
+    data.forEachIndexed { i, d ->
+        run.record(dataCaseName(i, d), action(d.second))
+    }
+    run.throwIfAny()
+}
+
+internal suspend fun <Data> runCompactedDataSuspend(
+    data: Sequence<Pair<String, Data>>,
+    testName: String,
+    action: suspend (Data) -> Unit
+) = runCompactedDataResults(data, testName) {
+    catchingUnwrapped {
+        action(it)
+    }
+}
+
+internal fun <Data> runCompactedData(
+    data: Sequence<Pair<String, Data>>,
+    testName: String,
+    action: (Data) -> Unit
+) = runCompactedDataResults(data, testName) {
+    catchingUnwrapped {
+        action(it)
+    }
+}
+
 
 /**
  * Executes a test for each entry in the provided map.
@@ -87,33 +122,19 @@ internal fun <Data> TestSuiteScope.withDataInternal(
     prefix: String,
     action: suspend Test.ExecutionScope.(Data) -> Unit
 ) {
-    val prefix = if (prefix.isNotEmpty()) "$prefix " else ""
+    val prefix = prefix.normalizedTestPrefix()
     if (compact) {
-        val (compactName, map) = map.peekTypeNameAndReplay { it.second }
-        val testName = "${prefix}Σ$compactName"
-        val truncatedName = testName.truncated(maxLength)
-        testSuiteInScope.checkPathLenIncluding(truncatedName)
+        val (testName, map) = map.compactTestNameAndReplay(prefix) { it.second }
+        val truncatedName = checkedTruncatedName(testName, maxLength)
         test(
             name = truncatedName,
             testConfig = testConfig
         ) {
-            val errors = CollatedTestFailures(testName, DataTest.addSuppressedErrorsToCompactedFailures!!)
-            map.forEachIndexed { i, d ->
-                val name = "${i + 1}: ${d.first}"
-                catchingUnwrapped {
-                    action(d.second)
-                    errors.recordOk(name)
-                }.onFailure {
-                    errors.recordError(name, it)
-                }
-            }
-            errors.throwIfAny()
+            runCompactedDataSuspend(map, testName) { action(it) }
         }
     } else {
         for (d in map) {
-            val name = prefix + d.first
-            val truncatedName = name.truncated(maxLength)
-            testSuiteInScope.checkPathLenIncluding(truncatedName)
+            val truncatedName = checkedTruncatedName(prefixedTestName(prefix, d.first), maxLength)
             test(
                 name = truncatedName,
                 testConfig = testConfig
@@ -141,33 +162,19 @@ internal fun <Data> TestSuiteScope.withDataSuitesInternal(
     testConfig: TestConfig = TestConfig,
     action: TestSuiteScope.(Data) -> Unit
 ) {
-    val prefix = if (prefix.isNotEmpty()) "$prefix " else ""
+    val prefix = prefix.normalizedTestPrefix()
     if (compact) {
-        val (compactName, data) = data.peekTypeNameAndReplay { it.second }
-        val testName = "${prefix}Σ$compactName"
-        val truncatedName = testName.truncated(maxLength)
-        testSuiteInScope.checkPathLenIncluding(truncatedName)
+        val (testName, data) = data.compactTestNameAndReplay(prefix) { it.second }
+        val truncatedName = checkedTruncatedName(testName, maxLength)
         testSuite(
             name = truncatedName,
             testConfig = testConfig
         ) {
-            val errors = CollatedTestFailures(testName, DataTest.addSuppressedErrorsToCompactedFailures!!)
-            data.forEachIndexed { i, d ->
-                val name = "${i + 1}: ${d.first}"
-                catchingUnwrapped {
-                    action(d.second)
-                    errors.recordOk(name)
-                }.onFailure {
-                    errors.recordError(name, it)
-                }
-            }
-            errors.throwIfAny()
+            runCompactedData(data, testName) { action(it) }
         }
     } else {
         for (d in data) {
-            val name = prefix + d.first
-            val truncatedName = name.truncated(maxLength)
-            testSuiteInScope.checkPathLenIncluding(truncatedName)
+            val truncatedName = checkedTruncatedName(prefixedTestName(prefix, d.first), maxLength)
             testSuite(
                 name = truncatedName,
                 testConfig = testConfig,

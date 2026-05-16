@@ -1,6 +1,7 @@
 package at.asitplus.testballoon
 
 import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.TestSuiteScope
 import de.infix.testBalloon.framework.core.disable
 import de.infix.testBalloon.framework.shared.AbstractTestElement
 
@@ -24,6 +25,15 @@ fun TestConfig.disableByName(name: String) =
 fun freeSpecName(name: String) = if (name.startsWith("!")) name.substring(1) else name
 
 fun String.truncated(limit: Int) = ellipsizeMiddle(limit)
+
+fun String.normalizedTestPrefix(): String =
+    if (isNotEmpty()) "$this " else ""
+
+inline fun prefixedTestName(prefix: String, name: String): String =
+    "$prefix$name"
+
+fun TestSuiteScope.checkedTruncatedName(name: String, maxLength: Int): String =
+    name.truncated(maxLength).also { testSuiteInScope.checkPathLenIncluding(it) }
 
 private fun String.ellipsizeMiddle(maxLength: Int): String {
     if (maxLength == -1) return this
@@ -66,6 +76,17 @@ fun <T> Sequence<T>.peekTypeNameAndReplay(
     return (typeName ?: "no data") to replay
 }
 
+fun <T> Sequence<T>.compactTestNameAndReplay(
+    prefix: String,
+    valueSelector: (T) -> Any?
+): Pair<String, Sequence<T>> {
+    val (compactName, replay) = peekTypeNameAndReplay(valueSelector)
+    return prefixedTestName(prefix, "Σ$compactName") to replay
+}
+
+fun Any?.typeDisplayName(): String =
+    if (this == null) "null" else this::class.simpleName ?: "anonymous class"
+
 
 class CollatedTestFailures(private val testName: String, private val addSuppressedErrors: Boolean) {
     private val lines = mutableListOf<String>()
@@ -98,6 +119,27 @@ class CollatedTestFailures(private val testName: String, private val addSuppress
 
         throw ex
     }
+}
+
+class CollatedTestRun(testName: String, addSuppressedErrors: Boolean) {
+    private val errors = CollatedTestFailures(testName, addSuppressedErrors)
+
+    fun record(
+        name: String,
+        result: Result<Unit>,
+        onSuccess: () -> Unit = {},
+        onFailure: () -> Unit = {}
+    ) {
+        result.onSuccess {
+            onSuccess()
+            errors.recordOk(name)
+        }.onFailure {
+            onFailure()
+            errors.recordError(name, it)
+        }
+    }
+
+    fun throwIfAny() = errors.throwIfAny()
 }
 
 
@@ -139,4 +181,3 @@ fun Any?.toPrettyString(maxLength: Int, reservedPrefixLength: Int = 0): String {
         else -> toPrettyString.truncated(budget)
     }
 }
-

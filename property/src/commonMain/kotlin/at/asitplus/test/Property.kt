@@ -128,6 +128,85 @@ private fun <Value> Gen<Value>.generateSequence(
     }
 }
 
+private fun propertyIterationNamePrefix(
+    normalizedPrefix: String,
+    iter: Int,
+    iterations: Int,
+    value: Any?,
+    suffix: String
+): String =
+    "$normalizedPrefix${iter + 1} of $iterations ${value.typeDisplayName()}$suffix"
+
+private fun compactPropertyCaseName(iter: Int, iterations: Int, value: Any?): String {
+    val valueStr = value.toPrettyString()
+    return "${propertyIterationNamePrefix("", iter, iterations, value, ": ")}$valueStr"
+}
+
+internal fun generatedPropertyLeafName(
+    normalizedPrefix: String,
+    iter: Int,
+    iterations: Int,
+    value: Any?,
+    maxLength: Int
+): String {
+    val namePrefix = propertyIterationNamePrefix(normalizedPrefix, iter, iterations, value, ": ")
+    val valueStr = value.toPrettyString(maxLength, namePrefix.length)
+    return "$namePrefix$valueStr"
+}
+
+private fun generatedPropertySuiteName(
+    normalizedPrefix: String,
+    iter: Int,
+    iterations: Int,
+    value: Any?,
+    maxLength: Int
+): String {
+    val namePrefix = propertyIterationNamePrefix(normalizedPrefix, iter, iterations, value, "s (")
+    val valueStr = value.toPrettyString(maxLength, namePrefix.length + 1)
+    return "$namePrefix$valueStr)"
+}
+
+private inline fun <Value> PropertyContext.runCompactedPropertyResults(
+    series: Sequence<Value>,
+    iterations: Int,
+    testName: String,
+    content: (Value) -> Result<Unit>
+) {
+    val run = CollatedTestRun(testName, PropertyTest.addSuppressedErrorsToCompactedFailures!!)
+    series.forEachIndexed { iter, value ->
+        markEvaluation()
+        run.record(
+            name = compactPropertyCaseName(iter, iterations, value),
+            result = content(value),
+            onSuccess = { markSuccess() },
+            onFailure = { markFailure() }
+        )
+    }
+    run.throwIfAny()
+}
+
+internal fun <Value> PropertyContext.runCompactedProperty(
+    series: Sequence<Value>,
+    iterations: Int,
+    testName: String,
+    content: context(PropertyContext) (Value) -> Unit
+) = runCompactedPropertyResults(series, iterations, testName) {
+    catchingUnwrapped {
+        content(it)
+    }
+}
+
+internal suspend fun <Value> PropertyContext.runCompactedPropertySuspend(
+    series: Sequence<Value>,
+    iterations: Int,
+    testName: String,
+    content: suspend context(PropertyContext) (Value) -> Unit
+) = runCompactedPropertyResults(series, iterations, testName) {
+    catchingUnwrapped {
+        content(it)
+    }
+}
+
 internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
     iterations: Int,
     genA: Gen<Value>,
@@ -137,13 +216,10 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
     testConfig: TestConfig = TestConfig,
     content: context(PropertyContext) TestSuiteScope.(Value) -> Unit
 ) {
-    val prefix = if (prefix.isNotEmpty()) "$prefix " else ""
+    val prefix = prefix.normalizedTestPrefix()
     if (!compact) {
         checkAllSeries(iterations, genA) { iter, value, context ->
-            val type = if (value == null) "null" else value::class.simpleName
-            val namePrefix = "$prefix${iter + 1} of $iterations ${type}s ("
-            val valueStr = value.toPrettyString(maxLength, namePrefix.length + 1)
-            val name = "$prefix${iter + 1} of $iterations ${type}s (${valueStr})"
+            val name = generatedPropertySuiteName(prefix, iter, iterations, value, maxLength)
             this@checkAllSuitesInternal.testSuite(
                 name = (name.truncated(maxLength)),
                 testConfig = testConfig,
@@ -154,32 +230,15 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
                 })
         }
     } else {
-
         val (context, sequence) = genA.generateSequence(iterations)
-        val (compactName, series) = sequence.peekTypeNameAndReplay { it }
-        val testName = "${prefix}Σ$compactName"
+        val (testName, series) = sequence.compactTestNameAndReplay(prefix) { it }
         this@checkAllSuitesInternal.testSuite(
             name = (testName.truncated(maxLength)),
             testConfig = testConfig
         ) {
-            val errors = CollatedTestFailures(testName, PropertyTest.addSuppressedErrorsToCompactedFailures!!)
-            series.forEachIndexed { iter, value ->
-                with(context) {
-                    markEvaluation()
-                    val valueStr = value.toPrettyString()
-                    val name =
-                        "${iter + 1} of $iterations ${if (value == null) "null" else value::class.simpleName}: $valueStr"
-                    catchingUnwrapped {
-                        content(value)
-                        markSuccess()
-                        errors.recordOk(name)
-                    }.onFailure {
-                        markFailure()
-                        errors.recordError(name, it)
-                    }
-                }
+            with(context) {
+                runCompactedProperty(series, iterations, testName) { content(it) }
             }
-            errors.throwIfAny()
         }
     }
 }
@@ -205,41 +264,21 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
     testConfig: TestConfig = TestConfig,
     content: suspend context(PropertyContext) Test.ExecutionScope.(Value) -> Unit
 ) {
-    val prefix = if (prefix.isNotEmpty()) "$prefix " else ""
+    val prefix = prefix.normalizedTestPrefix()
     if (compact) {
         val (context, sequence) = genA.generateSequence(iterations)
-        val (compactName, series) = sequence.peekTypeNameAndReplay { it }
-        val testName = "${prefix}Σ$compactName"
+        val (testName, series) = sequence.compactTestNameAndReplay(prefix) { it }
         this@checkAllInternal.test(
             name = (testName.truncated(maxLength)),
             testConfig = testConfig
         ) {
-            val errors = CollatedTestFailures(testName, PropertyTest.addSuppressedErrorsToCompactedFailures!!)
-            series.forEachIndexed { iter, value ->
-                with(context) {
-                    markEvaluation()
-                    val valueStr = value.toPrettyString()
-                    val name =
-                        "${iter + 1} of $iterations ${if (value == null) "null" else value::class.simpleName}: $valueStr"
-                    catchingUnwrapped {
-                        content(value)
-                        markSuccess()
-                        errors.recordOk(name)
-                    }.onFailure {
-                        markFailure()
-                        errors.recordError(name, it)
-                    }
-                }
+            with(context) {
+                runCompactedPropertySuspend(series, iterations, testName) { content(it) }
             }
-            errors.throwIfAny()
         }
     } else {
         checkAllSeries(iterations, genA) { iter, value, context ->
-            val type = if (value == null) "null" else value::class.simpleName
-            val namePrefix = "$prefix ${iter + 1} of $iterations $type: "
-            val valueStr = value.toPrettyString(maxLength, namePrefix.length)
-            val name =
-                "$prefix ${iter + 1} of $iterations $type: $valueStr"
+            val name = generatedPropertyLeafName(prefix, iter, iterations, value, maxLength)
             this@checkAllInternal.test(
                 name = (name.truncated(maxLength)),
                 testConfig = testConfig

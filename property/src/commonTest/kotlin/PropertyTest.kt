@@ -81,17 +81,17 @@ val compactingSuite by testSuite {
     }
 
     checkAll(iterations = 5, Arb.byteArray(Arb.int(100, 200), Arb.byte())) - { byteArray ->
-        checkAll(iterations = 5, Arb.uLong(100u, 200u)) { number ->
+        checkAll(iterations = 5, Arb.uLong(100u, 200u), prefix = "Size Layer 1 ${byteArray.size}") { number ->
             byteArray shouldBe byteArray
             number shouldBe byteArray.size.toULong()
         }
         checkAll(iterations = 5, Arb.byteArray(Arb.int(100, 200), Arb.byte())) - { byteArray ->
-            checkAll(iterations = 5, Arb.uLong(100u, 200u)) { number ->
+            checkAll(iterations = 5, Arb.uLong(100u, 200u), prefix = "Size Layer 2 ${byteArray.size}") { number ->
                 byteArray shouldBe byteArray
                 number shouldBe byteArray.size.toULong()
             }
             checkAll(iterations = 5, Arb.byteArray(Arb.int(100, 200), Arb.byte())) - { byteArray ->
-                checkAll(iterations = 5, Arb.uLong(100u, 200u)) { number ->
+                checkAll(iterations = 5, Arb.uLong(100u, 200u), prefix = "Size Layer 3 ${byteArray.size}") { number ->
                     byteArray shouldBe byteArray
                     number shouldBe byteArray.size.toULong()
                 }
