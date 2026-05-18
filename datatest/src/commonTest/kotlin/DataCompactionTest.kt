@@ -1,9 +1,11 @@
 import at.asitplus.testballoon.DataTest
+import at.asitplus.testballoon.generatedDataName
 import at.asitplus.testballoon.runCompactedData
 import at.asitplus.testballoon.runCompactedDataSuspend
 import de.infix.testBalloon.framework.core.testSuite
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.booleans.shouldBeTrue
+import io.kotest.matchers.ints.shouldBeLessThanOrEqual
 import io.kotest.matchers.shouldBe
 
 val dataCompactionSuite by testSuite {
@@ -18,6 +20,7 @@ val dataCompactionSuite by testSuite {
             }
 
             error.suppressedExceptions.size shouldBe 0
+            error.message!!.contains("Summary: 1 OK, 1 failed").shouldBeTrue()
             error.message!!.contains("OK:    1: one").shouldBeTrue()
             error.message!!.contains("Error: 2: two: bad 2").shouldBeTrue()
         } finally {
@@ -35,11 +38,24 @@ val dataCompactionSuite by testSuite {
             }
 
             error.suppressedExceptions.size shouldBe 2
+            error.message!!.contains("Summary: 1 OK, 2 failed").shouldBeTrue()
             error.message!!.contains("OK:    1: one").shouldBeTrue()
             error.message!!.contains("Error: 2: two: bad 2").shouldBeTrue()
             error.message!!.contains("Error: 3: three: bad 3").shouldBeTrue()
         } finally {
             DataTest.addSuppressedErrorsToCompactedFailures = null
         }
+    }
+
+    test("compacted data generated names respect maxLength") {
+        val result = generatedDataName(
+            data = "abcdefghij",
+            compact = true,
+            maxLength = 6,
+            prefix = "",
+        )
+
+        result.length shouldBeLessThanOrEqual 6
+        result shouldBe "ab…hij"
     }
 }

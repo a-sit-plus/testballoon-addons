@@ -59,7 +59,7 @@ internal fun generatedDataName(
     maxLength: Int,
     prefix: String
 ): String = if (compact) {
-    data.toPrettyString()
+    data.toPrettyString(maxLength, generatedDataNamePrefixLength(prefix))
 } else {
     data.toPrettyString(maxLength, generatedDataNamePrefixLength(prefix))
 }

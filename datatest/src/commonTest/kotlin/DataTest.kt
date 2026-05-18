@@ -22,7 +22,6 @@ val aDataDrivenSuite by testSuite {
         }
     }
 
-    //Alternative syntax for withDataSuites
     // -> NOTE the minus ↙↙↙
     withData(1, 2, 3, 4) - { number ->
         withData(null, "one", "two", "three", "four", compact = true) { word ->
@@ -38,3 +37,23 @@ val aDataDrivenSuite by testSuite {
         }
     }
 }
+
+val demoSuite by testSuite {
+    withData(1, 2, 3, 4, compact = false) - { number ->
+        withData(null, "one", "two", "three", "four", compact = false) { word ->
+            number shouldBe number
+            word shouldBe "three"
+        }
+    }
+}
+
+val demoSuiteCompact by testSuite {
+    withData(1, 2, 3, 4, compact = true) - { number ->
+        withData(null, "one", "two", "three", "four", compact = true) { word ->
+            number shouldBe number
+            word shouldBe "three"
+        }
+    }
+}
+
+

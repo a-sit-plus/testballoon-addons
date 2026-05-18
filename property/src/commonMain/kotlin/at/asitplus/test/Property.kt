@@ -137,9 +137,10 @@ private fun propertyIterationNamePrefix(
 ): String =
     "$normalizedPrefix${iter + 1} of $iterations ${value.typeDisplayName()}$suffix"
 
-private fun compactPropertyCaseName(iter: Int, iterations: Int, value: Any?): String {
-    val valueStr = value.toPrettyString()
-    return "${propertyIterationNamePrefix("", iter, iterations, value, ": ")}$valueStr"
+private fun compactPropertyCaseName(iter: Int, iterations: Int, value: Any?, maxLength: Int): String {
+    val namePrefix = propertyIterationNamePrefix("", iter, iterations, value, ": ")
+    val valueStr = value.toPrettyString(maxLength, namePrefix.length)
+    return "$namePrefix$valueStr"
 }
 
 internal fun generatedPropertyLeafName(
@@ -170,13 +171,14 @@ private inline fun <Value> PropertyContext.runCompactedPropertyResults(
     series: Sequence<Value>,
     iterations: Int,
     testName: String,
+    maxLength: Int,
     content: (Value) -> Result<Unit>
 ) {
     val run = CollatedTestRun(testName, PropertyTest.addSuppressedErrorsToCompactedFailures!!)
     series.forEachIndexed { iter, value ->
         markEvaluation()
         run.record(
-            name = compactPropertyCaseName(iter, iterations, value),
+            name = compactPropertyCaseName(iter, iterations, value, maxLength),
             result = content(value),
             onSuccess = { markSuccess() },
             onFailure = { markFailure() }
@@ -189,8 +191,9 @@ internal fun <Value> PropertyContext.runCompactedProperty(
     series: Sequence<Value>,
     iterations: Int,
     testName: String,
+    maxLength: Int,
     content: context(PropertyContext) (Value) -> Unit
-) = runCompactedPropertyResults(series, iterations, testName) {
+) = runCompactedPropertyResults(series, iterations, testName, maxLength) {
     catchingUnwrapped {
         content(it)
     }
@@ -200,8 +203,9 @@ internal suspend fun <Value> PropertyContext.runCompactedPropertySuspend(
     series: Sequence<Value>,
     iterations: Int,
     testName: String,
+    maxLength: Int,
     content: suspend context(PropertyContext) (Value) -> Unit
-) = runCompactedPropertyResults(series, iterations, testName) {
+) = runCompactedPropertyResults(series, iterations, testName, maxLength) {
     catchingUnwrapped {
         content(it)
     }
@@ -237,7 +241,7 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
             testConfig = testConfig
         ) {
             with(context) {
-                runCompactedProperty(series, iterations, testName) { content(it) }
+                runCompactedProperty(series, iterations, testName, maxLength) { content(it) }
             }
         }
     }
@@ -273,7 +277,7 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
             testConfig = testConfig
         ) {
             with(context) {
-                runCompactedPropertySuspend(series, iterations, testName) { content(it) }
+                runCompactedPropertySuspend(series, iterations, testName, maxLength) { content(it) }
             }
         }
     } else {

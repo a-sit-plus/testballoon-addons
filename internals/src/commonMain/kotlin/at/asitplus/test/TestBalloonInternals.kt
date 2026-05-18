@@ -119,38 +119,50 @@ fun Throwable.stackTraceForCollatedReport(): String {
 }
 
 class CollatedTestFailures(private val testName: String, private val addSuppressedErrors: Boolean) {
-    private val lines = mutableListOf<String>()
-    private val failures = mutableListOf<Pair<String, Throwable>>()
+    private val lines = StringBuilder()
+    private var firstFailureLabel: String? = null
+    private var firstFailure: Throwable? = null
+    private var allFailuresAreAssertionErrors = true
+    private var okCount = 0
+    private var errorCount = 0
+    private val suppressedFailures = if (addSuppressedErrors) mutableListOf<Throwable>() else null
 
     fun recordOk(name: String) {
-        lines += "OK:    $name"
+        okCount++
+        lines.appendLine("OK:    $name")
     }
 
     fun recordError(name: String, throwable: Throwable) {
+        errorCount++
         val label = "Error: $name"
-        lines += label + (throwable.collatedSummary()?.let { ": $it" } ?: "")
-        failures += label to throwable
+        lines.appendLine(label + (throwable.collatedSummary()?.let { ": $it" } ?: ""))
+        if (firstFailure == null) {
+            firstFailureLabel = label
+            firstFailure = throwable
+        }
+        allFailuresAreAssertionErrors = allFailuresAreAssertionErrors && throwable is AssertionError
+        suppressedFailures?.add(throwable)
     }
 
     fun throwIfAny() {
-        if (failures.isEmpty()) return
+        val primary = firstFailure ?: return
+        val primaryLabel = firstFailureLabel!!
 
-        val (primaryLabel, primary) = failures.first()
         val msg = buildString {
             appendLine(testName)
-            appendLine(lines.joinToString("\n"))
+            appendLine("Summary: $okCount OK, $errorCount failed")
+            append(lines)
             appendLine("----------------------------------------")
             appendLine("Stack trace of first error: $primaryLabel")
             appendLine(primary.stackTraceForCollatedReport())
             appendLine("----------------------------------------")
         }
-        val firstFailure = failures.first().second
-        val ex = if (failures.all { it.second is AssertionError }) {
-            CollatedFailure.Assertion(testName, msg, firstFailure)
+        val ex = if (allFailuresAreAssertionErrors) {
+            CollatedFailure.Assertion(testName, msg, primary)
         } else {
-            CollatedFailure.Runtime(testName, msg, firstFailure)
+            CollatedFailure.Runtime(testName, msg, primary)
         }
-        if (addSuppressedErrors) failures.forEach { ex.addSuppressed(it.second) }
+        suppressedFailures?.forEach { ex.addSuppressed(it) }
 
         throw ex
     }
