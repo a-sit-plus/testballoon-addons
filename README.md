@@ -141,10 +141,11 @@ The names of compacted test series consist of an uppercase sigma (`Σ`) followed
 `ΣULong`, `ΣByteArray`, …).
 
 To still get intelligible output about which precise data point(s) caused failing tests, the error message of the resulting
-failed assertion will list everything that failed and which succeeded:
+failed assertion contains a compact summary and then lists the relevant child rows:
 
 ```
 java.lang.AssertionError: ΣString
+Summary: 1 OK, 7 failed
 Error: 1: 4: expected:<three> but was:<4>
 Error: 2: one: expected:<three> but was:<one>
 Error: 3: null: Expected "three" but actual was null
@@ -156,11 +157,31 @@ Error: 8: four: expected:<three> but was:<four>
 ----------------------------------------
 ```
 
+If you only care about failing cases, set `suppressCompactSuccesses = true`. This can be configured globally through
+`TestBalloonAddons.suppressCompactSuccesses`, per module through `DataTest.suppressCompactSuccesses` or
+`PropertyTest.suppressCompactSuccesses`, and per terminal `withData` / `checkAll` call. Successful cases are still counted
+in the summary, but individual `OK` rows are omitted.
+
 The stack trace of the thrown exception is the stack trace of the first error (which is equal to the stack traces of all
 failed assertions). As such, you can directly navigate to the error with the same convenience as ever!
 
-On the JVM: the individual exceptions of all failed test series' individual tests are added to the top-level assertion
-error as suppressed exceptions.
+By default, compacted reports keep only the first failure as the cause. To attach all failed child exceptions as suppressed
+exceptions, set `addSuppressedErrorsToCompactedFailures = true` globally, per module, or per compacted run where the API
+offers the override.
+
+Suspending terminal compacted `withData` and `checkAll` leaves run child bodies sequentially by default. Set
+`compactConcurrent = true` globally through `TestBalloonAddons.compactConcurrent`, per module through
+`DataTest.compactConcurrent` or `PropertyTest.compactConcurrent`, or per terminal call if concurrent
+execution is desired for that series. Intermediate suite builders keep their existing suite registration behaviour.
+
+Long-running compacted terminal leaves also print periodic progress heartbeats while the compacted body is still running,
+for example:
+
+```
+ΣByteArray: compact progress: 124/1000000 completed, 3 failed
+```
+
+This output is intentionally separate from the compacted failure report.
 
 To globally enable compacting test series for data-driven testing and property testing, set
 `DataTest.compactByDefault = true` and `PropertyTest.compactByDefault = true`, respectively.

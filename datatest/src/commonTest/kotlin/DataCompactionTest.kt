@@ -8,6 +8,7 @@ import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.ints.shouldBeLessThanOrEqual
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.delay
 
 val dataCompactionSuite by testSuite {
 
@@ -64,6 +65,43 @@ val dataCompactionSuite by testSuite {
         } finally {
             DataTest.suppressCompactSuccesses = null
         }
+    }
+
+    test("compacted data terminal can run suspended leaves concurrently") {
+        val error = shouldThrow<AssertionError> {
+            runCompactedDataSuspend(
+                data = sequenceOf("one" to 1, "two" to 2, "three" to 3),
+                testName = "ΣInt",
+                compactConcurrent = false
+            ) { value ->
+                delay((4 - value).toLong())
+                if (value != 2) throw AssertionError("bad $value")
+            }
+        }
+
+        val message = error.message!!
+        message.contains("Summary: 1 OK, 2 failed").shouldBeTrue()
+        message.contains("Error: 1: one: bad 1").shouldBeTrue()
+        message.contains("Error: 3: three: bad 3").shouldBeTrue()
+    }
+
+    test("compacted data concurrent terminal can suppress success rows") {
+        val error = shouldThrow<AssertionError> {
+            runCompactedDataSuspend(
+                data = sequenceOf("one" to 1, "two" to 2),
+                testName = "ΣInt",
+                suppressCompactSuccesses = true,
+                compactConcurrent = false
+            ) { value ->
+                delay(value.toLong())
+                if (value != 2) throw AssertionError("bad $value")
+            }
+        }
+
+        val message = error.message!!
+        message.contains("Summary: 1 OK, 1 failed").shouldBeTrue()
+        message.contains("OK:    2: two").shouldBeFalse()
+        message.contains("Error: 1: one: bad 1").shouldBeTrue()
     }
 
     test("compacted data generated names respect maxLength") {

@@ -2,6 +2,7 @@ import at.asitplus.testballoon.withData
 import de.infix.testBalloon.framework.core.testSuite
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.property.checkAll
 
 val aDataDrivenSuite by testSuite {
     withData("foo" to 13) - {

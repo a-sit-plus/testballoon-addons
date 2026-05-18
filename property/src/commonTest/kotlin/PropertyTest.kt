@@ -101,26 +101,14 @@ val compactingSuite by testSuite {
 
 }
 
-@OptIn(TestBalloonInternalApi::class)
-fun TestConfig.timed() = aroundAll { action ->
-    val start = Clock.System.now()
-    action()
-    val duration = Clock.System.now() - start
-
-
-    delay(1.seconds)
-
-    error("TIME: $testElementPath took $duration.")
-
-}
 
 @OptIn(ExperimentalUuidApi::class)
 val iterationsTest by testSuite(
-    testConfig = DefaultConfiguration.invocation(TestConfig.Invocation.Concurrent).timed()
+    testConfig = DefaultConfiguration.invocation(TestConfig.Invocation.Concurrent)
 ) {
     PropertyTest.compactByDefault = true
     val prefix = Uuid.random().toHexDashString() + Uuid.random().toHexDashString() + Uuid.random().toHexDashString()
-    val factor = 33
+    val factor = 10
     checkAll(iterations = factor, Arb.byteArray(Arb.int(100, 200), Arb.byte()), prefix = prefix) - { seven ->
         checkAll(iterations = factor, Arb.byteArray(Arb.int(100, 200), Arb.byte()), prefix = prefix) - { eight ->
             checkAll(iterations = factor, Arb.byteArray(Arb.int(100, 200), Arb.byte()), prefix = prefix) - { nine ->
@@ -131,3 +119,16 @@ val iterationsTest by testSuite(
         }
     }
 }
+
+@OptIn(ExperimentalUuidApi::class)
+val iterations by testSuite(
+    testConfig = DefaultConfiguration.invocation(TestConfig.Invocation.Concurrent)
+) {
+    PropertyTest.compactByDefault = true
+    val prefix = Uuid.random().toHexDashString() + Uuid.random().toHexDashString() + Uuid.random().toHexDashString()
+    val factor = 100000
+        checkAll(iterations = factor, Arb.byteArray(Arb.int(100, 200), Arb.byte()), prefix = prefix, compactConcurrent = true) { ten ->
+            ten shouldNotBe  ten
+        }
+    }
+

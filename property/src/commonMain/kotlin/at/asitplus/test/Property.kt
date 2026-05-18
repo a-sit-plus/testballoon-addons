@@ -5,6 +5,11 @@ import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuiteScope
 import io.kotest.property.*
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
 
 /**
@@ -57,6 +62,16 @@ object PropertyTest {
      */
     var suppressCompactSuccesses: Boolean? = null
         get() = field ?: TestBalloonAddons.suppressCompactSuccesses
+
+    /**
+     * Whether compacted terminal `checkAll` leaves should run their child bodies sequentially or cuncurrently.
+     *
+     * `null` means it will again fall back to [TestBalloonAddons.compactConcurrent]
+     *
+     *  This property's getter will never return null, but fall back to [TestBalloonAddons.compactConcurrent].
+     */
+    var compactConcurrent: Boolean? = null
+        get() = field ?: TestBalloonAddons.compactConcurrent
 }
 
 class ConfiguredPropertyScope<Value>(
@@ -179,6 +194,34 @@ private fun generatedPropertySuiteName(
     return "$namePrefix$valueStr)"
 }
 
+private data class CompactedPropertyResult(
+    val name: String,
+    val result: Result<Unit>
+)
+
+private class CompactPropertyProgress {
+    var completed = 0
+    var failed = 0
+}
+
+private fun collatedPropertyRun(testName: String, suppressCompactSuccesses: Boolean?) =
+    CollatedTestRun(
+        testName,
+        PropertyTest.addSuppressedErrorsToCompactedFailures!!,
+        suppressCompactSuccesses ?: PropertyTest.suppressCompactSuccesses!!
+    )
+
+private fun compactPropertyProgressMessage(
+    testName: String,
+    iterations: Int,
+    progress: CompactPropertyProgress
+): String =
+    "$testName: compact progress: ${progress.completed}/$iterations completed, ${progress.failed} failed"
+
+private suspend fun yieldForCompactProgress(index: Int) {
+    if (index % 1024 == 0) yield()
+}
+
 private inline fun <Value> PropertyContext.runCompactedPropertyResults(
     series: Sequence<Value>,
     iterations: Int,
@@ -187,11 +230,7 @@ private inline fun <Value> PropertyContext.runCompactedPropertyResults(
     suppressCompactSuccesses: Boolean?,
     content: (Value) -> Result<Unit>
 ) {
-    val run = CollatedTestRun(
-        testName,
-        PropertyTest.addSuppressedErrorsToCompactedFailures!!,
-        suppressCompactSuccesses ?: PropertyTest.suppressCompactSuccesses!!
-    )
+    val run = collatedPropertyRun(testName, suppressCompactSuccesses)
     series.forEachIndexed { iter, value ->
         markEvaluation()
         run.record(
@@ -200,6 +239,78 @@ private inline fun <Value> PropertyContext.runCompactedPropertyResults(
             onSuccess = { markSuccess() },
             onFailure = { markFailure() }
         )
+    }
+    run.throwIfAny()
+}
+
+private suspend fun <Value> PropertyContext.runCompactedPropertyConcurrently(
+    series: Sequence<Value>,
+    iterations: Int,
+    testName: String,
+    maxLength: Int,
+    suppressCompactSuccesses: Boolean?,
+    content: suspend context(PropertyContext) (Value) -> Unit
+) = coroutineScope {
+    val progress = CompactPropertyProgress()
+    val results = Channel<CompactedPropertyResult>(Channel.UNLIMITED)
+    val run = collatedPropertyRun(testName, suppressCompactSuccesses)
+    withCompactProgressHeartbeat({ compactPropertyProgressMessage(testName, iterations, progress) }) {
+        val jobs = mutableListOf<kotlinx.coroutines.Job>()
+        series.forEachIndexed { iter, value ->
+            markEvaluation()
+            jobs += launch {
+                val result = catchingUnwrapped { content(value) }
+                if (result.isFailure) progress.failed++
+                progress.completed++
+                results.send(
+                    CompactedPropertyResult(
+                        name = compactPropertyCaseName(iter, iterations, value, maxLength),
+                        result = result
+                    )
+                )
+            }
+            yieldForCompactProgress(iter)
+        }
+        jobs.joinAll()
+
+        repeat(jobs.size) { iter ->
+            val result = results.receive()
+            run.record(
+                name = result.name,
+                result = result.result,
+                onSuccess = { markSuccess() },
+                onFailure = { markFailure() }
+            )
+            yieldForCompactProgress(iter)
+        }
+    }
+    run.throwIfAny()
+}
+
+private suspend fun <Value> PropertyContext.runCompactedPropertySequentially(
+    series: Sequence<Value>,
+    iterations: Int,
+    testName: String,
+    maxLength: Int,
+    suppressCompactSuccesses: Boolean?,
+    content: suspend context(PropertyContext) (Value) -> Unit
+) {
+    val progress = CompactPropertyProgress()
+    val run = collatedPropertyRun(testName, suppressCompactSuccesses)
+    withCompactProgressHeartbeat({ compactPropertyProgressMessage(testName, iterations, progress) }) {
+        series.forEachIndexed { iter, value ->
+            markEvaluation()
+            val result = catchingUnwrapped { content(value) }
+            if (result.isFailure) progress.failed++
+            run.record(
+                name = compactPropertyCaseName(iter, iterations, value, maxLength),
+                result = result,
+                onSuccess = { markSuccess() },
+                onFailure = { markFailure() }
+            )
+            progress.completed++
+            yieldForCompactProgress(iter)
+        }
     }
     run.throwIfAny()
 }
@@ -223,10 +334,13 @@ internal suspend fun <Value> PropertyContext.runCompactedPropertySuspend(
     testName: String,
     maxLength: Int,
     suppressCompactSuccesses: Boolean? = null,
+    compactConcurrent: Boolean? = null,
     content: suspend context(PropertyContext) (Value) -> Unit
-) = runCompactedPropertyResults(series, iterations, testName, maxLength, suppressCompactSuccesses) {
-    catchingUnwrapped {
-        content(it)
+) {
+    if (!(compactConcurrent ?: PropertyTest.compactConcurrent!!)) {
+        runCompactedPropertySequentially(series, iterations, testName, maxLength, suppressCompactSuccesses, content)
+    } else {
+        runCompactedPropertyConcurrently(series, iterations, testName, maxLength, suppressCompactSuccesses, content)
     }
 }
 
@@ -283,6 +397,7 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
     genA: Gen<Value>,
     compact: Boolean,
     suppressCompactSuccesses: Boolean?,
+    compactConcurrent: Boolean?,
     maxLength: Int,
     prefix: String,
     testConfig: TestConfig = TestConfig,
@@ -297,7 +412,14 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
             testConfig = testConfig
         ) {
             with(context) {
-                runCompactedPropertySuspend(series, iterations, testName, maxLength, suppressCompactSuccesses) { content(it) }
+                runCompactedPropertySuspend(
+                    series,
+                    iterations,
+                    testName,
+                    maxLength,
+                    suppressCompactSuccesses,
+                    compactConcurrent
+                ) { content(it) }
             }
         }
     } else {

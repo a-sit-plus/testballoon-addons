@@ -5,6 +5,8 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 val CollatedTestFailuresTest by testSuite {
 
@@ -91,5 +93,22 @@ val CollatedTestFailuresTest by testSuite {
         }
 
         error.message!!.contains("Error: two: second").shouldBeTrue()
+    }
+
+    test("compact progress heartbeat stops after body completes") {
+        val previousInterval = compactProgressHeartbeatInterval
+        try {
+            var bodyRan = false
+            compactProgressHeartbeatInterval = 1.milliseconds
+
+            withCompactProgressHeartbeat({ "progress" }) {
+                delay(2.milliseconds)
+                bodyRan = true
+            }
+
+            bodyRan shouldBe true
+        } finally {
+            compactProgressHeartbeatInterval = previousInterval
+        }
     }
 }

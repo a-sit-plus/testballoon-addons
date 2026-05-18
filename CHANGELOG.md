@@ -5,6 +5,15 @@
 ### 0.9.0
 
 * TestBalloon 1.0.0
+* Improve compacted data/property test reporting:
+    * Add a `Summary: X OK, Y failed` line to compacted failure messages
+    * Add `suppressCompactSuccesses` configuration and terminal overrides to omit individual `OK` rows while keeping
+      the summary
+    * Avoid recursively embedding full nested compacted reports in parent compacted error rows
+    * Bound compacted failure row names using the configured test name length
+* Add concurrent execution for compacted suspending terminal `withData` and `checkAll` leaves via `compactConcurrent`
+* Add periodic progress heartbeat output while compacted terminal `withData` and `checkAll` leaves are running
+* Simplify and fix custom truncation/stringification for primitive and unsigned arrays
 * By default, only the first error's stack trace is reported for compacted data/property tests. This used to be
   different. To fall back to the old behaviour (or for debugging), set `addSuppressedErrorsToCompactedFailures = true`
 * Remove deprecated functions marked for removal. Refactor as follows:

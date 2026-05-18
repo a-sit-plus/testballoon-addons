@@ -18,6 +18,7 @@ import io.kotest.property.PropertyTesting
  * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
  * @param suppressCompactSuccesses whether to omit successful compacted child rows for this series
+ * @param compactConcurrent whether to run compacted child bodies sequentially for this series
  * @param content Test execution block receiving generated values
  */
 fun <Value> TestSuiteScope.checkAll(
@@ -27,6 +28,7 @@ fun <Value> TestSuiteScope.checkAll(
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
     suppressCompactSuccesses: Boolean? = null,
+    compactConcurrent: Boolean? = null,
     content: suspend context(PropertyContext) Test.ExecutionScope.(Value) -> Unit
 ) = checkAll(
     iterations = PropertyTest.defaultIterationCount,
@@ -36,6 +38,7 @@ fun <Value> TestSuiteScope.checkAll(
     prefix = prefix,
     testConfig = testConfig,
     suppressCompactSuccesses = suppressCompactSuccesses,
+    compactConcurrent = compactConcurrent,
     content = content
 )
 
@@ -49,6 +52,7 @@ fun <Value> TestSuiteScope.checkAll(
  * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
  * @param suppressCompactSuccesses whether to omit successful compacted child rows for this series
+ * @param compactConcurrent whether to run compacted child bodies sequentially for this series
  * @param content Test execution block receiving generated values
  */
 fun <Value> TestSuiteScope.checkAll(
@@ -59,12 +63,14 @@ fun <Value> TestSuiteScope.checkAll(
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
     suppressCompactSuccesses: Boolean? = null,
+    compactConcurrent: Boolean? = null,
     content: suspend context(PropertyContext) Test.ExecutionScope.(Value) -> Unit
 ) = checkAllInternal(
     iterations,
     genA,
     compact,
     suppressCompactSuccesses,
+    compactConcurrent,
     maxLength,
     prefix,
     testConfig,

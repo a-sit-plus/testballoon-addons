@@ -4,9 +4,36 @@ import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuiteScope
 import de.infix.testBalloon.framework.core.disable
 import de.infix.testBalloon.framework.shared.AbstractTestElement
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 expect var totalMaxLen: Int
 
+internal expect fun compactProgressPrint(message: String)
+
+internal var compactProgressHeartbeatInterval = 1.seconds
+
+suspend fun withCompactProgressHeartbeat(
+    snapshot: () -> String,
+    body: suspend () -> Unit
+) = coroutineScope {
+    val heartbeat = launch {
+        while (true) {
+            delay(compactProgressHeartbeatInterval)
+            compactProgressPrint(snapshot())
+        }
+    }
+
+    try {
+        body()
+    } finally {
+        heartbeat.cancelAndJoin()
+    }
+}
 
 fun AbstractTestElement.checkPathLenIncluding(str: String) {
     if (totalMaxLen < 0) return

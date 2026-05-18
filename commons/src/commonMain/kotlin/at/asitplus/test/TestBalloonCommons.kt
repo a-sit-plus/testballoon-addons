@@ -61,4 +61,12 @@ object TestBalloonAddons {
      */
     var suppressCompactSuccesses: Boolean = false
 
+    /**
+     * Whether compacted terminal `withData` and `checkAll` leaves should run their child bodies sequentially or concurrently.
+     *
+     * When set to `true`, compacted suspending terminal leaves launch their child bodies concurrently and collate the
+     * collected results after all child coroutines complete.
+     */
+    var compactConcurrent: Boolean = false
+
 }

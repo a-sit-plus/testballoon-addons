@@ -8,6 +8,7 @@ import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.shouldBe
 import io.kotest.property.PropertyContext
+import kotlinx.coroutines.delay
 
 val propertyCompactionSuite by testSuite {
 
@@ -80,6 +81,60 @@ val propertyCompactionSuite by testSuite {
             message.contains("Error: 1 of 2 Int: 1: bad 1").shouldBeTrue()
         } finally {
             PropertyTest.suppressCompactSuccesses = null
+        }
+    }
+
+    test("compacted property terminal can run suspended leaves concurrently") {
+        val context = PropertyContext()
+        val error = shouldThrow<AssertionError> {
+            with(context) {
+                runCompactedPropertySuspend(
+                    series = sequenceOf(1, 2, 3),
+                    iterations = 3,
+                    testName = "ΣInt",
+                    maxLength = 64,
+                    compactConcurrent = false
+                ) { value ->
+                    delay((4 - value).toLong())
+                    if (value != 2) throw AssertionError("bad $value")
+                }
+            }
+        }
+
+        context.evals() shouldBe 3
+        context.successes() shouldBe 1
+        context.failures() shouldBe 2
+        val message = error.message!!
+        message.contains("Summary: 1 OK, 2 failed").shouldBeTrue()
+        message.contains("Error: 1 of 3 Int: 1: bad 1").shouldBeTrue()
+        message.contains("Error: 3 of 3 Int: 3: bad 3").shouldBeTrue()
+    }
+
+    test("compacted property terminal override can run concurrently despite sequential config") {
+        PropertyTest.compactConcurrent = false
+        try {
+            val context = PropertyContext()
+            val error = shouldThrow<AssertionError> {
+                with(context) {
+                    runCompactedPropertySuspend(
+                        series = sequenceOf(1, 2),
+                        iterations = 2,
+                        testName = "ΣInt",
+                        maxLength = 64,
+                        compactConcurrent = false
+                    ) { value ->
+                        delay(value.toLong())
+                        if (value != 2) throw AssertionError("bad $value")
+                    }
+                }
+            }
+
+            context.evals() shouldBe 2
+            context.successes() shouldBe 1
+            context.failures() shouldBe 1
+            error.message!!.contains("Error: 1 of 2 Int: 1: bad 1").shouldBeTrue()
+        } finally {
+            PropertyTest.compactConcurrent = null
         }
     }
 
