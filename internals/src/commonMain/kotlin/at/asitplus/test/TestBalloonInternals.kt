@@ -118,7 +118,11 @@ fun Throwable.stackTraceForCollatedReport(): String {
     }
 }
 
-class CollatedTestFailures(private val testName: String, private val addSuppressedErrors: Boolean) {
+class CollatedTestFailures(
+    private val testName: String,
+    private val addSuppressedErrors: Boolean,
+    private val suppressSuccesses: Boolean = false
+) {
     private val lines = StringBuilder()
     private var firstFailureLabel: String? = null
     private var firstFailure: Throwable? = null
@@ -129,7 +133,9 @@ class CollatedTestFailures(private val testName: String, private val addSuppress
 
     fun recordOk(name: String) {
         okCount++
-        lines.appendLine("OK:    $name")
+        if (!suppressSuccesses) {
+            lines.appendLine("OK:    $name")
+        }
     }
 
     fun recordError(name: String, throwable: Throwable) {
@@ -168,8 +174,12 @@ class CollatedTestFailures(private val testName: String, private val addSuppress
     }
 }
 
-class CollatedTestRun(testName: String, addSuppressedErrors: Boolean) {
-    private val errors = CollatedTestFailures(testName, addSuppressedErrors)
+class CollatedTestRun(
+    testName: String,
+    addSuppressedErrors: Boolean,
+    suppressSuccesses: Boolean = false
+) {
+    private val errors = CollatedTestFailures(testName, addSuppressedErrors, suppressSuccesses)
 
     fun record(
         name: String,

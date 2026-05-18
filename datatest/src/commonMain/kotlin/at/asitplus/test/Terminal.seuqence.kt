@@ -12,6 +12,7 @@ import de.infix.testBalloon.framework.core.TestSuiteScope
  * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
  * @param maxLength maximum length of test element name (not display name)
  * @param testConfig Optional test configuration
+ * @param suppressCompactSuccesses whether to omit successful compacted child rows for this series
  * @param action Test action to execute for each sequence item
  */
 fun <Data> TestSuiteScope.withData(
@@ -20,11 +21,13 @@ fun <Data> TestSuiteScope.withData(
     maxLength: Int = DataTest.defaultTestNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
+    suppressCompactSuccesses: Boolean? = null,
     action: suspend Test.ExecutionScope.(Data) -> Unit
 ) = withDataInternal(
     data.map { generatedDataName(it, compact, maxLength, prefix) to it },
     testConfig,
     compact,
+    suppressCompactSuccesses,
     maxLength,
     prefix,
     action
@@ -40,6 +43,7 @@ fun <Data> TestSuiteScope.withData(
  * @param maxLength maximum length of test element name (not display name)
  * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
+ * @param suppressCompactSuccesses whether to omit successful compacted child rows for this series
  * @param action Test action to execute for each sequence item
  */
 fun <Data> TestSuiteScope.withData(
@@ -49,11 +53,13 @@ fun <Data> TestSuiteScope.withData(
     maxLength: Int = DataTest.defaultTestNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
+    suppressCompactSuccesses: Boolean? = null,
     action: suspend Test.ExecutionScope.(Data) -> Unit
 ) = withDataInternal(
     data.map { nameFn(it) to it },
     testConfig,
     compact,
+    suppressCompactSuccesses,
     maxLength,
     prefix,
     action

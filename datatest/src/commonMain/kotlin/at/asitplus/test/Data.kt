@@ -39,6 +39,18 @@ object DataTest {
     var addSuppressedErrorsToCompactedFailures: Boolean? = null
         get() = field ?: TestBalloonAddons.addSuppressedErrorsToCompactedFailures
 
+    /**
+     * Whether compacted failure reports should omit successful input rows.
+     *
+     * Successes are still counted in the summary, but individual `OK` rows are not rendered when this is enabled.
+     *
+     * `null` means it will again fall back to [TestBalloonAddons.suppressCompactSuccesses]
+     *
+     *  This property's getter will never return null, but fall back to [TestBalloonAddons.suppressCompactSuccesses].
+     */
+    var suppressCompactSuccesses: Boolean? = null
+        get() = field ?: TestBalloonAddons.suppressCompactSuccesses
+
 }
 
 
@@ -73,9 +85,14 @@ private fun dataCaseName(index: Int, data: Pair<String, *>): String =
 private inline fun <Data> runCompactedDataResults(
     data: Sequence<Pair<String, Data>>,
     testName: String,
+    suppressCompactSuccesses: Boolean?,
     action: (Data) -> Result<Unit>
 ) {
-    val run = CollatedTestRun(testName, DataTest.addSuppressedErrorsToCompactedFailures!!)
+    val run = CollatedTestRun(
+        testName,
+        DataTest.addSuppressedErrorsToCompactedFailures!!,
+        suppressCompactSuccesses ?: DataTest.suppressCompactSuccesses!!
+    )
     data.forEachIndexed { i, d ->
         run.record(dataCaseName(i, d), action(d.second))
     }
@@ -85,8 +102,9 @@ private inline fun <Data> runCompactedDataResults(
 internal suspend fun <Data> runCompactedDataSuspend(
     data: Sequence<Pair<String, Data>>,
     testName: String,
+    suppressCompactSuccesses: Boolean? = null,
     action: suspend (Data) -> Unit
-) = runCompactedDataResults(data, testName) {
+) = runCompactedDataResults(data, testName, suppressCompactSuccesses) {
     catchingUnwrapped {
         action(it)
     }
@@ -95,8 +113,9 @@ internal suspend fun <Data> runCompactedDataSuspend(
 internal fun <Data> runCompactedData(
     data: Sequence<Pair<String, Data>>,
     testName: String,
+    suppressCompactSuccesses: Boolean? = null,
     action: (Data) -> Unit
-) = runCompactedDataResults(data, testName) {
+) = runCompactedDataResults(data, testName, suppressCompactSuccesses) {
     catchingUnwrapped {
         action(it)
     }
@@ -118,6 +137,7 @@ internal fun <Data> TestSuiteScope.withDataInternal(
     map: Sequence<Pair<String, Data>>,
     testConfig: TestConfig = TestConfig,
     compact: Boolean,
+    suppressCompactSuccesses: Boolean?,
     maxLength: Int,
     prefix: String,
     action: suspend Test.ExecutionScope.(Data) -> Unit
@@ -130,7 +150,7 @@ internal fun <Data> TestSuiteScope.withDataInternal(
             name = truncatedName,
             testConfig = testConfig
         ) {
-            runCompactedDataSuspend(map, testName) { action(it) }
+            runCompactedDataSuspend(map, testName, suppressCompactSuccesses) { action(it) }
         }
     } else {
         for (d in map) {

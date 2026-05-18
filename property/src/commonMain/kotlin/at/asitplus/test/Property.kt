@@ -45,6 +45,18 @@ object PropertyTest {
      */
     var addSuppressedErrorsToCompactedFailures: Boolean? = null
         get() = field ?: TestBalloonAddons.addSuppressedErrorsToCompactedFailures
+
+    /**
+     * Whether compacted failure reports should omit successful input rows.
+     *
+     * Successes are still counted in the summary, but individual `OK` rows are not rendered when this is enabled.
+     *
+     * `null` means it will again fall back to [TestBalloonAddons.suppressCompactSuccesses]
+     *
+     *  This property's getter will never return null, but fall back to [TestBalloonAddons.suppressCompactSuccesses].
+     */
+    var suppressCompactSuccesses: Boolean? = null
+        get() = field ?: TestBalloonAddons.suppressCompactSuccesses
 }
 
 class ConfiguredPropertyScope<Value>(
@@ -54,7 +66,7 @@ class ConfiguredPropertyScope<Value>(
     val testSuite: TestSuiteScope,
     val iterations: Int,
     val genA: Gen<Value>,
-    val testConfig: TestConfig = TestConfig
+    val testConfig: TestConfig = TestConfig,
 ) {
     /**
      * @param content Test suite block receiving generated values
@@ -172,9 +184,14 @@ private inline fun <Value> PropertyContext.runCompactedPropertyResults(
     iterations: Int,
     testName: String,
     maxLength: Int,
+    suppressCompactSuccesses: Boolean?,
     content: (Value) -> Result<Unit>
 ) {
-    val run = CollatedTestRun(testName, PropertyTest.addSuppressedErrorsToCompactedFailures!!)
+    val run = CollatedTestRun(
+        testName,
+        PropertyTest.addSuppressedErrorsToCompactedFailures!!,
+        suppressCompactSuccesses ?: PropertyTest.suppressCompactSuccesses!!
+    )
     series.forEachIndexed { iter, value ->
         markEvaluation()
         run.record(
@@ -192,8 +209,9 @@ internal fun <Value> PropertyContext.runCompactedProperty(
     iterations: Int,
     testName: String,
     maxLength: Int,
+    suppressCompactSuccesses: Boolean? = null,
     content: context(PropertyContext) (Value) -> Unit
-) = runCompactedPropertyResults(series, iterations, testName, maxLength) {
+) = runCompactedPropertyResults(series, iterations, testName, maxLength, suppressCompactSuccesses) {
     catchingUnwrapped {
         content(it)
     }
@@ -204,8 +222,9 @@ internal suspend fun <Value> PropertyContext.runCompactedPropertySuspend(
     iterations: Int,
     testName: String,
     maxLength: Int,
+    suppressCompactSuccesses: Boolean? = null,
     content: suspend context(PropertyContext) (Value) -> Unit
-) = runCompactedPropertyResults(series, iterations, testName, maxLength) {
+) = runCompactedPropertyResults(series, iterations, testName, maxLength, suppressCompactSuccesses) {
     catchingUnwrapped {
         content(it)
     }
@@ -263,6 +282,7 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
     iterations: Int,
     genA: Gen<Value>,
     compact: Boolean,
+    suppressCompactSuccesses: Boolean?,
     maxLength: Int,
     prefix: String,
     testConfig: TestConfig = TestConfig,
@@ -277,7 +297,7 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
             testConfig = testConfig
         ) {
             with(context) {
-                runCompactedPropertySuspend(series, iterations, testName, maxLength) { content(it) }
+                runCompactedPropertySuspend(series, iterations, testName, maxLength, suppressCompactSuccesses) { content(it) }
             }
         }
     } else {

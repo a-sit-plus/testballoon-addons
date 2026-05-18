@@ -59,6 +59,30 @@ val propertyCompactionSuite by testSuite {
         }
     }
 
+    test("compacted property can suppress success rows") {
+        PropertyTest.suppressCompactSuccesses = true
+        try {
+            val context = PropertyContext()
+            val error = shouldThrow<AssertionError> {
+                with(context) {
+                    runCompactedProperty(sequenceOf(1, 2), 2, "ΣInt", maxLength = 64) { value ->
+                        if (value != 2) throw AssertionError("bad $value")
+                    }
+                }
+            }
+
+            context.evals() shouldBe 2
+            context.successes() shouldBe 1
+            context.failures() shouldBe 1
+            val message = error.message!!
+            message.contains("Summary: 1 OK, 1 failed").shouldBeTrue()
+            message.contains("OK:    2 of 2 Int: 2").shouldBeFalse()
+            message.contains("Error: 1 of 2 Int: 1: bad 1").shouldBeTrue()
+        } finally {
+            PropertyTest.suppressCompactSuccesses = null
+        }
+    }
+
     test("non-compact property terminal names have no leading space without prefix") {
         val name = generatedPropertyLeafName("", iter = 0, iterations = 1, value = 7, maxLength = 64)
 

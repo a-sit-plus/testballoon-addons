@@ -1,6 +1,7 @@
 import at.asitplus.testballoon.withData
 import de.infix.testBalloon.framework.core.testSuite
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 
 val aDataDrivenSuite by testSuite {
     withData("foo" to 13) - {
@@ -38,15 +39,6 @@ val aDataDrivenSuite by testSuite {
     }
 }
 
-val demoSuite by testSuite {
-    withData(1, 2, 3, 4, compact = false) - { number ->
-        withData(null, "one", "two", "three", "four", compact = false) { word ->
-            number shouldBe number
-            word shouldBe "three"
-        }
-    }
-}
-
 val demoSuiteCompact by testSuite {
     withData(1, 2, 3, 4, compact = true) - { number ->
         withData(null, "one", "two", "three", "four", compact = true) { word ->
@@ -57,3 +49,11 @@ val demoSuiteCompact by testSuite {
 }
 
 
+val demoSuite by testSuite {
+    withData(1, 2, 3, 4, compact = true) - { number ->
+        withData(null, "one", "two", "three", "four", compact = true, suppressCompactSuccesses = true) { word ->
+            number shouldBe number
+            word shouldNotBe "three"
+        }
+    }
+}

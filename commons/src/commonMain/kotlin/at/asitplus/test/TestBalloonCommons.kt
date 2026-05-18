@@ -53,4 +53,12 @@ object TestBalloonAddons {
      */
     var addSuppressedErrorsToCompactedFailures: Boolean = false
 
+    /**
+     * Whether compacted failure reports should omit successful input rows.
+     *
+     * This affects compacted `withData`, `withDataSuites`, `checkAll`, and `checkAllSuites` reports. Successes are
+     * still counted in the summary, but individual `OK` rows are not rendered when this is enabled.
+     */
+    var suppressCompactSuccesses: Boolean = false
+
 }

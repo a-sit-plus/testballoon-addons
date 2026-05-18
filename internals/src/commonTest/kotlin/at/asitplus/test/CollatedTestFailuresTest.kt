@@ -66,6 +66,21 @@ val CollatedTestFailuresTest by testSuite {
         error.suppressedExceptions.size shouldBe 0
     }
 
+    test("success rows can be suppressed while summary keeps counts") {
+        val error = shouldThrow<AssertionError> {
+            CollatedTestFailures("outer", addSuppressedErrors = false, suppressSuccesses = true).apply {
+                recordOk("one")
+                recordError("two", AssertionError("second"))
+                throwIfAny()
+            }
+        }
+
+        val message = error.message!!
+        message.contains("Summary: 1 OK, 1 failed").shouldBeTrue()
+        message.contains("OK:    one").shouldBeFalse()
+        message.contains("Error: two: second").shouldBeTrue()
+    }
+
     test("mixed failures throw runtime wrapper") {
         val error = shouldThrow<RuntimeException> {
             CollatedTestFailures("outer", false).apply {
