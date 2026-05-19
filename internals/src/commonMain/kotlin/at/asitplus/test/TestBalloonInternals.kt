@@ -1,18 +1,46 @@
 package at.asitplus.testballoon
 
 import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.TestSuiteScope
 import de.infix.testBalloon.framework.core.disable
 import de.infix.testBalloon.framework.shared.AbstractTestElement
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.seconds
 
 expect var totalMaxLen: Int
 
+internal expect fun compactProgressPrint(message: String)
+
+internal var compactProgressHeartbeatInterval = 1.seconds
+
+suspend fun withCompactProgressHeartbeat(
+    snapshot: () -> String,
+    body: suspend () -> Unit
+) = coroutineScope {
+    val heartbeat = launch {
+        while (true) {
+            delay(compactProgressHeartbeatInterval)
+            compactProgressPrint(snapshot())
+        }
+    }
+
+    try {
+        body()
+    } finally {
+        heartbeat.cancelAndJoin()
+    }
+}
 
 fun AbstractTestElement.checkPathLenIncluding(str: String) {
     if (totalMaxLen < 0) return
     val path = testElementPath.toString()
     val relevantPath = path.substringAfter("↘", "»")
     val root = path.substringBefore("↘", path.dropLast(1))
-    val currentLen= relevantPath.length
+    val currentLen = relevantPath.length
     if ((currentLen + str.length) > totalMaxLen) {
         throw IllegalArgumentException("Test Path «${relevantPath.dropLast(1)}↘$str» exceeds $totalMaxLen characters. Note: the root element's FQN($root») does not count towards this limit.")
     }
@@ -25,8 +53,17 @@ fun freeSpecName(name: String) = if (name.startsWith("!")) name.substring(1) els
 
 fun String.truncated(limit: Int) = ellipsizeMiddle(limit)
 
+fun String.normalizedTestPrefix(): String =
+    if (isNotEmpty()) "$this " else ""
+
+inline fun prefixedTestName(prefix: String, name: String): String =
+    "$prefix$name"
+
+fun TestSuiteScope.checkedTruncatedName(name: String, maxLength: Int): String =
+    name.truncated(maxLength).also { testSuiteInScope.checkPathLenIncluding(it) }
+
 private fun String.ellipsizeMiddle(maxLength: Int): String {
-    if (length == -1) return this
+    if (maxLength == -1) return this
     val ellipsis = "…"
     if (maxLength !in 3..<length) return this
     val keep = maxLength - ellipsis.length
@@ -66,27 +103,127 @@ fun <T> Sequence<T>.peekTypeNameAndReplay(
     return (typeName ?: "no data") to replay
 }
 
+fun <T> Sequence<T>.compactTestNameAndReplay(
+    prefix: String,
+    valueSelector: (T) -> Any?
+): Pair<String, Sequence<T>> {
+    val (compactName, replay) = peekTypeNameAndReplay(valueSelector)
+    return prefixedTestName(prefix, "Σ$compactName") to replay
+}
 
-fun collateErrors(
-    errors: MutableMap<String, Throwable?>,
-    testName: String
+fun Any?.typeDisplayName(): String =
+    if (this == null) "null" else this::class.simpleName ?: "anonymous class"
+
+private sealed interface CollatedFailure {
+    val collatedSummary: String
+
+    class Assertion(
+        override val collatedSummary: String,
+        message: String,
+        cause: Throwable
+    ) : AssertionError(message, cause), CollatedFailure
+
+    class Runtime(
+        override val collatedSummary: String,
+        message: String,
+        cause: Throwable
+    ) : RuntimeException(message, cause), CollatedFailure
+}
+
+fun Throwable.collatedSummary(): String? =
+    when (this) {
+        is CollatedFailure.Assertion -> collatedSummary
+        is CollatedFailure.Runtime -> collatedSummary
+        else -> message?.lineSequence()?.firstOrNull { it.isNotBlank() }
+    }
+
+fun Throwable.stackTraceForCollatedReport(): String {
+    return when (this) {
+        is CollatedFailure.Assertion -> cause?.stackTraceToString() ?: stackTraceToString()
+        is CollatedFailure.Runtime -> cause?.stackTraceToString() ?: stackTraceToString()
+        else -> stackTraceToString()
+    }
+}
+
+class CollatedTestFailures(
+    private val testName: String,
+    private val addSuppressedErrors: Boolean,
+    private val suppressSuccesses: Boolean = false
 ) {
-    val actualErrors = errors.values.filterNotNull()
-    if (actualErrors.isNotEmpty()) {
-        val (primaryLabel, primary) = errors.filterValues { it != null }.entries.first()
-        val messages = errors.map { (msg, err) -> msg + (err?.let { ": ${it.message}" } ?: "") }.joinToString("\n")
+    private val lines = StringBuilder()
+    private var firstFailureLabel: String? = null
+    private var firstFailure: Throwable? = null
+    private var allFailuresAreAssertionErrors = true
+    private var okCount = 0
+    private var errorCount = 0
+    private val suppressedFailures = if (addSuppressedErrors) mutableListOf<Throwable>() else null
+
+    fun recordOk(name: String) {
+        okCount++
+        if (!suppressSuccesses) {
+            lines.appendLine("OK:    $name")
+        }
+    }
+
+    fun recordError(name: String, throwable: Throwable) {
+        errorCount++
+        val label = "Error: $name"
+        lines.appendLine(label + (throwable.collatedSummary()?.let { ": $it" } ?: ""))
+        if (firstFailure == null) {
+            firstFailureLabel = label
+            firstFailure = throwable
+        }
+        allFailuresAreAssertionErrors = allFailuresAreAssertionErrors && throwable is AssertionError
+        suppressedFailures?.add(throwable)
+    }
+
+    fun throwIfAny() {
+        val primary = firstFailure ?: return
+        val primaryLabel = firstFailureLabel!!
+
         val msg = buildString {
             appendLine(testName)
-            appendLine(messages)
+            appendLine("Summary: $okCount OK, $errorCount failed")
+            append(lines)
             appendLine("----------------------------------------")
             appendLine("Stack trace of first error: $primaryLabel")
-            appendLine(primary!!.stackTraceToString())  // works on all KMP targets
+            appendLine(primary.stackTraceForCollatedReport())
             appendLine("----------------------------------------")
         }
-        val ex = (if (actualErrors.count { it is AssertionError } == actualErrors.size) AssertionError(msg)
-        else RuntimeException(msg)).also { actualErrors.forEach(it::addSuppressed) }
+        val ex = if (allFailuresAreAssertionErrors) {
+            CollatedFailure.Assertion(testName, msg, primary)
+        } else {
+            CollatedFailure.Runtime(testName, msg, primary)
+        }
+        suppressedFailures?.forEach { ex.addSuppressed(it) }
+
         throw ex
     }
+}
+
+class CollatedTestRun(
+    testName: String,
+    addSuppressedErrors: Boolean,
+    suppressSuccesses: Boolean = false
+) {
+    private val errors = CollatedTestFailures(testName, addSuppressedErrors, suppressSuccesses)
+
+    fun record(
+        name: String,
+        result: Result<Unit>,
+        onSuccess: () -> Unit = {},
+        onFailure: () -> Unit = {}
+    ) {
+        result.onSuccess {
+            onSuccess()
+            errors.recordOk(name)
+        }.onFailure {
+            onFailure()
+            errors.recordError(name, it)
+        }
+    }
+
+    fun throwIfAny() = errors.throwIfAny()
 }
 
 
@@ -116,4 +253,15 @@ fun Any?.toPrettyString(): String = when (this) {
     is Array<*> -> contentDeepToString()
 
     else -> toString()
+}
+
+fun Any?.toPrettyString(maxLength: Int, reservedPrefixLength: Int = 0): String {
+    if (maxLength < 0) return toPrettyString()
+    val budget = maxLength - reservedPrefixLength
+    val toPrettyString = toPrettyString()
+    return when {
+        budget <= 0 -> ""
+        budget < 3 && toPrettyString.length > budget -> "…"
+        else -> toPrettyString.truncated(budget)
+    }
 }

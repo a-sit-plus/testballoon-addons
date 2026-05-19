@@ -5,6 +5,11 @@ import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuiteScope
 import io.kotest.property.*
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
 
 /**
@@ -31,17 +36,52 @@ object PropertyTest {
     /**
      * Default number of iterations for property testing (`1000`)
      */
-    var defaultIterationCount: Int =1000
+    var defaultIterationCount: Int = 1000
+
+    /**
+     * Whether compacted failure reports should attach every failed input as a suppressed throwable.
+     *
+     * This affects compacted `withData`, `withDataSuites`, `checkAll`, and `checkAllSuites` reports. The rendered
+     * failure message still includes the stack trace of the first failure either way.
+     *
+     * `null` means it will again fall back to [TestBalloonAddons.addSuppressedErrorsToCompactedFailures]
+     *
+     *  This property's getter will never return null, but fall back to [TestBalloonAddons.addSuppressedErrorsToCompactedFailures].
+     */
+    var addSuppressedErrorsToCompactedFailures: Boolean? = null
+        get() = field ?: TestBalloonAddons.addSuppressedErrorsToCompactedFailures
+
+    /**
+     * Whether compacted failure reports should omit successful input rows.
+     *
+     * Successes are still counted in the summary, but individual `OK` rows are not rendered when this is enabled.
+     *
+     * `null` means it will again fall back to [TestBalloonAddons.suppressCompactSuccesses]
+     *
+     *  This property's getter will never return null, but fall back to [TestBalloonAddons.suppressCompactSuccesses].
+     */
+    var suppressCompactSuccesses: Boolean? = null
+        get() = field ?: TestBalloonAddons.suppressCompactSuccesses
+
+    /**
+     * Whether compacted terminal `checkAll` leaves should run their child bodies sequentially or cuncurrently.
+     *
+     * `null` means it will again fall back to [TestBalloonAddons.compactConcurrent]
+     *
+     *  This property's getter will never return null, but fall back to [TestBalloonAddons.compactConcurrent].
+     */
+    var compactConcurrent: Boolean? = null
+        get() = field ?: TestBalloonAddons.compactConcurrent
 }
 
-data class ConfiguredPropertyScope<Value>(
+class ConfiguredPropertyScope<Value>(
     private val compact: Boolean,
     private val maxLength: Int,
     val prefix: String,
     val testSuite: TestSuiteScope,
     val iterations: Int,
     val genA: Gen<Value>,
-    val testConfig: TestConfig = TestConfig
+    val testConfig: TestConfig = TestConfig,
 ) {
     /**
      * @param content Test suite block receiving generated values
@@ -115,6 +155,195 @@ private fun <Value> Gen<Value>.generateSequence(
     }
 }
 
+private fun propertyIterationNamePrefix(
+    normalizedPrefix: String,
+    iter: Int,
+    iterations: Int,
+    value: Any?,
+    suffix: String
+): String =
+    "$normalizedPrefix${iter + 1} of $iterations ${value.typeDisplayName()}$suffix"
+
+private fun compactPropertyCaseName(iter: Int, iterations: Int, value: Any?, maxLength: Int): String {
+    val namePrefix = propertyIterationNamePrefix("", iter, iterations, value, ": ")
+    val valueStr = value.toPrettyString(maxLength, namePrefix.length)
+    return "$namePrefix$valueStr"
+}
+
+internal fun generatedPropertyLeafName(
+    normalizedPrefix: String,
+    iter: Int,
+    iterations: Int,
+    value: Any?,
+    maxLength: Int
+): String {
+    val namePrefix = propertyIterationNamePrefix(normalizedPrefix, iter, iterations, value, ": ")
+    val valueStr = value.toPrettyString(maxLength, namePrefix.length)
+    return "$namePrefix$valueStr"
+}
+
+private fun generatedPropertySuiteName(
+    normalizedPrefix: String,
+    iter: Int,
+    iterations: Int,
+    value: Any?,
+    maxLength: Int
+): String {
+    val namePrefix = propertyIterationNamePrefix(normalizedPrefix, iter, iterations, value, "s (")
+    val valueStr = value.toPrettyString(maxLength, namePrefix.length + 1)
+    return "$namePrefix$valueStr)"
+}
+
+private data class CompactedPropertyResult(
+    val name: String,
+    val result: Result<Unit>
+)
+
+private class CompactPropertyProgress {
+    var completed = 0
+    var failed = 0
+}
+
+private fun collatedPropertyRun(testName: String, suppressCompactSuccesses: Boolean?) =
+    CollatedTestRun(
+        testName,
+        PropertyTest.addSuppressedErrorsToCompactedFailures!!,
+        suppressCompactSuccesses ?: PropertyTest.suppressCompactSuccesses!!
+    )
+
+private fun compactPropertyProgressMessage(
+    testName: String,
+    iterations: Int,
+    progress: CompactPropertyProgress
+): String =
+    "$testName: compact progress: ${progress.completed}/$iterations completed, ${progress.failed} failed"
+
+private suspend fun yieldForCompactProgress(index: Int) {
+    if (index % 1024 == 0) yield()
+}
+
+private inline fun <Value> PropertyContext.runCompactedPropertyResults(
+    series: Sequence<Value>,
+    iterations: Int,
+    testName: String,
+    maxLength: Int,
+    suppressCompactSuccesses: Boolean?,
+    content: (Value) -> Result<Unit>
+) {
+    val run = collatedPropertyRun(testName, suppressCompactSuccesses)
+    series.forEachIndexed { iter, value ->
+        markEvaluation()
+        run.record(
+            name = compactPropertyCaseName(iter, iterations, value, maxLength),
+            result = content(value),
+            onSuccess = { markSuccess() },
+            onFailure = { markFailure() }
+        )
+    }
+    run.throwIfAny()
+}
+
+private suspend fun <Value> PropertyContext.runCompactedPropertyConcurrently(
+    series: Sequence<Value>,
+    iterations: Int,
+    testName: String,
+    maxLength: Int,
+    suppressCompactSuccesses: Boolean?,
+    content: suspend context(PropertyContext) (Value) -> Unit
+) = coroutineScope {
+    val progress = CompactPropertyProgress()
+    val results = Channel<CompactedPropertyResult>(Channel.UNLIMITED)
+    val run = collatedPropertyRun(testName, suppressCompactSuccesses)
+    withCompactProgressHeartbeat({ compactPropertyProgressMessage(testName, iterations, progress) }) {
+        val jobs = mutableListOf<kotlinx.coroutines.Job>()
+        series.forEachIndexed { iter, value ->
+            markEvaluation()
+            jobs += launch {
+                val result = catchingUnwrapped { content(value) }
+                if (result.isFailure) progress.failed++
+                progress.completed++
+                results.send(
+                    CompactedPropertyResult(
+                        name = compactPropertyCaseName(iter, iterations, value, maxLength),
+                        result = result
+                    )
+                )
+            }
+            yieldForCompactProgress(iter)
+        }
+        jobs.joinAll()
+
+        repeat(jobs.size) { iter ->
+            val result = results.receive()
+            run.record(
+                name = result.name,
+                result = result.result,
+                onSuccess = { markSuccess() },
+                onFailure = { markFailure() }
+            )
+            yieldForCompactProgress(iter)
+        }
+    }
+    run.throwIfAny()
+}
+
+private suspend fun <Value> PropertyContext.runCompactedPropertySequentially(
+    series: Sequence<Value>,
+    iterations: Int,
+    testName: String,
+    maxLength: Int,
+    suppressCompactSuccesses: Boolean?,
+    content: suspend context(PropertyContext) (Value) -> Unit
+) {
+    val progress = CompactPropertyProgress()
+    val run = collatedPropertyRun(testName, suppressCompactSuccesses)
+    withCompactProgressHeartbeat({ compactPropertyProgressMessage(testName, iterations, progress) }) {
+        series.forEachIndexed { iter, value ->
+            markEvaluation()
+            val result = catchingUnwrapped { content(value) }
+            if (result.isFailure) progress.failed++
+            run.record(
+                name = compactPropertyCaseName(iter, iterations, value, maxLength),
+                result = result,
+                onSuccess = { markSuccess() },
+                onFailure = { markFailure() }
+            )
+            progress.completed++
+            yieldForCompactProgress(iter)
+        }
+    }
+    run.throwIfAny()
+}
+
+internal fun <Value> PropertyContext.runCompactedProperty(
+    series: Sequence<Value>,
+    iterations: Int,
+    testName: String,
+    maxLength: Int,
+    suppressCompactSuccesses: Boolean? = null,
+    content: context(PropertyContext) (Value) -> Unit
+) = runCompactedPropertyResults(series, iterations, testName, maxLength, suppressCompactSuccesses) {
+    catchingUnwrapped {
+        content(it)
+    }
+}
+
+internal suspend fun <Value> PropertyContext.runCompactedPropertySuspend(
+    series: Sequence<Value>,
+    iterations: Int,
+    testName: String,
+    maxLength: Int,
+    suppressCompactSuccesses: Boolean? = null,
+    compactConcurrent: Boolean? = null,
+    content: suspend context(PropertyContext) (Value) -> Unit
+) {
+    if (!(compactConcurrent ?: PropertyTest.compactConcurrent!!)) {
+        runCompactedPropertySequentially(series, iterations, testName, maxLength, suppressCompactSuccesses, content)
+    } else {
+        runCompactedPropertyConcurrently(series, iterations, testName, maxLength, suppressCompactSuccesses, content)
+    }
+}
+
 internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
     iterations: Int,
     genA: Gen<Value>,
@@ -124,12 +353,10 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
     testConfig: TestConfig = TestConfig,
     content: context(PropertyContext) TestSuiteScope.(Value) -> Unit
 ) {
-    val prefix = if (prefix.isNotEmpty()) "$prefix " else ""
+    val prefix = prefix.normalizedTestPrefix()
     if (!compact) {
         checkAllSeries(iterations, genA) { iter, value, context ->
-            val valueStr = value.toPrettyString()
-            val type = if (value == null) "null" else value::class.simpleName
-            val name = "$prefix${iter + 1} of $iterations ${type}s (${valueStr})"
+            val name = generatedPropertySuiteName(prefix, iter, iterations, value, maxLength)
             this@checkAllSuitesInternal.testSuite(
                 name = (name.truncated(maxLength)),
                 testConfig = testConfig,
@@ -140,32 +367,15 @@ internal fun <Value> TestSuiteScope.checkAllSuitesInternal(
                 })
         }
     } else {
-
         val (context, sequence) = genA.generateSequence(iterations)
-        val (compactName, series) = sequence.peekTypeNameAndReplay { it }
-        val testName = "${prefix}Σ$compactName"
+        val (testName, series) = sequence.compactTestNameAndReplay(prefix) { it }
         this@checkAllSuitesInternal.testSuite(
             name = (testName.truncated(maxLength)),
             testConfig = testConfig
         ) {
-            val errors = mutableMapOf<String, Throwable?>()
-            series.forEachIndexed { iter, value ->
-                with(context) {
-                    markEvaluation()
-                    val valueStr = value.toPrettyString()
-                    val name =
-                        "${iter + 1} of $iterations ${if (value == null) "null" else value::class.simpleName}: $valueStr"
-                    catchingUnwrapped {
-                        content(value)
-                        markSuccess()
-                        errors["OK:    $name"] = null
-                    }.onFailure {
-                        markFailure()
-                        errors["Error: $name"] = it
-                    }
-                }
+            with(context) {
+                runCompactedProperty(series, iterations, testName, maxLength) { content(it) }
             }
-            collateErrors(errors, testName)
         }
     }
 }
@@ -186,44 +396,35 @@ internal fun <Value> TestSuiteScope.checkAllInternal(
     iterations: Int,
     genA: Gen<Value>,
     compact: Boolean,
+    suppressCompactSuccesses: Boolean?,
+    compactConcurrent: Boolean?,
     maxLength: Int,
     prefix: String,
     testConfig: TestConfig = TestConfig,
     content: suspend context(PropertyContext) Test.ExecutionScope.(Value) -> Unit
 ) {
-    val prefix = if (prefix.isNotEmpty()) "$prefix " else ""
+    val prefix = prefix.normalizedTestPrefix()
     if (compact) {
         val (context, sequence) = genA.generateSequence(iterations)
-        val (compactName, series) = sequence.peekTypeNameAndReplay { it }
-        val testName = "${prefix}Σ$compactName"
+        val (testName, series) = sequence.compactTestNameAndReplay(prefix) { it }
         this@checkAllInternal.test(
             name = (testName.truncated(maxLength)),
             testConfig = testConfig
         ) {
-            val errors = mutableMapOf<String, Throwable?>()
-            series.forEachIndexed { iter, value ->
-                with(context) {
-                    markEvaluation()
-                    val valueStr = value.toPrettyString()
-                    val name =
-                        "${iter + 1} of $iterations ${if (value == null) "null" else value::class.simpleName}: $valueStr"
-                    catchingUnwrapped {
-                        content(value)
-                        markSuccess()
-                        errors["OK:    $name"] = null
-                    }.onFailure {
-                        markFailure()
-                        errors["Error: $name"] = it
-                    }
-                }
+            with(context) {
+                runCompactedPropertySuspend(
+                    series,
+                    iterations,
+                    testName,
+                    maxLength,
+                    suppressCompactSuccesses,
+                    compactConcurrent
+                ) { content(it) }
             }
-            collateErrors(errors, testName)
         }
     } else {
         checkAllSeries(iterations, genA) { iter, value, context ->
-            val valueStr = value.toPrettyString()
-            val name =
-                "$prefix ${iter + 1} of $iterations ${if (value == null) "null" else value::class.simpleName}: $valueStr"
+            val name = generatedPropertyLeafName(prefix, iter, iterations, value, maxLength)
             this@checkAllInternal.test(
                 name = (name.truncated(maxLength)),
                 testConfig = testConfig

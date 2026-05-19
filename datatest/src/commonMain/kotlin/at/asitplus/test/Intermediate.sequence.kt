@@ -25,7 +25,7 @@ fun <Data> TestSuiteScope.withData(
     maxLength,
     prefix = prefix,
     this,
-    data.map { it.toPrettyString() to it },
+    data.map { generatedDataName(it, compact, maxLength, prefix) to it },
     testConfig
 )
 
@@ -55,61 +55,4 @@ fun <Data> TestSuiteScope.withData(
     this,
     data.map { nameFn(it) to it },
     testConfig
-)
-
-/**
- * Creates a test suite for each item in the provided sequence.
- *
- * @param data The sequence of test data
- * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
- * @param maxLength maximum length of test element name (not display name)
- * @param prefix an optional prefix to add to the test name
- * @param testConfig Optional test configuration
- * @param action Test suite configuration action for each data item
- */
-@Deprecated("will be removed in 0.9.0", ReplaceWith("withData(data, compact, maxLength, prefix, testConfig) - {}"))
-fun <Data> TestSuiteScope.withDataSuites(
-    data: Sequence<Data>,
-    compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
-    prefix: String = "",
-    testConfig: TestConfig = TestConfig,
-    action: TestSuiteScope.(Data) -> Unit
-) = withDataSuitesInternal(
-    data.map { it.toPrettyString() to it },
-    compact,
-    maxLength,
-    prefix = prefix,
-    testConfig,
-    action
-)
-
-/**
- * Creates a test suite for each item in the provided sequence.
- * Uses provided function to generate suite names.
- *
- * @param nameFn Function to generate suite name from data
- * @param data The sequence of test data
- * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
- * @param maxLength maximum length of test element name (not display name)
- * @param prefix an optional prefix to add to the test name
- * @param testConfig Optional test configuration
- * @param action Test suite configuration action for each data item
- */
-@Deprecated("will be removed in 0.9.0", ReplaceWith("withData(nameFn, data, compact, maxLength, prefix, testConfig) - {}"))
-fun <Data> TestSuiteScope.withDataSuites(
-    nameFn: (Data) -> String,
-    data: Sequence<Data>,
-    compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
-    prefix: String = "",
-    testConfig: TestConfig = TestConfig,
-    action: TestSuiteScope.(Data) -> Unit
-) = withDataSuitesInternal(
-    data.map { nameFn(it) to it },
-    compact,
-    maxLength,
-    prefix = prefix,
-    testConfig,
-    action
 )

@@ -17,6 +17,8 @@ import io.kotest.property.PropertyTesting
  * @param maxLength maximum length of test element name (not display name)
  * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
+ * @param suppressCompactSuccesses whether to omit successful compacted child rows for this series
+ * @param compactConcurrent whether to run compacted child bodies sequentially for this series
  * @param content Test execution block receiving generated values
  */
 fun <Value> TestSuiteScope.checkAll(
@@ -25,15 +27,19 @@ fun <Value> TestSuiteScope.checkAll(
     maxLength: Int = PropertyTest.defaultTestNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
+    suppressCompactSuccesses: Boolean? = null,
+    compactConcurrent: Boolean? = null,
     content: suspend context(PropertyContext) Test.ExecutionScope.(Value) -> Unit
 ) = checkAll(
     iterations = PropertyTest.defaultIterationCount,
-    genA,
-    compact,
-    maxLength,
-    prefix,
-    testConfig,
-    content
+    genA = genA,
+    compact = compact,
+    maxLength = maxLength,
+    prefix = prefix,
+    testConfig = testConfig,
+    suppressCompactSuccesses = suppressCompactSuccesses,
+    compactConcurrent = compactConcurrent,
+    content = content
 )
 
 /**
@@ -45,6 +51,8 @@ fun <Value> TestSuiteScope.checkAll(
  * @param maxLength maximum length of test element name (not display name)
  * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
+ * @param suppressCompactSuccesses whether to omit successful compacted child rows for this series
+ * @param compactConcurrent whether to run compacted child bodies sequentially for this series
  * @param content Test execution block receiving generated values
  */
 fun <Value> TestSuiteScope.checkAll(
@@ -54,11 +62,15 @@ fun <Value> TestSuiteScope.checkAll(
     maxLength: Int = PropertyTest.defaultTestNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
+    suppressCompactSuccesses: Boolean? = null,
+    compactConcurrent: Boolean? = null,
     content: suspend context(PropertyContext) Test.ExecutionScope.(Value) -> Unit
 ) = checkAllInternal(
     iterations,
     genA,
     compact,
+    suppressCompactSuccesses,
+    compactConcurrent,
     maxLength,
     prefix,
     testConfig,

@@ -27,7 +27,7 @@ fun <Data> TestSuiteScope.withData(
     maxLength,
     prefix = prefix,
     this,
-    parameters.asSequence().map { it.toPrettyString() to it },
+    parameters.asSequence().map { generatedDataName(it, compact, maxLength, prefix) to it },
     testConfig
 )
 
@@ -84,95 +84,4 @@ fun <Data> TestSuiteScope.withData(
     this,
     parameters.asSequence().map { nameFn(it) to it },
     testConfig
-)
-
-
-/**
- * Creates a test suite for each provided data parameter.
- *
- * @param parameters The data parameters to create suites for
- * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
- * @param maxLength maximum length of test element name (not display name)
- * @param prefix an optional prefix to add to the test name
- * @param testConfig Optional test configuration
- * @param action Test suite configuration action for each parameter
- */
-@Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
-@kotlin.internal.LowPriorityInOverloadResolution
-@Deprecated("will be removed in 0.9.0", ReplaceWith("withData(parameters, compact, maxLength, prefix, testConfig) - {}"))
-fun <Data> TestSuiteScope.withDataSuites(
-    vararg parameters: Data,
-    compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
-    prefix: String = "",
-    testConfig: TestConfig = TestConfig,
-    action: TestSuiteScope.(Data) -> Unit
-) = withDataSuitesInternal(
-    parameters.asSequence().map { it.toPrettyString() to it },
-    compact,
-    maxLength,
-    prefix = prefix,
-    testConfig,
-    action
-)
-
-
-
-/**
- * Creates a test suite for each provided data parameter.
- *
- * @param parameters The data parameters to create suites for
- * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
- * @param maxLength maximum length of test element name (not display name)
- * @param prefix an optional prefix to add to the test name
- * @param testConfig Optional test configuration
- * @param action Test suite configuration action for each parameter
- */
-@Deprecated("will be removed in 0.9.0", ReplaceWith("withData(parameters, compact, maxLength, prefix, testConfig) - {}"))
-fun <Data> TestSuiteScope.withDataSuites(
-    vararg parameters: Pair<String,Data>,
-    compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
-    prefix: String = "",
-    testConfig: TestConfig = TestConfig,
-    action: TestSuiteScope.(Data) -> Unit
-) = withDataSuitesInternal(
-    parameters.asSequence(),
-    compact,
-    maxLength,
-    prefix = prefix,
-    testConfig,
-    action
-)
-
-/**
- * Creates a test suite for each provided data parameter.
- * Uses provided function to generate suite names.
- *
- * @param nameFn Function to generate suite name from data
- * @param parameters The data parameters to create suites for
- * @param compact If true, only a single test element is created and the class name of the data parameter is used as test name
- * @param maxLength maximum length of test element name (not display name)
- * @param prefix an optional prefix to add to the test name
- * @param testConfig Optional test configuration
- * @param action Test suite configuration action for each parameter
- */
-@Deprecated("will be removed in 0.9.0", ReplaceWith("withData(nameFn, parameters, compact, maxLength, prefix, testConfig) - {}"))
-@Suppress("INVISIBLE_MEMBER", "INVISIBLE_REFERENCE")
-@kotlin.internal.LowPriorityInOverloadResolution
-fun <Data> TestSuiteScope.withDataSuites(
-    nameFn: (Data) -> String,
-    vararg parameters: Data,
-    compact: Boolean = DataTest.compactByDefault,
-    maxLength: Int = DataTest.defaultTestNameMaxLength!!,
-    prefix: String = "",
-    testConfig: TestConfig = TestConfig,
-    action: TestSuiteScope.(Data) -> Unit
-) = withDataSuitesInternal(
-    parameters.asSequence().map { nameFn(it) to it },
-    compact,
-    maxLength,
-    prefix = prefix,
-    testConfig,
-    action
 )

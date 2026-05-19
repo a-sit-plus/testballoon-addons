@@ -1,10 +1,5 @@
 package at.asitplus.testballoon
 
-import android.util.Log
-
-
-actual var totalMaxLen: Int = -1
-
 internal actual fun compactProgressPrint(message: String) {
-   Log.i("TestRunner", message)
+    console.log(message)
 }

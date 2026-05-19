@@ -14,6 +14,8 @@ import de.infix.testBalloon.framework.core.TestSuiteScope
  * @param maxLength maximum length of test element name (not display name)
  * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
+ * @param suppressCompactSuccesses whether to omit successful compacted child rows for this series
+ * @param compactConcurrent whether to run compacted child bodies sequentially for this series
  * @param action Test action to execute for each data item
  */
 fun <Data> TestSuiteScope.withData(
@@ -22,11 +24,15 @@ fun <Data> TestSuiteScope.withData(
     maxLength: Int = DataTest.defaultTestNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
+    suppressCompactSuccesses: Boolean? = null,
+    compactConcurrent: Boolean? = null,
     action: suspend Test.ExecutionScope.(Data) -> Unit
 ) = withDataInternal(
-    data.asSequence().map { it.toPrettyString() to it },
+    data.asSequence().map { generatedDataName(it, compact, maxLength, prefix) to it },
     testConfig,
     compact,
+    suppressCompactSuccesses,
+    compactConcurrent,
     maxLength,
     prefix,
     action
@@ -43,6 +49,8 @@ fun <Data> TestSuiteScope.withData(
  * @param maxLength maximum length of test element name (not display name)
  * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
+ * @param suppressCompactSuccesses whether to omit successful compacted child rows for this series
+ * @param compactConcurrent whether to run compacted child bodies sequentially for this series
  * @param action Test action to execute for each data item
  */
 fun <Data> TestSuiteScope.withData(
@@ -52,13 +60,16 @@ fun <Data> TestSuiteScope.withData(
     maxLength: Int = DataTest.defaultTestNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
+    suppressCompactSuccesses: Boolean? = null,
+    compactConcurrent: Boolean? = null,
     action: suspend Test.ExecutionScope.(Data) -> Unit
 ) = withDataInternal(
     data.asSequence().map { nameFn(it) to it },
     testConfig,
     compact,
+    suppressCompactSuccesses,
+    compactConcurrent,
     maxLength,
     prefix,
     action
 )
-

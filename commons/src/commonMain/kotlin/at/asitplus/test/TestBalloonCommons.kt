@@ -45,4 +45,28 @@ object TestBalloonAddons {
             totalMaxLen = value
         }
 
+    /**
+     * Whether compacted failure reports should attach every failed input as a suppressed throwable.
+     *
+     * This affects compacted `withData`, `withDataSuites`, `checkAll`, and `checkAllSuites` reports. The rendered
+     * failure message still includes the stack trace of the first failure either way.
+     */
+    var addSuppressedErrorsToCompactedFailures: Boolean = false
+
+    /**
+     * Whether compacted failure reports should omit successful input rows.
+     *
+     * This affects compacted `withData`, `withDataSuites`, `checkAll`, and `checkAllSuites` reports. Successes are
+     * still counted in the summary, but individual `OK` rows are not rendered when this is enabled.
+     */
+    var suppressCompactSuccesses: Boolean = false
+
+    /**
+     * Whether compacted terminal `withData` and `checkAll` leaves should run their child bodies sequentially or concurrently.
+     *
+     * When set to `true`, compacted suspending terminal leaves launch their child bodies concurrently and collate the
+     * collected results after all child coroutines complete.
+     */
+    var compactConcurrent: Boolean = false
+
 }

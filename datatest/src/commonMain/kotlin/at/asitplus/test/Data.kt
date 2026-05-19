@@ -4,6 +4,11 @@ import at.asitplus.catchingUnwrapped
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuiteScope
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
 /**
  * Global knobs to tweak the behavior of DataTest Addon
@@ -26,10 +31,45 @@ object DataTest {
     var defaultTestNameMaxLength: Int? = null
         get() = field ?: TestBalloonAddons.defaultTestNameMaxLength
 
+    /**
+     * Whether compacted failure reports should attach every failed input as a suppressed throwable.
+     *
+     * This affects compacted `withData`, `withDataSuites`, `checkAll`, and `checkAllSuites` reports. The rendered
+     * failure message still includes the stack trace of the first failure either way.
+     *
+     * `null` means it will again fall back to [TestBalloonAddons.addSuppressedErrorsToCompactedFailures]
+     *
+     *  This property's getter will never return null, but fall back to [TestBalloonAddons.addSuppressedErrorsToCompactedFailures].
+     */
+    var addSuppressedErrorsToCompactedFailures: Boolean? = null
+        get() = field ?: TestBalloonAddons.addSuppressedErrorsToCompactedFailures
+
+    /**
+     * Whether compacted failure reports should omit successful input rows.
+     *
+     * Successes are still counted in the summary, but individual `OK` rows are not rendered when this is enabled.
+     *
+     * `null` means it will again fall back to [TestBalloonAddons.suppressCompactSuccesses]
+     *
+     *  This property's getter will never return null, but fall back to [TestBalloonAddons.suppressCompactSuccesses].
+     */
+    var suppressCompactSuccesses: Boolean? = null
+        get() = field ?: TestBalloonAddons.suppressCompactSuccesses
+
+    /**
+     * Whether compacted terminal `withData` leaves should run their child bodies sequentially or concurrently.
+     *
+     * `null` means it will again fall back to [TestBalloonAddons.compactConcurrent]
+     *
+     *  This property's getter will never return null, but fall back to [TestBalloonAddons.compactConcurrent].
+     */
+    var compactConcurrent: Boolean? = null
+        get() = field ?: TestBalloonAddons.compactConcurrent
+
 }
 
 
-data class ConfiguredDataTestScope<Data>(
+class ConfiguredDataTestScope<Data>(
     private val compact: Boolean,
     private val maxLength: Int,
     val prefix: String,
@@ -38,6 +78,141 @@ data class ConfiguredDataTestScope<Data>(
 ) {
     operator fun minus(action: TestSuiteScope.(Data) -> Unit) =
         testSuite.withDataSuitesInternal(map, compact, maxLength, prefix, testConfig, action)
+}
+
+internal fun generatedDataName(
+    data: Any?,
+    compact: Boolean,
+    maxLength: Int,
+    prefix: String
+): String = if (compact) {
+    data.toPrettyString(maxLength, generatedDataNamePrefixLength(prefix))
+} else {
+    data.toPrettyString(maxLength, generatedDataNamePrefixLength(prefix))
+}
+
+private fun generatedDataNamePrefixLength(prefix: String): Int =
+    if (prefix.isEmpty()) 0 else prefix.length + 1
+
+private fun dataCaseName(index: Int, data: Pair<String, *>): String =
+    "${index + 1}: ${data.first}"
+
+private data class CompactedDataResult(
+    val name: String,
+    val result: Result<Unit>
+)
+
+private class CompactDataProgress {
+    var completed = 0
+    var failed = 0
+}
+
+private fun collatedDataRun(testName: String, suppressCompactSuccesses: Boolean?) =
+    CollatedTestRun(
+        testName,
+        DataTest.addSuppressedErrorsToCompactedFailures!!,
+        suppressCompactSuccesses ?: DataTest.suppressCompactSuccesses!!
+    )
+
+private fun compactDataProgressMessage(testName: String, progress: CompactDataProgress): String =
+    "$testName: compact progress: ${progress.completed} completed, ${progress.failed} failed"
+
+private suspend fun yieldForCompactProgress(index: Int) {
+    if (index % 1024 == 0) yield()
+}
+
+private inline fun <Data> runCompactedDataResults(
+    data: Sequence<Pair<String, Data>>,
+    testName: String,
+    suppressCompactSuccesses: Boolean?,
+    action: (Data) -> Result<Unit>
+) {
+    val run = collatedDataRun(testName, suppressCompactSuccesses)
+    data.forEachIndexed { i, d ->
+        run.record(dataCaseName(i, d), action(d.second))
+    }
+    run.throwIfAny()
+}
+
+private suspend fun <Data> runCompactedDataConcurrently(
+    data: Sequence<Pair<String, Data>>,
+    testName: String,
+    suppressCompactSuccesses: Boolean?,
+    action: suspend (Data) -> Unit
+) = coroutineScope {
+    val progress = CompactDataProgress()
+    val results = Channel<CompactedDataResult>(Channel.UNLIMITED)
+    val run = collatedDataRun(testName, suppressCompactSuccesses)
+    withCompactProgressHeartbeat({ compactDataProgressMessage(testName, progress) }) {
+        val jobs = mutableListOf<kotlinx.coroutines.Job>()
+        data.forEachIndexed { i, d ->
+            jobs += launch {
+                val result = catchingUnwrapped { action(d.second) }
+                if (result.isFailure) progress.failed++
+                progress.completed++
+                results.send(
+                    CompactedDataResult(
+                        name = dataCaseName(i, d),
+                        result = result
+                    )
+                )
+            }
+            yieldForCompactProgress(i)
+        }
+        jobs.joinAll()
+
+        repeat(jobs.size) { i ->
+            val result = results.receive()
+            run.record(result.name, result.result)
+            yieldForCompactProgress(i)
+        }
+    }
+    run.throwIfAny()
+}
+
+private suspend fun <Data> runCompactedDataSequentially(
+    data: Sequence<Pair<String, Data>>,
+    testName: String,
+    suppressCompactSuccesses: Boolean?,
+    action: suspend (Data) -> Unit
+) {
+    val progress = CompactDataProgress()
+    val run = collatedDataRun(testName, suppressCompactSuccesses)
+    withCompactProgressHeartbeat({ compactDataProgressMessage(testName, progress) }) {
+        data.forEachIndexed { i, d ->
+            val result = catchingUnwrapped { action(d.second) }
+            if (result.isFailure) progress.failed++
+            run.record(dataCaseName(i, d), result)
+            progress.completed++
+            yieldForCompactProgress(i)
+        }
+    }
+    run.throwIfAny()
+}
+
+internal suspend fun <Data> runCompactedDataSuspend(
+    data: Sequence<Pair<String, Data>>,
+    testName: String,
+    suppressCompactSuccesses: Boolean? = null,
+    compactConcurrent: Boolean? = null,
+    action: suspend (Data) -> Unit
+) {
+    if (!(compactConcurrent ?: DataTest.compactConcurrent!!)) {
+        runCompactedDataSequentially(data, testName, suppressCompactSuccesses, action)
+    } else {
+        runCompactedDataConcurrently(data, testName, suppressCompactSuccesses, action)
+    }
+}
+
+internal fun <Data> runCompactedData(
+    data: Sequence<Pair<String, Data>>,
+    testName: String,
+    suppressCompactSuccesses: Boolean? = null,
+    action: (Data) -> Unit
+) = runCompactedDataResults(data, testName, suppressCompactSuccesses) {
+    catchingUnwrapped {
+        action(it)
+    }
 }
 
 
@@ -56,37 +231,25 @@ internal fun <Data> TestSuiteScope.withDataInternal(
     map: Sequence<Pair<String, Data>>,
     testConfig: TestConfig = TestConfig,
     compact: Boolean,
+    suppressCompactSuccesses: Boolean?,
+    compactConcurrent: Boolean?,
     maxLength: Int,
     prefix: String,
     action: suspend Test.ExecutionScope.(Data) -> Unit
 ) {
-    val prefix = if (prefix.isNotEmpty()) "$prefix " else ""
+    val prefix = prefix.normalizedTestPrefix()
     if (compact) {
-        val (compactName, map) = map.peekTypeNameAndReplay { it.second }
-        val testName = "${prefix}Σ$compactName"
-        val truncatedName = testName.truncated(maxLength)
-        testSuiteInScope.checkPathLenIncluding(truncatedName)
+        val (testName, map) = map.compactTestNameAndReplay(prefix) { it.second }
+        val truncatedName = checkedTruncatedName(testName, maxLength)
         test(
             name = truncatedName,
             testConfig = testConfig
         ) {
-            val errors = mutableMapOf<String, Throwable?>()
-            map.forEachIndexed { i, d ->
-                val name = "${i + 1}: ${d.first}"
-                catchingUnwrapped {
-                    action(d.second)
-                    errors["OK:    $name"] = null
-                }.onFailure {
-                    errors["Error: $name"] = it
-                }
-            }
-            collateErrors(errors, testName)
+            runCompactedDataSuspend(map, testName, suppressCompactSuccesses, compactConcurrent) { action(it) }
         }
     } else {
         for (d in map) {
-            val name = prefix + d.first
-            val truncatedName = name.truncated(maxLength)
-            testSuiteInScope.checkPathLenIncluding(truncatedName)
+            val truncatedName = checkedTruncatedName(prefixedTestName(prefix, d.first), maxLength)
             test(
                 name = truncatedName,
                 testConfig = testConfig
@@ -114,33 +277,19 @@ internal fun <Data> TestSuiteScope.withDataSuitesInternal(
     testConfig: TestConfig = TestConfig,
     action: TestSuiteScope.(Data) -> Unit
 ) {
-    val prefix = if (prefix.isNotEmpty()) "$prefix " else ""
+    val prefix = prefix.normalizedTestPrefix()
     if (compact) {
-        val (compactName, data) = data.peekTypeNameAndReplay { it.second }
-        val testName = "${prefix}Σ$compactName"
-        val truncatedName = testName.truncated(maxLength)
-        testSuiteInScope.checkPathLenIncluding(truncatedName)
+        val (testName, data) = data.compactTestNameAndReplay(prefix) { it.second }
+        val truncatedName = checkedTruncatedName(testName, maxLength)
         testSuite(
             name = truncatedName,
             testConfig = testConfig
         ) {
-            val errors = mutableMapOf<String, Throwable?>()
-            data.forEachIndexed { i, d ->
-                val name = "${i + 1}: ${d.first}"
-                catchingUnwrapped {
-                    action(d.second)
-                    errors["OK:    $name"] = null
-                }.onFailure {
-                    errors["Error: $name"] = it
-                }
-            }
-            collateErrors(errors, testName)
+            runCompactedData(data, testName) { action(it) }
         }
     } else {
         for (d in data) {
-            val name = prefix + d.first
-            val truncatedName = name.truncated(maxLength)
-            testSuiteInScope.checkPathLenIncluding(truncatedName)
+            val truncatedName = checkedTruncatedName(prefixedTestName(prefix, d.first), maxLength)
             testSuite(
                 name = truncatedName,
                 testConfig = testConfig,

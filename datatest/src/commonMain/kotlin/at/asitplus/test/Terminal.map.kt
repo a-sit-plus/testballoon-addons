@@ -15,6 +15,8 @@ import de.infix.testBalloon.framework.core.TestSuiteScope
  * @param maxLength maximum length of test element name (not display name)
  * @param prefix an optional prefix to add to the test name
  * @param testConfig Optional test configuration
+ * @param suppressCompactSuccesses whether to omit successful compacted child rows for this series
+ * @param compactConcurrent whether to run compacted child bodies sequentially for this series
  * @param action Test action to execute for each map value
  */
 fun <Data> TestSuiteScope.withData(
@@ -23,13 +25,16 @@ fun <Data> TestSuiteScope.withData(
     maxLength: Int = DataTest.defaultTestNameMaxLength!!,
     prefix: String = "",
     testConfig: TestConfig = TestConfig,
+    suppressCompactSuccesses: Boolean? = null,
+    compactConcurrent: Boolean? = null,
     action: suspend Test.ExecutionScope.(Data) -> Unit
 ) = withDataInternal(
     map.asSequence().map { (k, v) -> k to v },
     testConfig,
     compact,
+    suppressCompactSuccesses,
+    compactConcurrent,
     maxLength,
     prefix,
     action
 )
-

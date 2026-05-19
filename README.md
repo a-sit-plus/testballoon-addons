@@ -141,10 +141,11 @@ The names of compacted test series consist of an uppercase sigma (`Σ`) followed
 `ΣULong`, `ΣByteArray`, …).
 
 To still get intelligible output about which precise data point(s) caused failing tests, the error message of the resulting
-failed assertion will list everything that failed and which succeeded:
+failed assertion contains a compact summary and then lists the relevant child rows:
 
 ```
 java.lang.AssertionError: ΣString
+Summary: 1 OK, 7 failed
 Error: 1: 4: expected:<three> but was:<4>
 Error: 2: one: expected:<three> but was:<one>
 Error: 3: null: Expected "three" but actual was null
@@ -156,11 +157,31 @@ Error: 8: four: expected:<three> but was:<four>
 ----------------------------------------
 ```
 
+If you only care about failing cases, set `suppressCompactSuccesses = true`. This can be configured globally through
+`TestBalloonAddons.suppressCompactSuccesses`, per module through `DataTest.suppressCompactSuccesses` or
+`PropertyTest.suppressCompactSuccesses`, and per terminal `withData` / `checkAll` call. Successful cases are still counted
+in the summary, but individual `OK` rows are omitted.
+
 The stack trace of the thrown exception is the stack trace of the first error (which is equal to the stack traces of all
 failed assertions). As such, you can directly navigate to the error with the same convenience as ever!
 
-On the JVM: the individual exceptions of all failed test series' individual tests are added to the top-level assertion
-error as suppressed exceptions.
+By default, compacted reports keep only the first failure as the cause. To attach all failed child exceptions as suppressed
+exceptions, set `addSuppressedErrorsToCompactedFailures = true` globally, per module, or per compacted run where the API
+offers the override.
+
+Suspending terminal compacted `withData` and `checkAll` leaves run child bodies sequentially by default. Set
+`compactConcurrent = true` globally through `TestBalloonAddons.compactConcurrent`, per module through
+`DataTest.compactConcurrent` or `PropertyTest.compactConcurrent`, or per terminal call if concurrent
+execution is desired for that series. Intermediate suite builders keep their existing suite registration behaviour.
+
+Long-running compacted terminal leaves also print periodic progress heartbeats while the compacted body is still running,
+for example:
+
+```
+ΣByteArray: compact progress: 124/1000000 completed, 3 failed
+```
+
+This output is intentionally separate from the compacted failure report.
 
 To globally enable compacting test series for data-driven testing and property testing, set
 `DataTest.compactByDefault = true` and `PropertyTest.compactByDefault = true`, respectively.
@@ -181,26 +202,16 @@ is prepended to generated test names (in front of the sigma), which helps naviga
 
 > [!NOTE]  
 > Deep nesting will produce a large number of tests, making the heap explode. Either manually compact tests as in the
-> second example below (works for both `withData` and `withDataSuites`), or set the global
+> example below (works for both `withData` test series and `withData` suite series), or set the global
 > `DataTest.compactByDefault = true` to automatically compact all data-driven tests.
 
 TestBalloon makes it ridiculously easy to roll your own data-driven testing wrapper with just a couple of lines of code.
 So we did, by replicating Kotest's data-driven testing API:
 
 ```kotlin
-import at.asitplus.testballoon.withData
-import at.asitplus.testballoon.withDataSuites
-import de.infix.testBalloon.framework.core.testSuite
-
 val aDataDrivenSuite by testSuite {
-    withDataSuites(1, 2, 3, 4) { number ->
-        withData("one", "two", "three", "four") { word ->
-            //your test logic being run 16 times
-        }
-    }
-
-    //Alternative syntax for withDataSuites
-    // -> NOTE the minus ↙↙↙
+    
+    // -> NOTE the minus ↙↙↙, it creates a suite
     withData(1, 2, 3, 4) - { number ->
         // Will create only a single test, but the error will contain all failed inputs
         withData("one", "two", "three", "four", compact = true) { word ->
@@ -223,7 +234,7 @@ Hence, you must run the entire suite (but you can manually filter using wildcard
 
 > [!NOTE]  
 > Deep nesting will produce a large number of tests, making the heap explode. Either manually compact tests as in the
-> first example below (works for both `checkAll` and `checkAllSuites`), or set the global
+> first example below (works for both `checkAll` test series  and `checkAll` suite series), or set the global
 > `PropertyTest.compactByDefault = true` to automatically compact all data-driven tests.
 
 Although it comes with some warts, `kotest-property` is still extremely helpful for generating a large corpus of test
@@ -231,25 +242,14 @@ data—especially as it covers many edge cases out of the box. Again, since Test
 flexible and extensible, we did just that:
 
 ```kotlin
-import at.asitplus.testballoon.checkAll
-import at.asitplus.testballoon.checkAllSuites
-import de.infix.testBalloon.framework.core.testSuite
-import io.kotest.property.Arb
-import io.kotest.property.arbitrary.byte
-import io.kotest.property.arbitrary.byteArray
-import io.kotest.property.arbitrary.int
-import io.kotest.property.arbitrary.uLong
-
 val propertySuite by testSuite {
-    // DON'T generate a suite for each item. Instead: aggregate >->-->------------↘↘↘↘↘↘↘↘↘↘↘↘
-    checkAllSuites(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte()), compact = true) { byteArray ->
+    // DON'T generate a suite for each item. Instead: aggregate >->-->------↘↘↘↘↘↘↘↘↘↘↘↘
+    checkAll(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte()), compact = true) - { byteArray ->
         checkAll(iterations = 10, Arb.uLong()) { number ->
             //test with byte arrays and number for fun and profit
         }
     }
 
-    //Alternative syntax for checkAllSuites
-    // --> NOTE THE MINUS HERE >->-->--------------------------------------↘↘↘
     checkAll(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte())) - { byteArray ->
         checkAll(iterations = 10, Arb.uLong()) { number ->
             //test with byte arrays and number for fun and profit
@@ -456,8 +456,8 @@ Hence, you must run the entire suite (but you can manually filter using wildcard
 
 ```kotlin
 import at.asitplus.testballoon.withFixtureGenerator //   <- Look ma, only regular generatingFixture import!
-import at.asitplus.testballoon.invoke //              <- Look ma, only regular freespec import!
-import at.asitplus.testballoon.minus  //              <- Look ma, only regular freespec import!
+import at.asitplus.testballoon.invoke //                 <- Look ma, only regular freespec import!
+import at.asitplus.testballoon.minus  //                 <- Look ma, only regular freespec import!
 import de.infix.testBalloon.framework.core.testSuite
 import kotlin.random.Random
 
