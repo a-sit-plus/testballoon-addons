@@ -58,12 +58,7 @@ val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12
 | `0.1.0`            | `0.7.0` (Kotlin `2.2.21`)   |
 
 
-## Matrix Testing
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/matrix-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="docs/matrix.png">
-  <img src="docs/matrix.png" alt="Matrix Testing" width="61" height="46">
-</picture>
+## <picture>   <source media="(prefers-color-scheme: dark)" srcset="docs/matrix-dark.png">  <source media="(prefers-color-scheme: light)" srcset="docs/matrix.png">  <img src="docs/matrix.png" alt="Matrix Testing" width="61" height="46"> </picture>  &nbsp;&nbsp;Matrix Testing 
 
 
 | Maven Coordinates | `at.asitplus.testballoon:matrix:$version` |
