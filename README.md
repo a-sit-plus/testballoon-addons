@@ -252,9 +252,7 @@ Prefix any matrix name with `!` to disable it. This works for `test`, `testSuite
   enclosing suite or use filters.
 * Deep nesting can still create many real nodes. Use `compact` when the test tree itself becomes too large.
 
-## Coming from Kotest
-
-<img src="https://kotest.io/img/logo.png" width="46" height="46" alt="Kotest Logo">
+## <img src="https://kotest.io/img/logo.png" width="46" height="46" alt="Kotest Logo"> Coming from Kotest
 
 If you want APIs that mirror Kotest more closely, the original addon modules are still available:
 
