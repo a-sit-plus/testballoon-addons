@@ -2,6 +2,7 @@ package at.asitplus.testballoon.matrix
 
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.comparables.shouldBeGreaterThan
+import io.kotest.matchers.comparables.shouldBeLessThan
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -169,6 +170,17 @@ val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12
                     }
                 }
             }
+        }
+    }
+}
+
+val propMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
+        property("first", Arb.int(), iterations = 5) - { first ->
+            property("second", Arb.double(), iterations = 5) - { second ->
+                property("third", Arb.float(), iterations = 5) test { third ->
+                    first.toDouble() shouldBeGreaterThan second
+                    second shouldBeLessThan third.toDouble()
+                }
         }
     }
 }

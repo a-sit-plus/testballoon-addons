@@ -56,6 +56,7 @@ public data class MatrixSuiteScope internal constructor(
     public val config: MatrixSuiteConfig,
     internal val registrationPath: List<MatrixRegistrationFrame> = emptyList(),
     internal val registrationReporter: MatrixRegistrationReporter = MatrixRegistrationReporter(),
+    internal val propertyReplayPath: List<MatrixPropertyReplayFrame> = emptyList(),
 ) {
     @TestRegistering
     public fun testSuite(
@@ -68,7 +69,7 @@ public data class MatrixSuiteScope internal constructor(
                 name = matrixName(name),
                 testConfig = config.testConfig.chainedWith(testConfig).disableByMatrixName(name),
             ) {
-                MatrixSuiteScope(this, config, registrationPath, registrationReporter).body()
+                MatrixSuiteScope(this, config, registrationPath, registrationReporter, propertyReplayPath).body()
             }
         }
     }
@@ -83,7 +84,7 @@ public data class MatrixSuiteScope internal constructor(
             test(
                 name = matrixName(name),
                 testConfig = config.testConfig.chainedWith(testConfig).disableByMatrixName(name),
-                action = body,
+                action = { withMatrixPropertyReplay(propertyReplayPath, body) },
             )
         }
     }
@@ -157,6 +158,7 @@ public data class MatrixSuiteScope internal constructor(
                             dataConfig,
                             registrationPath + MatrixRegistrationFrame(strippedName, caseIndex, source.knownSize),
                             registrationReporter,
+                            propertyReplayPath,
                         ).body(value)
                     }
                     index++
@@ -193,7 +195,7 @@ public data class MatrixSuiteScope internal constructor(
                         name = caseName,
                         testConfig = caseTestConfig,
                     ) {
-                        body(value)
+                        withMatrixPropertyReplay(propertyReplayPath) { body(value) }
                     }
                     index++
                     progress.registered(index)
@@ -223,6 +225,7 @@ public data class MatrixSuiteScope internal constructor(
         val strippedName = matrixName(name)
         val layerConfig = PropertyLayerConfigBuilder(this.config).apply(config).build()
         val random = layerConfig.seed?.let { RandomSource.seeded(it) } ?: RandomSource.default()
+        val seed = random.seed
         val propertyConfig = this@MatrixSuiteScope.config.copy(execution = layerConfig.execution)
         val caseLimiter = layerConfig.execution.caseLimiter()
         val caseTestConfig = propertyConfig.testConfig.boundBy(caseLimiter)
@@ -238,6 +241,7 @@ public data class MatrixSuiteScope internal constructor(
                     val sample = iterator.next()
                     val value = sample.value
                     val caseName = nameFn(caseIndex, value).truncated(layerConfig.nameMaxLength)
+                    val replayFrame = MatrixPropertyReplayFrame(strippedName, seed, caseIndex, caseName)
                     testSuite(
                         name = caseName,
                         testConfig = caseTestConfig
@@ -247,6 +251,7 @@ public data class MatrixSuiteScope internal constructor(
                             propertyConfig,
                             registrationPath + MatrixRegistrationFrame(strippedName, caseIndex, iterations.toLong()),
                             registrationReporter,
+                            propertyReplayPath + replayFrame,
                         ).body(value)
                     }
                     index++
@@ -269,6 +274,7 @@ public data class MatrixSuiteScope internal constructor(
         val strippedName = matrixName(name)
         val layerConfig = PropertyLayerConfigBuilder(this.config).apply(config).build()
         val random = layerConfig.seed?.let { RandomSource.seeded(it) } ?: RandomSource.default()
+        val seed = random.seed
         val propertyConfig = this@MatrixSuiteScope.config.copy(execution = layerConfig.execution)
         val caseLimiter = layerConfig.execution.caseLimiter()
         val caseTestConfig = propertyConfig.testConfig.boundBy(caseLimiter)
@@ -284,11 +290,12 @@ public data class MatrixSuiteScope internal constructor(
                     val sample = iterator.next()
                     val value = sample.value
                     val caseName = nameFn(caseIndex, value).truncated(layerConfig.nameMaxLength)
+                    val replayFrame = MatrixPropertyReplayFrame(strippedName, seed, caseIndex, caseName)
                     test(
                         name = caseName,
                         testConfig = caseTestConfig,
                     ) {
-                        body(value)
+                        withMatrixPropertyReplay(propertyReplayPath + replayFrame) { body(value) }
                     }
                     index++
                     progress.registered(index)
