@@ -71,13 +71,13 @@ for truly powerful, comprehensive test suites.
 
 Matrix tests are built from composable layers. A `data` layer, a `property` layer, a generated fixture, and a plain
 FreeSpec-style suite can be stacked into an n-dimensional test matrix, where every leaf test runs once for each path
-through those layers. When that would create too many framework nodes, `compact` can flatten the subtree into one real
+through those layers. When that would create too many framework test elements, `compact` can flatten the subtree into one real
 test while still executing and reporting the full virtual matrix. This way, you still get full insights including clickable
 stacktraces taking you to the failing assertion(s)!
 
 The top-level `matrixSuite(...) { ... }` is a regular TestBalloon suite so IDE gutter actions can discover and run it.
 Inside the suite, every nested layer is configured first, then either opened with `- { ... }` for more nesting or finished
-with `test { ... }` to create row test nodes.
+with `test { ... }` to create row test elements.
 
 ```kotlin
 val quickstart by matrixSuite(execution = ExecutionMode.Sequential) {
@@ -169,7 +169,7 @@ all generated checks: compact progress: 512 of 900 queued completed (1200 source
 ```
 
 > [!NOTE]
-> Compact virtual children are not real TestBalloon nodes, so virtual `test` / `testSuite` declarations and terminal
+> Compact virtual children are not real TestBalloon test elements, so virtual `test` / `testSuite` declarations and terminal
 > `data(...) test { ... }` / `property(...) test { ... }` rows inside `compact` cannot honor per-child `TestConfig`.
 > Put `TestConfig` on real matrix tests/suites outside compact, or configure the compact block itself.
 
@@ -245,12 +245,12 @@ Prefix any matrix name with `!` to disable it. This works for `test`, `testSuite
 
 ### Notes
 
-* `data(...) test { ... }` / `property(...) test { ... }` creates row test nodes; `data(...) - { ... }` / `property(...) - { ... }` creates row suite or dimension nodes.
+* `data(...) test { ... }` / `property(...) test { ... }` creates row test elements; `data(...) - { ... }` / `property(...) - { ... }` creates row suite or dimension test elements.
 * Forgetting `test { ... }` or `- { ... }` leaves a configured layer unopened, so no child tests are registered. This could leave you wondering on the innermost layer…
 * Terminal row tests are named by the layer `nameFn`. Use `- { ... }` plus an explicit `"name" { ... }` leaf when the invariant itself needs a separate name.
 * Generated rows are registered at runtime. Running an individual generated row from the IDE gutter is nonsensical; run the
   enclosing suite or use filters.
-* Deep nesting can still create many real nodes. Use `compact` when the test tree itself becomes too large.
+* Deep nesting can still create many real test elements. Use `compact` when the test tree itself becomes too large.
 
 ## <img src="https://kotest.io/img/logo.png" width="46" height="46" alt="Kotest Logo"> Coming from Kotest
 

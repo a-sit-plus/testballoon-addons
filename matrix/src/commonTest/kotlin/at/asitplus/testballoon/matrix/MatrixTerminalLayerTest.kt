@@ -36,6 +36,16 @@ val terminalLayerMatrix by matrixSuite(
         row shouldBeGreaterThan 0
     }
 
+    var defaultIterationPropertySeen = 0
+    property("terminal property with default iterations", Arb.of(1, 2)) test { row ->
+        row shouldBeGreaterThan 0
+        defaultIterationPropertySeen++
+    }
+
+    "terminal property default iterations use suite config" {
+        defaultIterationPropertySeen shouldBe 2
+    }
+
     property(
         "terminal property with config",
         Arb.of("foo", "bar"),

@@ -5,9 +5,23 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.property.Arb
+import io.kotest.property.arbitrary.int
 import kotlin.coroutines.EmptyCoroutineContext
 
 val MatrixCompactReportTest by testSuite {
+
+    test("compact suite planning errors are rethrown") {
+        val matrixConfig = MatrixSuiteConfigBuilder().build()
+        val compactConfig = CompactConfigBuilder(matrixConfig).build()
+        val scope = CompactScope(matrixConfig, compactConfig)
+
+        shouldThrow<IllegalArgumentException> {
+            scope.testSuite("outer") {
+                property("invalid property", Arb.int(), iterations = -1) test {}
+            }
+        }
+    }
 
     test("compact report frames first stack trace with dashed lines") {
         val error = shouldThrow<AssertionError> {

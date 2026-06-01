@@ -50,7 +50,7 @@ fun TestConfig.MatrixTestDefaults(config: MatrixSuiteConfigBuilder.() -> Unit) {
         MatrixTestDefaults.execution = suiteConfig.execution
         MatrixTestDefaults.defaultPropertyIterations = suiteConfig.defaultPropertyIterations
         MatrixTestDefaults.defaultCompactReport = suiteConfig.defaultCompactReport
-        MatrixTestDefaults.defaultCompactAddSuppressedErrors = true
+        MatrixTestDefaults.defaultCompactAddSuppressedErrors = suiteConfig.defaultCompactAddSuppressedErrors
         MatrixTestDefaults.defaultCompactReportRows = suiteConfig.defaultCompactReportRows
         MatrixTestDefaults.defaultTestNameMaxLength = suiteConfig.defaultTestNameMaxLength
         MatrixTestDefaults.defaultProgressIndicator = suiteConfig.defaultProgressIndicator

@@ -9,7 +9,6 @@ import de.infix.testBalloon.framework.core.testSuite
 import de.infix.testBalloon.framework.shared.TestRegistering
 import de.infix.testBalloon.framework.shared.TestSuitePropertyName
 import io.kotest.property.Gen
-import io.kotest.property.PropertyTesting
 import io.kotest.property.RandomSource
 import kotlin.coroutines.CoroutineContext
 
@@ -208,7 +207,7 @@ data class MatrixSuiteScope internal constructor(
     fun <T> property(
         name: String,
         gen: Gen<T>,
-        iterations: Int = PropertyTesting.defaultIterationCount,
+        iterations: Int = this@MatrixSuiteScope.config.defaultPropertyIterations,
         nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
         config: PropertyLayerConfigBuilder.() -> Unit = {},
     ): MatrixPropertyLayer<T> = MatrixPropertyLayer(this, name, gen, iterations, nameFn, config)

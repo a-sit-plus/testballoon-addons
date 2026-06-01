@@ -1,6 +1,5 @@
 package at.asitplus.testballoon.matrix
 
-import at.asitplus.catchingUnwrapped
 import de.infix.testBalloon.framework.core.Test
 import io.kotest.property.Gen
 
@@ -13,11 +12,7 @@ class CompactScope internal constructor(
 
     fun testSuite(name: String, body: CompactScope.() -> Unit) {
         val child = CompactScope(matrixConfig, config)
-        catchingUnwrapped {
-            child.body()
-        }.getOrElse {
-
-        }
+        child.body()
         nodes += VirtualNode.Suite(matrixName(name), isMatrixDisabledName(name), child.nodes.toList())
     }
 
