@@ -57,7 +57,7 @@ val terminalLayerMatrix by matrixSuite(
         }
     }
 
-    fixtureGenerator { 40 } - {
+    fixture { 40 } - {
         "fixture suite with terminal layers" - { fixture ->
             data("terminal fixture data", listOf(1, 2)) test { row ->
                 fixture + row shouldBeGreaterThan 40
@@ -93,7 +93,7 @@ val terminalLayerMatrix by matrixSuite(
             }
         }
 
-        fixtureGenerator { 100 } - {
+        fixture { 100 } - {
             "compact fixture suite with terminal layers" - { fixture ->
                 data("terminal compact fixture data", listOf(1, 2)) test { row ->
                     fixture + row shouldBeGreaterThan 100

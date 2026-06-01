@@ -27,12 +27,12 @@ control over registration, execution, concurrency, compaction, and reporting.
 
 ```kotlin
 val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
-    fixtureGenerator { Random.nextBytes(16) } - {
-        "data, properties, fixtures, and compact reports" - { fixture ->
+    fixture { Random.nextBytes(16) } - {
+        "data, properties, fixtures, and compact reports" - { freshBytes ->
             data("multiplier", listOf(1, 2, 3)) - { multiplier ->
                 compact("generated checks") { report = CompactReport.FailuresOnly } - {
                     property("offset", Arb.int(0..100), iterations = 50) test { offset ->
-                        val result = fixture.size * multiplier + offset
+                        val result = freshBytes.size * multiplier + offset
                         result shouldBeGreaterThan 0
                     }
                 }
@@ -180,11 +180,11 @@ all generated checks: compact progress: 512 of 900 queued completed (1200 source
 
 ### Fixtures
 
-`fixtureGenerator` creates fresh values for each directly nested test or suite. It also works inside compact blocks.
+`fixture` creates fresh values for each directly nested test or suite. It also works inside compact blocks.
 
 ```kotlin
 val fixtureMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
-    fixtureGenerator { Random.nextBytes(16) } - {
+    fixture { Random.nextBytes(16) } - {
         "regular test with fresh bytes" { bytes ->
             bytes.size shouldBe 16
         }

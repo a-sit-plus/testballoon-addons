@@ -118,7 +118,7 @@ val hugeMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
 
 val fixtureMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
     property("property layer 1", Arb.uLong(), iterations = 100) - { uLong ->
-        fixtureGenerator { Random.nextBytes(16) } - {
+        fixture { Random.nextBytes(16) } - {
             "pinned randomness 1" - { num ->
                 data("data layer 2.1", listOf(null, "foo", "bar", "baz")) - { word ->
                     "contained" {
@@ -159,7 +159,7 @@ val fixtureMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
 
 
 val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
-    fixtureGenerator { Random.nextBytes(16) } - {
+    fixture { Random.nextBytes(16) } - {
         "data, properties, fixtures, and compact reports" - { fixture ->
             data("multiplier", listOf(1, 2, 3)) - { multiplier ->
                 compact("generated checks") { report = CompactReport.FailuresOnly } - {

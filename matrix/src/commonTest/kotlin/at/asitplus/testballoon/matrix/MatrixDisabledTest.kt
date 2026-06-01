@@ -39,7 +39,7 @@ val disabledMatrix by matrixSuite(execution = ExecutionMode.Sequential) {
     }
     "alibi after disabled compact layer" {}
 
-    fixtureGenerator { Random.nextInt() } - {
+    fixture { Random.nextInt() } - {
         "!disabled fixture bare test" { explode() }
         "!disabled fixture bare suite" - {
             "nested disabled fixture suite test" { explode() }
@@ -144,7 +144,7 @@ val disabledMatrix by matrixSuite(execution = ExecutionMode.Sequential) {
         }
         "alibi after disabled compact property layer" {}
 
-        fixtureGenerator { Random.nextInt() } - {
+        fixture { Random.nextInt() } - {
             "!disabled compact fixture bare test" { explode() }
             "!disabled compact fixture bare suite" - {
                 "nested disabled compact fixture suite test" { explode() }

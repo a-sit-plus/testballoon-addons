@@ -1,10 +1,7 @@
 package at.asitplus.testballoon.matrix
 
-import at.asitplus.testballoon.truncated
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
-import de.infix.testBalloon.framework.core.TestSuiteScope
-import de.infix.testBalloon.framework.core.testSuite
 import de.infix.testBalloon.framework.shared.TestRegistering
 import kotlin.jvm.JvmInline
 
@@ -100,12 +97,12 @@ public class MatrixCompactFixtureGeneratorScope<T> internal constructor(
     }
 }
 
-public fun <T> MatrixSuiteScope.fixtureGenerator(
+public fun <T> MatrixSuiteScope.fixture(
     generator: () -> T,
 ): MatrixFixtureGeneratorHolder<T> =
     MatrixFixtureGeneratorHolder(MatrixFixtureGeneratorScope(this, generator))
 
-public fun <T> CompactScope.fixtureGenerator(
+public fun <T> CompactScope.fixture(
     generator: () -> T,
 ): MatrixCompactFixtureGeneratorHolder<T> =
     MatrixCompactFixtureGeneratorHolder(MatrixCompactFixtureGeneratorScope(this, generator))
