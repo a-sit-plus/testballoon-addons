@@ -3,6 +3,7 @@ package at.asitplus.testballoon.matrix
 import at.asitplus.testballoon.truncated
 import at.asitplus.testballoon.stackTraceForCollatedReport
 import de.infix.testBalloon.framework.core.Test
+import io.kotest.core.annotation.Parallel
 import io.kotest.property.RandomSource
 import io.kotest.property.Sample
 import kotlinx.coroutines.coroutineScope
@@ -12,8 +13,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.CoroutineContext
 
-private data class CompactFailure(
-    val path: List<String>,
+internal data class CompactFailure(
+    internal val path: List<String>,
     val error: Throwable,
     val replayPath: List<MatrixPropertyReplayFrame>,
 )
@@ -86,7 +87,7 @@ internal class CompactRun(
         }
     }
 
-    fun throwIfAny() {
+    inline fun throwIfAny() {
         if (failureCount == 0) return
         val report = buildString {
             appendLine("$name: $successCount succeeded, $failureCount failed")

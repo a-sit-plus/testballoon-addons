@@ -30,7 +30,7 @@ internal fun List<MatrixPropertyReplayFrame>.message(
         }
     }.trimEnd()
 
-internal fun AssertionError.withMatrixPropertyReplay(frames: List<MatrixPropertyReplayFrame>): AssertionError {
+internal inline fun AssertionError.withMatrixPropertyReplay(frames: List<MatrixPropertyReplayFrame>): AssertionError {
     if (frames.isEmpty() || this is MatrixPropertyReplayAssertion) return this
     val original = message
     val replay = frames.message(firstLineIndent = "    ", detailLineIndent = "      ")
@@ -38,7 +38,7 @@ internal fun AssertionError.withMatrixPropertyReplay(frames: List<MatrixProperty
     return MatrixPropertyReplayAssertion(wrappedMessage, this)
 }
 
-internal suspend fun Test.ExecutionScope.withMatrixPropertyReplay(
+internal suspend inline fun Test.ExecutionScope.withMatrixPropertyReplay(
     frames: List<MatrixPropertyReplayFrame>,
     body: suspend Test.ExecutionScope.() -> Unit,
 ) {
@@ -49,7 +49,7 @@ internal suspend fun Test.ExecutionScope.withMatrixPropertyReplay(
     }
 }
 
-private class MatrixPropertyReplayAssertion(
+internal class MatrixPropertyReplayAssertion(
     message: String,
     cause: AssertionError,
 ) : AssertionError(message, cause)
