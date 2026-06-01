@@ -5,13 +5,13 @@ import de.infix.testBalloon.framework.core.Test
 import io.kotest.property.Gen
 
 @MatrixTestDsl
-public class CompactScope internal constructor(
-    public val matrixConfig: MatrixSuiteConfig,
-    public val config: CompactConfig,
+class CompactScope internal constructor(
+    val matrixConfig: MatrixSuiteConfig,
+    val config: CompactConfig,
 ) {
     internal val nodes: MutableList<VirtualNode> = mutableListOf()
 
-    public fun testSuite(name: String, body: CompactScope.() -> Unit) {
+    fun testSuite(name: String, body: CompactScope.() -> Unit) {
         val child = CompactScope(matrixConfig, config)
         catchingUnwrapped {
             child.body()
@@ -21,26 +21,26 @@ public class CompactScope internal constructor(
         nodes += VirtualNode.Suite(matrixName(name), isMatrixDisabledName(name), child.nodes.toList())
     }
 
-    public fun test(name: String, body: suspend Test.ExecutionScope.() -> Unit) {
+    fun test(name: String, body: suspend Test.ExecutionScope.() -> Unit) {
         nodes += VirtualNode.Test(matrixName(name), isMatrixDisabledName(name), body)
     }
 
-    public operator fun String.invoke(body: suspend Test.ExecutionScope.() -> Unit) {
+    operator fun String.invoke(body: suspend Test.ExecutionScope.() -> Unit) {
         test(this, body)
     }
 
-    public infix operator fun String.minus(body: CompactScope.() -> Unit) {
+    infix operator fun String.minus(body: CompactScope.() -> Unit) {
         testSuite(this, body)
     }
 
-    public fun <T> data(
+    fun <T> data(
         name: String,
         values: Iterable<T>,
         nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
         config: DataLayerConfigBuilder.() -> Unit = {},
     ): CompactDataLayer<T> = CompactDataLayer(this, name, IterableDataSource(values), nameFn, config)
 
-    public fun <T> data(
+    fun <T> data(
         name: String,
         values: Sequence<T>,
         limit: Long? = null,
@@ -89,7 +89,7 @@ public class CompactScope internal constructor(
         )
     }
 
-    public fun <T> property(
+    fun <T> property(
         name: String,
         gen: Gen<T>,
         iterations: Int = matrixConfig.defaultPropertyIterations,
@@ -145,23 +145,23 @@ public class CompactScope internal constructor(
     }
 }
 
-public class CompactDataLayer<T> internal constructor(
+class CompactDataLayer<T> internal constructor(
     private val scope: CompactScope,
     private val name: String,
     private val source: MatrixDataSource<T>,
     private val nameFn: NameFn<T>,
     private val config: DataLayerConfigBuilder.() -> Unit,
 ) {
-    public operator fun minus(body: CompactScope.(T) -> Unit) {
+    operator fun minus(body: CompactScope.(T) -> Unit) {
         scope.dataInternal(name, source, nameFn, config, body)
     }
 
-    public infix fun test(body: suspend Test.ExecutionScope.(T) -> Unit) {
+    infix fun test(body: suspend Test.ExecutionScope.(T) -> Unit) {
         scope.dataTestInternal(name, source, nameFn, config, body)
     }
 }
 
-public class CompactPropertyLayer<T> internal constructor(
+class CompactPropertyLayer<T> internal constructor(
     private val scope: CompactScope,
     private val name: String,
     private val gen: Gen<T>,
@@ -169,11 +169,11 @@ public class CompactPropertyLayer<T> internal constructor(
     private val nameFn: NameFn<T>,
     private val config: PropertyLayerConfigBuilder.() -> Unit,
 ) {
-    public operator fun minus(body: CompactScope.(T) -> Unit) {
+    operator fun minus(body: CompactScope.(T) -> Unit) {
         scope.propertyInternal(name, gen, iterations, nameFn, config, body)
     }
 
-    public infix fun test(body: suspend Test.ExecutionScope.(T) -> Unit) {
+    infix fun test(body: suspend Test.ExecutionScope.(T) -> Unit) {
         scope.propertyTestInternal(name, gen, iterations, nameFn, config, body)
     }
 }

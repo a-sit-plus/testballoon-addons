@@ -16,10 +16,10 @@ import kotlin.coroutines.CoroutineContext
 @DslMarker
 annotation class MatrixTestDsl
 
-public typealias NameFn<T> = (index: Long, value: T) -> String
+typealias NameFn<T> = (index: Long, value: T) -> String
 
 @TestRegistering
-public fun matrixSuite(
+fun matrixSuite(
     @TestSuitePropertyName propertyName: String = "",
     execution: ExecutionMode? = null,
     defaultPropertyIterations: Int? = null,
@@ -51,15 +51,15 @@ public fun matrixSuite(
 }
 
 @MatrixTestDsl
-public data class MatrixSuiteScope internal constructor(
+data class MatrixSuiteScope internal constructor(
     internal val target: TestSuiteScope,
-    public val config: MatrixSuiteConfig,
+    val config: MatrixSuiteConfig,
     internal val registrationPath: List<MatrixRegistrationFrame> = emptyList(),
     internal val registrationReporter: MatrixRegistrationReporter = MatrixRegistrationReporter(),
     internal val propertyReplayPath: List<MatrixPropertyReplayFrame> = emptyList(),
 ) {
     @TestRegistering
-    public fun testSuite(
+    fun testSuite(
         name: String,
         testConfig: TestConfig = TestConfig,
         body: MatrixSuiteScope.() -> Unit,
@@ -75,7 +75,7 @@ public data class MatrixSuiteScope internal constructor(
     }
 
     @TestRegistering
-    public fun test(
+    fun test(
         name: String,
         testConfig: TestConfig = TestConfig,
         body: suspend Test.ExecutionScope.() -> Unit,
@@ -90,7 +90,7 @@ public data class MatrixSuiteScope internal constructor(
     }
 
     @TestRegistering
-    public operator fun String.invoke(
+    operator fun String.invoke(
         testConfig: TestConfig = TestConfig,
         body: suspend Test.ExecutionScope.() -> Unit,
     ) {
@@ -98,28 +98,28 @@ public data class MatrixSuiteScope internal constructor(
     }
 
     @TestRegistering
-    public operator fun String.invoke(
+    operator fun String.invoke(
         testConfig: TestConfig = TestConfig,
     ): MatrixConfiguredSuite = MatrixConfiguredSuite(this@MatrixSuiteScope, this, testConfig)
 
     @TestRegistering
-    public infix operator fun MatrixConfiguredSuite.minus(body: MatrixSuiteScope.() -> Unit) {
+    infix operator fun MatrixConfiguredSuite.minus(body: MatrixSuiteScope.() -> Unit) {
         scope.testSuite(name, testConfig, body)
     }
 
     @TestRegistering
-    public infix operator fun String.minus(body: MatrixSuiteScope.() -> Unit) {
+    infix operator fun String.minus(body: MatrixSuiteScope.() -> Unit) {
         testSuite(this, body = body)
     }
 
-    public fun <T> data(
+    fun <T> data(
         name: String,
         values: Iterable<T>,
         nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
         config: DataLayerConfigBuilder.() -> Unit = {},
     ): MatrixDataLayer<T> = MatrixDataLayer(this, name, IterableDataSource(values), nameFn, config)
 
-    public fun <T> data(
+    fun <T> data(
         name: String,
         values: Sequence<T>,
         limit: Long? = null,
@@ -205,7 +205,7 @@ public data class MatrixSuiteScope internal constructor(
         }
     }
 
-    public fun <T> property(
+    fun <T> property(
         name: String,
         gen: Gen<T>,
         iterations: Int = PropertyTesting.defaultIterationCount,
@@ -305,7 +305,7 @@ public data class MatrixSuiteScope internal constructor(
         }
     }
 
-    public fun compact(
+    fun compact(
         name: String = "compacted",
         config: CompactConfigBuilder.() -> Unit = {},
     ): MatrixCompactLayer = MatrixCompactLayer(this, name, config)
@@ -338,29 +338,29 @@ public data class MatrixSuiteScope internal constructor(
     }
 }
 
-public class MatrixConfiguredSuite internal constructor(
+class MatrixConfiguredSuite internal constructor(
     internal val scope: MatrixSuiteScope,
     internal val name: String,
     internal val testConfig: TestConfig,
 )
 
-public class MatrixDataLayer<T> internal constructor(
+class MatrixDataLayer<T> internal constructor(
     private val scope: MatrixSuiteScope,
     private val name: String,
     private val source: MatrixDataSource<T>,
     private val nameFn: NameFn<T>,
     private val config: DataLayerConfigBuilder.() -> Unit,
 ) {
-    public operator fun minus(body: MatrixSuiteScope.(T) -> Unit) {
+    operator fun minus(body: MatrixSuiteScope.(T) -> Unit) {
         scope.dataInternal(name, source, nameFn, config, body)
     }
 
-    public infix fun test(body: suspend Test.ExecutionScope.(T) -> Unit) {
+    infix fun test(body: suspend Test.ExecutionScope.(T) -> Unit) {
         scope.dataTestInternal(name, source, nameFn, config, body)
     }
 }
 
-public class MatrixPropertyLayer<T> internal constructor(
+class MatrixPropertyLayer<T> internal constructor(
     private val scope: MatrixSuiteScope,
     private val name: String,
     private val gen: Gen<T>,
@@ -368,21 +368,21 @@ public class MatrixPropertyLayer<T> internal constructor(
     private val nameFn: NameFn<T>,
     private val config: PropertyLayerConfigBuilder.() -> Unit,
 ) {
-    public operator fun minus(body: MatrixSuiteScope.(T) -> Unit) {
+    operator fun minus(body: MatrixSuiteScope.(T) -> Unit) {
         scope.propertyInternal(name, gen, iterations, nameFn, config, body)
     }
 
-    public infix fun test(body: suspend Test.ExecutionScope.(T) -> Unit) {
+    infix fun test(body: suspend Test.ExecutionScope.(T) -> Unit) {
         scope.propertyTestInternal(name, gen, iterations, nameFn, config, body)
     }
 }
 
-public class MatrixCompactLayer internal constructor(
+class MatrixCompactLayer internal constructor(
     private val scope: MatrixSuiteScope,
     private val name: String,
     private val config: CompactConfigBuilder.() -> Unit,
 ) {
-    public operator fun minus(body: CompactScope.() -> Unit) {
+    operator fun minus(body: CompactScope.() -> Unit) {
         scope.compactInternal(name, config, body)
     }
 }

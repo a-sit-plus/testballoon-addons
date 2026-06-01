@@ -10,36 +10,36 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 internal object MatrixTestDefaults {
-    public var execution: ExecutionMode = ExecutionMode.Sequential
-    public var defaultPropertyIterations: Int = 1000
-    public var defaultCompactReport: CompactReport = CompactReport.FailuresOnly
-    public var defaultCompactAddSuppressedErrors: Boolean = false
-    public var defaultCompactReportRows: Int = 1024
-    public var defaultProgressIndicator: Indicator = Indicator.Heartbeat(every = 1.seconds)
-    public var defaultCompactCoroutineContext: CoroutineContext = Dispatchers.Default
-    public var defaultTestNameMaxLength: Int = 256
-    public var testSessionConfig: TestConfig = TestConfig
+    var execution: ExecutionMode = ExecutionMode.Sequential
+    var defaultPropertyIterations: Int = 1000
+    var defaultCompactReport: CompactReport = CompactReport.AllCases
+    var defaultCompactAddSuppressedErrors: Boolean = false
+    var defaultCompactReportRows: Int = 1024
+    var defaultProgressIndicator: Indicator = Indicator.Heartbeat(every = 1.seconds)
+    var defaultCompactCoroutineContext: CoroutineContext = Dispatchers.Default
+    var defaultTestNameMaxLength: Int = 256
+    var testSessionConfig: TestConfig = TestConfig
 }
 
-public sealed interface ExecutionMode {
-    public data object Sequential : ExecutionMode
-    public data class Concurrent(val parallelism: Int= 128) : ExecutionMode {
+sealed interface ExecutionMode {
+    data object Sequential : ExecutionMode
+    data class Concurrent(val parallelism: Int= 128) : ExecutionMode {
         init {
             require(parallelism > 0) { "parallelism must be > 0" }
         }
     }
 }
 
-public sealed interface CompactReport {
-    public data object FailuresOnly : CompactReport
-    public data object AllCases : CompactReport
-    public data object SummaryOnly : CompactReport
+sealed interface CompactReport {
+    data object FailuresOnly : CompactReport
+    data object AllCases : CompactReport
+    data object SummaryOnly : CompactReport
 }
 
 
-public sealed interface Indicator {
-    public data object None : Indicator
-    public data class Heartbeat(val every: Duration = 1.seconds) : Indicator
+sealed interface Indicator {
+    data object None : Indicator
+    data class Heartbeat(val every: Duration = 1.seconds) : Indicator
 }
 
 
@@ -60,15 +60,15 @@ fun TestConfig.MatrixTestDefaults(config: MatrixSuiteConfigBuilder.() -> Unit) {
 }
 
 @MatrixTestDsl
-public class MatrixSuiteConfigBuilder internal constructor() {
-    public var execution: ExecutionMode? = null
-    public var defaultPropertyIterations: Int? = null
-    public var defaultCompactReport: CompactReport? = null
-    public var defaultCompactAddSuppressedErrors: Boolean? = null
-    public var defaultCompactReportRows: Int? = null
-    public var defaultProgressIndicator: Indicator? = null
-    public var defaultCompactCoroutineContext: CoroutineContext? = null
-    public var defaultTestNameMaxLength: Int? = null
+class MatrixSuiteConfigBuilder internal constructor() {
+    var execution: ExecutionMode? = null
+    var defaultPropertyIterations: Int? = null
+    var defaultCompactReport: CompactReport? = null
+    var defaultCompactAddSuppressedErrors: Boolean? = null
+    var defaultCompactReportRows: Int? = null
+    var defaultProgressIndicator: Indicator? = null
+    var defaultCompactCoroutineContext: CoroutineContext? = null
+    var defaultTestNameMaxLength: Int? = null
     internal var testConfig: TestConfig? = null
 
     internal fun build(): MatrixSuiteConfig {
@@ -90,7 +90,7 @@ public class MatrixSuiteConfigBuilder internal constructor() {
     }
 }
 
-public data class MatrixSuiteConfig internal constructor(
+data class MatrixSuiteConfig internal constructor(
     val execution: ExecutionMode,
     val defaultPropertyIterations: Int,
     val defaultCompactReport: CompactReport,
@@ -113,9 +113,9 @@ public data class MatrixSuiteConfig internal constructor(
 
 
 @MatrixTestDsl
-public class DataLayerConfigBuilder internal constructor(private val parent: MatrixSuiteConfig) {
-    public var execution: ExecutionMode? = null
-    public var nameMaxLength: Int? = null
+class DataLayerConfigBuilder internal constructor(private val parent: MatrixSuiteConfig) {
+    var execution: ExecutionMode? = null
+    var nameMaxLength: Int? = null
 
     internal fun build(): DataLayerConfig = DataLayerConfig(
         execution = execution ?: parent.execution,
@@ -123,17 +123,17 @@ public class DataLayerConfigBuilder internal constructor(private val parent: Mat
     )
 }
 
-public data class DataLayerConfig internal constructor(
+data class DataLayerConfig internal constructor(
     val execution: ExecutionMode,
     val nameMaxLength: Int,
 )
 
 @MatrixTestDsl
-public class PropertyLayerConfigBuilder internal constructor(private val parent: MatrixSuiteConfig) {
-    public var execution: ExecutionMode? = null
-    public var seed: Long? = null
-    public var edgeConfig: EdgeConfig? = null
-    public var nameMaxLength: Int? = null
+class PropertyLayerConfigBuilder internal constructor(private val parent: MatrixSuiteConfig) {
+    var execution: ExecutionMode? = null
+    var seed: Long? = null
+    var edgeConfig: EdgeConfig? = null
+    var nameMaxLength: Int? = null
 
     internal fun build(): PropertyLayerConfig = PropertyLayerConfig(
         execution = execution ?: parent.execution,
@@ -143,7 +143,7 @@ public class PropertyLayerConfigBuilder internal constructor(private val parent:
     )
 }
 
-public data class PropertyLayerConfig internal constructor(
+data class PropertyLayerConfig internal constructor(
     val execution: ExecutionMode,
     val seed: Long?,
     val edgeConfig: EdgeConfig,
@@ -151,12 +151,12 @@ public data class PropertyLayerConfig internal constructor(
 )
 
 @MatrixTestDsl
-public class CompactConfigBuilder internal constructor(private val parent: MatrixSuiteConfig) {
-    public var report: CompactReport? = null
-    public var addSuppressedErrors: Boolean? = null
-    public var reportRows: Int? = null
-    public var progressIndicator: Indicator? = null
-    public var coroutineContext: CoroutineContext? = null
+class CompactConfigBuilder internal constructor(private val parent: MatrixSuiteConfig) {
+    var report: CompactReport? = null
+    var addSuppressedErrors: Boolean? = null
+    var reportRows: Int? = null
+    var progressIndicator: Indicator? = null
+    var coroutineContext: CoroutineContext? = null
 
     internal fun build(): CompactConfig = CompactConfig(
         report = report ?: parent.defaultCompactReport,
@@ -167,7 +167,7 @@ public class CompactConfigBuilder internal constructor(private val parent: Matri
     )
 }
 
-public data class CompactConfig internal constructor(
+data class CompactConfig internal constructor(
     val report: CompactReport,
     val addSuppressedErrors: Boolean,
     val reportRows: Int,

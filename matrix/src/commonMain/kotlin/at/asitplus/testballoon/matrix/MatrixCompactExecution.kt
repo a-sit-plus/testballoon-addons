@@ -3,7 +3,6 @@ package at.asitplus.testballoon.matrix
 import at.asitplus.testballoon.truncated
 import at.asitplus.testballoon.stackTraceForCollatedReport
 import de.infix.testBalloon.framework.core.Test
-import io.kotest.core.annotation.Parallel
 import io.kotest.property.RandomSource
 import io.kotest.property.Sample
 import kotlinx.coroutines.coroutineScope

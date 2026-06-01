@@ -1,6 +1,8 @@
 package at.asitplus.testballoon.matrix
 
+import at.asitplus.AssertionError
 import de.infix.testBalloon.framework.core.Test
+import kotlin.AssertionError as AssertionErr
 
 internal data class MatrixPropertyReplayFrame(
     val propertyName: String,
@@ -30,12 +32,12 @@ internal fun List<MatrixPropertyReplayFrame>.message(
         }
     }.trimEnd()
 
-internal inline fun AssertionError.withMatrixPropertyReplay(frames: List<MatrixPropertyReplayFrame>): AssertionError {
-    if (frames.isEmpty() || this is MatrixPropertyReplayAssertion) return this
+internal inline fun AssertionErr.withMatrixPropertyReplay(frames: List<MatrixPropertyReplayFrame>): AssertionErr {
+    if (frames.isEmpty() || this is AssertionError) return this
     val original = message
     val replay = frames.message(firstLineIndent = "    ", detailLineIndent = "      ")
     val wrappedMessage = if (original.isNullOrBlank()) replay else "$original\n$replay"
-    return MatrixPropertyReplayAssertion(wrappedMessage, this)
+    return AssertionError(wrappedMessage, this)
 }
 
 internal suspend inline fun Test.ExecutionScope.withMatrixPropertyReplay(
@@ -44,12 +46,9 @@ internal suspend inline fun Test.ExecutionScope.withMatrixPropertyReplay(
 ) {
     try {
         body()
-    } catch (e: AssertionError) {
+    } catch (e: AssertionErr) {
         throw e.withMatrixPropertyReplay(frames)
     }
 }
 
-internal class MatrixPropertyReplayAssertion(
-    message: String,
-    cause: AssertionError,
-) : AssertionError(message, cause)
+
