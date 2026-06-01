@@ -58,7 +58,7 @@ val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12
 | `0.1.0`            | `0.7.0` (Kotlin `2.2.21`)   |
 
 
-## <picture>   <source media="(prefers-color-scheme: dark)" srcset="docs/matrix-dark.png">  <source media="(prefers-color-scheme: light)" srcset="docs/matrix.png">  <img src="docs/matrix.png" alt="Matrix Testing" width="61" height="46"> </picture>  &nbsp;&nbsp;Matrix Testing 
+## <picture><source media="(prefers-color-scheme: dark)" srcset="docs/matrix-dark.png"><source media="(prefers-color-scheme: light)" srcset="docs/matrix.png"><img src="docs/matrix.png" alt="Matrix Testing" width="61" height="46"></picture>&nbsp;&nbsp;Matrix Testing 
 
 
 | Maven Coordinates | `at.asitplus.testballoon:matrix:$version` |
@@ -372,7 +372,7 @@ is prepended to generated test names (in front of the sigma), which helps naviga
 
 **→ Check out [the full API docs](https://a-sit-plus.github.io/testballoon-addons/) for each test style for all configuration options!**
 
-### Data-Driven Testing
+### <picture><source media="(prefers-color-scheme: dark)" srcset="docs/data-dark.png"><source media="(prefers-color-scheme: light)" srcset="docs/data.png"><img src="docs/data.png" alt="Data-Driven Testing" width="63" height="13"></picture>&nbsp;&nbsp;Data-Driven Testing
 
 | Maven Coordinates | `at.asitplus.testballoon:datatest:$version` |
 |-------------------|---------------------------------------------|
@@ -404,7 +404,7 @@ generated test names, which helps navigate large test reports.
 Running individual tests from the gutter is not possible, as the test suite structure and the names of suites and tests are computed at runtime.
 Hence, you must run the entire suite (but you can manually filter using wildcards).
 
-### Property Testing
+### <picture><source media="(prefers-color-scheme: dark)" srcset="docs/property-dark.png"><source media="(prefers-color-scheme: light)" srcset="docs/property.png"><img src="docs/property.png" alt="Property Testing" width="62" height="12"></picture>&nbsp;&nbsp;Property Testing
 
 | Maven Coordinates | `at.asitplus.testballoon:property:$version` |
 |-------------------|---------------------------------------------|
@@ -441,7 +441,7 @@ generated test names, which helps navigate large test reports.
 Running individual tests from the gutter is not possible, as the test suite structure and the names of suites and tests are computed at runtime.
 Hence, you must run the entire suite (but you can manually filter using wildcards).
 
-### On-Demand Fixture Generation
+### <picture><source media="(prefers-color-scheme: dark)" srcset="docs/fixture-dark.png"><source media="(prefers-color-scheme: light)" srcset="docs/fixture.png"><img src="docs/fixture.png" alt="Fixture Generation" width="60" height="13"></picture>&nbsp;&nbsp;On-Demand Fixture Generation
 
 | Maven Coordinates | `at.asitplus.testballoon:fixturegen:$version` |
 |-------------------|-----------------------------------------------|
@@ -562,7 +562,7 @@ val aGeneratingSuite by testSuite {
 > }
 > ```
 
-### FreeSpec
+### <picture><source media="(prefers-color-scheme: dark)" srcset="docs/freespec-dark.png"><source media="(prefers-color-scheme: light)" srcset="docs/freespec.png"><img src="docs/freespec.png" alt="FreeSpec" width="56" height="11"></picture>&nbsp;&nbsp;FreeSpec
 
 | Maven Coordinates | `at.asitplus.testballoon:freespec:$version` |
 |-------------------|---------------------------------------------|
