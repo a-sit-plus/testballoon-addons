@@ -18,44 +18,23 @@ coroutine-first testing framework.**
 
 </div>
 
-This project originally started as a shim to make migration from Kotest easier, after being dissatisfied with the Kotest
-_framework's_ second-class KMP support and third-class Android support.
+TestBalloon Addons started as migration helpers for people coming from Kotest. That still matters, but the newer
+*Matrix Testing* module is the greenfield version of the idea: _What would data-driven testing, property testing, fixtures, and
+compact reports look like if they were designed directly for TestBalloon's KMP-first, coroutine-first execution model?_
 
-At the same time, **the Kotest _libraries_**—its assertions, the way it models property testing, etc.—are still
-**unrivaled** and don’t suffer from the framework’s shortcomings. Paired with TestBalloon’s flexibility and small API
-surface, this provides the best of both worlds.
-
-**TestBalloon Addons provide:**
-* data-driven testing
-* property testing
-* per-suite and per-test fixture generation
-* [FreeSpec](https://kotest.io/docs/framework/testing-styles.html#free-spec) test style as known from [Kotest](https://kotest.io/)
-
-The real strength of TestBalloon Addons emerges when multiple features are combined—especially when FreeSpec allows entire test hierarchies to be expressed almost like natural language.
-By eliminating boilerplate and ceremony, this keeps the focus squarely on the tests themselves, so a test suite already tells its story at first glance.
-The following example demonstrates how this looks like in practice.
+The answer is a single DSL that keeps Kotest's excellent assertion and generator libraries, but gives TestBalloon full
+control over registration, execution, concurrency, compaction, and reporting.
 
 ```kotlin
-val combinedFeaturesSuite by testSuite {
-
-    // Generate a fresh fixture for every test
-    withFixtureGenerator { Random.nextInt() } - {
-
-        "A FreeSpec-style suite with generated fixtures" - { freshSeed ->
-
-            // Data-driven tests
-            withData(1, 2, 3) { multiplier ->
-                "works for simple data-driven cases" {
-                    val result = freshSeed * multiplier
-                    // assert something about result
-                }
-            }
-
-            // Property-based tests
-            checkAll(iterations = 50, Arb.int(0..10)) { value ->
-                "also supports property testing" {
-                    val result = freshSeed + value
-                    // assert an invariant about result
+val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
+    fixture { Random.nextBytes(16) } - {
+        "data, properties, fixtures, and compact reports" - { freshBytes ->
+            data("multiplier", listOf(1, 2, 3)) - { multiplier ->
+                compact("generated checks") { report = CompactReport.FailuresOnly } - {
+                    property("offset", Arb.int(0..100), iterations = 50) test { offset ->
+                        val result = freshBytes.size * multiplier + offset
+                        result shouldBeGreaterThan 0
+                    }
                 }
             }
         }
@@ -63,10 +42,219 @@ val combinedFeaturesSuite by testSuite {
 }
 ```
 
+> [!TIP]  
+> Looking for a smooth migration path from Kotest?  
+> Check out the [Coming from Kotest](#coming-from-kotest) section!
 
-## Feature Overview
 
-This project consists of the following modules:
+## Compatibility
+
+| TestBalloon Addons | TestBalloon                 |
+|--------------------|-----------------------------|
+| `0.9.0`            | `1.0.0` (Kotlin `2.3.0+`)   |
+| `0.7.0` - `0.8.0`  | `0.8.2+` (Kotlin `2.3.0+`)  |
+| `0.7.0-RC`         | `0.8.0-RC` (Kotlin `2.3.0`) |
+| `0.1.1`–`0.6.1`    | `0.7.1` (Kotlin `2.2.21`)   |
+| `0.1.0`            | `0.7.0` (Kotlin `2.2.21`)   |
+
+
+## <picture><source media="(prefers-color-scheme: dark)" srcset="docs/matrix-dark.png"><source media="(prefers-color-scheme: light)" srcset="docs/matrix.png"><img src="docs/matrix.png" alt="Matrix Testing" width="61" height="46"></picture>&nbsp;&nbsp;Matrix Testing 
+
+
+| Maven Coordinates | `at.asitplus.testballoon:matrix:$version` |
+|-------------------|-------------------------------------------|
+
+**The `matrix` module provides an original, advanced, next-generation testing DSL.**  
+It may not be for the faint of heart but it combines data-driven testing,
+property testing, FreeSpec-style names, fixture generation, concurrency controls, and compact reports – things you will need
+for truly powerful, comprehensive test suites.
+
+Matrix tests are built from composable layers. A `data` layer, a `property` layer, a generated fixture, and a plain
+FreeSpec-style suite can be stacked into an n-dimensional test matrix, where every leaf test runs once for each path
+through those layers. When that would create too many framework test elements, `compact` can flatten the subtree into one real
+test while still executing and reporting the full virtual matrix. This way, you still get full insights including clickable
+stacktraces taking you to the failing assertion(s)!
+
+The top-level `matrixSuite(...) { ... }` is a regular TestBalloon suite so IDE gutter actions can discover and run it.
+Inside the suite, every nested layer is configured first, then either opened with `- { ... }` for more nesting or finished
+with `test { ... }` to create row test elements.
+
+```kotlin
+val quickstart by matrixSuite(execution = ExecutionMode.Sequential) {
+    data("input", listOf("foo", "bar")) - { input ->
+        property("offset", Arb.int(0..100), iterations = 25) test { offset ->
+            val result = "$input-$offset"
+            result.startsWith(input) shouldBe true
+        }
+    }
+}
+```
+
+### Data-Driven Matrix Layers
+
+`data` layers accept `Iterable` values and lazy `Sequence` values. Use `test { ... }` when each row is the test, and
+`- { ... }` when each row is a dimension that contains more layers or explicit tests.
+
+```kotlin
+val dataDrivenMatrix by matrixSuite(execution = ExecutionMode.Sequential) {
+    data("numbers", listOf(1, 2, 3), nameFn = { index, value -> "$index: n=$value" }) test { number ->
+        number shouldBeGreaterThan 0
+    }
+
+    data("lazy values", generateSequence(1) { it + 1 }, limit = 3) {
+        execution = ExecutionMode.Concurrent(parallelism = 2)
+    } test { number ->
+        number shouldBeGreaterThan 0
+    }
+
+    data("as a dimension", listOf("foo", "bar")) - { word ->
+        "has a length" {
+            word.length shouldBeGreaterThan 0
+        }
+    }
+}
+```
+
+Layer config is written as the trailing lambda before `test` or `-`. For `data`, the most important layer option is
+`execution`, which can be `ExecutionMode.Sequential` or `ExecutionMode.Concurrent(parallelism = ...)`.
+
+### Property Matrix Layers
+
+`property` layers use Kotest generators directly. You get Kotest's `Arb` ecosystem, edge cases, shrinking-friendly data
+models, and concise generator composition, while TestBalloon owns the test tree.
+
+```kotlin
+val propertyMatrix by matrixSuite(defaultPropertyIterations = 100) {
+    property("bytes", Arb.byteArray(Arb.int(1, 64), Arb.byte())) {
+        seed = 0xC0FFEE
+        nameFn = { index, bytes -> "$index: ${bytes.size} bytes" }
+    } test { bytes ->
+        bytes.toHexString(HexFormat.UpperCase).hexToByteArray() shouldBe bytes
+    }
+}
+```
+
+`property` supports `iterations`, `seed`, `edgeConfig`, `nameFn`, and per-layer `execution`. If `iterations` is omitted,
+the suite default is used.
+
+### Compaction
+
+Deep data/property nesting can generate very large test trees. `compact` collapses the virtual subtree into one real
+TestBalloon test and reports the virtual rows itself.
+
+```kotlin
+val compactMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
+    compact("all generated checks") {
+        report = CompactReport.FailuresOnly
+        reportRows = 256
+        progressIndicator = Indicator.Heartbeat(every = 1.seconds)
+    } - {
+        data("word", listOf("foo", "bar", "baz")) - { word ->
+            property("number", Arb.int(0..100), iterations = 100) test { number ->
+                (word.length + number) shouldBeGreaterThan 0
+            }
+        }
+    }
+}
+```
+
+`CompactReport.FailuresOnly` renders only failing virtual rows, `AllCases` also renders successes, and `SummaryOnly`
+keeps the report short. `reportRows` bounds rendered row details. `addSuppressedErrors` controls whether retained
+failures are attached as suppressed exceptions. `coroutineContext` controls where compact virtual children run.
+
+Progress heartbeats are printed separately from the final failure report, for example:
+
+```
+all generated checks: compact progress: 512 of 900 queued completed (1200 source cases), 3 failed
+```
+
+> [!NOTE]
+> Compact virtual children are not real TestBalloon test elements, so virtual `test` / `testSuite` declarations and terminal
+> `data(...) test { ... }` / `property(...) test { ... }` rows inside `compact` cannot honor per-child `TestConfig`.
+> Put `TestConfig` on real matrix tests/suites outside compact, or configure the compact block itself.
+
+### Fixtures
+
+`fixture` creates fresh values for each directly nested test or suite. It also works inside compact blocks.
+
+```kotlin
+val fixtureMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
+    fixture { Random.nextBytes(16) } - {
+        "regular test with fresh bytes" { bytes ->
+            bytes.size shouldBe 16
+        }
+
+        "suite with a fresh fixture" - { bytes ->
+            data("word", listOf("foo", "bar")) test { word ->
+                bytes.isNotEmpty() shouldBe true
+                word.length shouldBeGreaterThan 0
+            }
+        }
+
+        compact("compact checks with fresh fixture") { report = CompactReport.AllCases } - {
+            data("byte", bytes.toList()) test { byte ->
+                byte shouldBe byte
+            }
+        }
+    }
+}
+```
+
+### Configuration and Disabling
+
+Project-wide matrix defaults are best configured based on the configuration of a `TestSession`:
+
+```kotlin
+object ProjectTestSessionConfig : TestSession(testConfig = TestConfig.apply {
+    MatrixTestDefaults {
+        execution = ExecutionMode.Sequential
+        defaultPropertyIterations = 250
+        defaultCompactReport = CompactReport.FailuresOnly
+        defaultCompactReportRows = 128
+        defaultProgressIndicator = Indicator.Heartbeat(every = 2.seconds)
+    }
+})
+```
+
+Individual suites can override those defaults with `matrixSuite` parameters. Layers can override their own execution or
+generation settings. Real tests and suites also accept `TestConfig`, which is chained onto the current matrix config.
+
+```kotlin
+val configuredMatrix by matrixSuite(
+    execution = ExecutionMode.Concurrent(parallelism = 4),
+    defaultPropertyIterations = 50,
+) {
+    test("explicit test", testConfig = TestConfig) {
+        // green code
+    }
+
+    testSuite("explicit suite", testConfig = TestConfig) {
+        "bare FreeSpec-style test"(testConfig = TestConfig) {
+            // green code
+        }
+    }
+
+    "!temporarily disabled" {
+        error("will not run")
+    }
+}
+```
+
+Prefix any matrix name with `!` to disable it. This works for `test`, `testSuite`, bare FreeSpec-style strings, `data`,
+`property`, and `compact`. Generated row names from `nameFn` don't get disabled when they start with a bang.
+
+### Notes
+
+* `data(...) test { ... }` / `property(...) test { ... }` creates row test elements; `data(...) - { ... }` / `property(...) - { ... }` creates row suite or dimension test elements.
+* Forgetting `test { ... }` or `- { ... }` leaves a configured layer unopened, so no child tests are registered. This could leave you wondering on the innermost layer…
+* Terminal row tests are named by the layer `nameFn`. Use `- { ... }` plus an explicit `"name" { ... }` leaf when the invariant itself needs a separate name.
+* Generated rows are registered at runtime. Running an individual generated row from the IDE gutter is nonsensical; run the
+  enclosing suite or use filters.
+* Deep nesting can still create many real test elements. Use `compact` when the test tree itself becomes too large.
+
+## <img src="https://kotest.io/img/logo.png" width="46" height="46" alt="Kotest Logo"> Coming from Kotest
+
+If you want APIs that mirror Kotest more closely, the original addon modules are still available:
 
 * `datatest` replicates Kotest's data-driven testing features for TestBalloon
 * `property` brings Kotest's property testing to TestBalloon
@@ -81,16 +269,6 @@ This project consists of the following modules:
 > If you don't want to use modulator, you can add the
 > `at.asitplus.testballoon:fixturegen-freespec:$version`
 > dependency manually to your project.
-
-### Compatibility Matrix
-
-| TestBalloon Addons | TestBalloon                 |
-|--------------------|-----------------------------|
-| `0.9.0`            | `1.0.0` (Kotlin `2.3.0+`)   |
-| `0.7.0` - `0.8.0`  | `0.8.2+` (Kotlin `2.3.0+`)  |
-| `0.7.0-RC`         | `0.8.0-RC` (Kotlin `2.3.0`) |
-| `0.1.1`–`0.6.1`    | `0.7.1` (Kotlin `2.2.21`)   |
-| `0.1.0`            | `0.7.0` (Kotlin `2.2.21`)   |
 
 ### Test Name Truncation
 
@@ -194,9 +372,7 @@ is prepended to generated test names (in front of the sigma), which helps naviga
 
 **→ Check out [the full API docs](https://a-sit-plus.github.io/testballoon-addons/) for each test style for all configuration options!**
 
-## Modules
-
-### Data-Driven Testing
+### <picture><source media="(prefers-color-scheme: dark)" srcset="docs/data-dark.png"><source media="(prefers-color-scheme: light)" srcset="docs/data.png"><img src="docs/data.png" alt="Data-Driven Testing" width="63" height="13"></picture>&nbsp;&nbsp;Data-Driven Testing
 
 | Maven Coordinates | `at.asitplus.testballoon:datatest:$version` |
 |-------------------|---------------------------------------------|
@@ -228,7 +404,7 @@ generated test names, which helps navigate large test reports.
 Running individual tests from the gutter is not possible, as the test suite structure and the names of suites and tests are computed at runtime.
 Hence, you must run the entire suite (but you can manually filter using wildcards).
 
-### Property Testing
+### <picture><source media="(prefers-color-scheme: dark)" srcset="docs/property-dark.png"><source media="(prefers-color-scheme: light)" srcset="docs/property.png"><img src="docs/property.png" alt="Property Testing" width="62" height="12"></picture>&nbsp;&nbsp;Property Testing
 
 | Maven Coordinates | `at.asitplus.testballoon:property:$version` |
 |-------------------|---------------------------------------------|
@@ -265,7 +441,7 @@ generated test names, which helps navigate large test reports.
 Running individual tests from the gutter is not possible, as the test suite structure and the names of suites and tests are computed at runtime.
 Hence, you must run the entire suite (but you can manually filter using wildcards).
 
-### On-Demand Fixture Generation
+### <picture><source media="(prefers-color-scheme: dark)" srcset="docs/fixture-dark.png"><source media="(prefers-color-scheme: light)" srcset="docs/fixture.png"><img src="docs/fixture.png" alt="Fixture Generation" width="60" height="13"></picture>&nbsp;&nbsp;On-Demand Fixture Generation
 
 | Maven Coordinates | `at.asitplus.testballoon:fixturegen:$version` |
 |-------------------|-----------------------------------------------|
@@ -386,7 +562,7 @@ val aGeneratingSuite by testSuite {
 > }
 > ```
 
-### FreeSpec
+### <picture><source media="(prefers-color-scheme: dark)" srcset="docs/freespec-dark.png"><source media="(prefers-color-scheme: light)" srcset="docs/freespec.png"><img src="docs/freespec.png" alt="FreeSpec" width="56" height="11"></picture>&nbsp;&nbsp;FreeSpec
 
 | Maven Coordinates | `at.asitplus.testballoon:freespec:$version` |
 |-------------------|---------------------------------------------|

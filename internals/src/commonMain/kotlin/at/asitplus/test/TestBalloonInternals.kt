@@ -8,22 +8,44 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 expect var totalMaxLen: Int
 
 internal expect fun compactProgressPrint(message: String)
+
+private const val PRETTY_BYTE_ARRAY_BYTE_LIMIT = 512
 
 internal var compactProgressHeartbeatInterval = 1.seconds
 
 suspend fun withCompactProgressHeartbeat(
     snapshot: () -> String,
     body: suspend () -> Unit
+) = withCompactProgressHeartbeat(compactProgressHeartbeatInterval, snapshot, body)
+
+suspend fun withCompactProgressHeartbeat(
+    interval: Duration,
+    snapshot: () -> String,
+    body: suspend () -> Unit
+) = withCompactProgressHeartbeatInternal(interval, { snapshot() }, body)
+
+suspend fun withCompactProgressHeartbeatSuspending(
+    interval: Duration,
+    snapshot: suspend () -> String,
+    body: suspend () -> Unit
+) = withCompactProgressHeartbeatInternal(interval, snapshot, body)
+
+private suspend fun withCompactProgressHeartbeatInternal(
+    interval: Duration,
+    snapshot: suspend () -> String,
+    body: suspend () -> Unit
 ) = coroutineScope {
     val heartbeat = launch {
         while (true) {
-            delay(compactProgressHeartbeatInterval)
+            delay(interval)
             compactProgressPrint(snapshot())
         }
     }
@@ -32,6 +54,26 @@ suspend fun withCompactProgressHeartbeat(
         body()
     } finally {
         heartbeat.cancelAndJoin()
+    }
+}
+
+class CompactProgressTicker(
+    private val interval: Duration,
+    private val snapshot: () -> String,
+) {
+    private var last = TimeSource.Monotonic.markNow()
+    var printed = false
+        private set
+
+    fun tick() {
+        if (printed && last.elapsedNow() < interval) return
+        printNow()
+    }
+
+    fun printNow() {
+        compactProgressPrint(snapshot())
+        last = TimeSource.Monotonic.markNow()
+        printed = true
     }
 }
 
@@ -234,7 +276,7 @@ fun Any?.toPrettyString(): String = when (this) {
     is IntArray -> joinToString()
     is LongArray -> joinToString()
     is ShortArray -> joinToString()
-    is ByteArray -> joinToString(separator = ":") { it.toHexString(HexFormat.UpperCase) }
+    is ByteArray -> toBoundedHexString()
     is BooleanArray -> joinToString()
     is FloatArray -> joinToString()
     is DoubleArray -> joinToString()
@@ -244,7 +286,7 @@ fun Any?.toPrettyString(): String = when (this) {
     is UIntArray -> joinToString()
     is ULongArray -> joinToString()
     is UShortArray -> joinToString()
-    is UByteArray -> joinToString(separator = ":") { it.toHexString(HexFormat.UpperCase) }
+    is UByteArray -> toByteArray().toBoundedHexString()
 
     // Collections
     is Iterable<*> -> joinToString()
@@ -253,6 +295,26 @@ fun Any?.toPrettyString(): String = when (this) {
     is Array<*> -> contentDeepToString()
 
     else -> toString()
+}
+
+private fun ByteArray.toBoundedHexString(): String {
+    if (size <= PRETTY_BYTE_ARRAY_BYTE_LIMIT) {
+        return joinToString(separator = ":") { it.toHexString(HexFormat.UpperCase) }
+    }
+    val head = PRETTY_BYTE_ARRAY_BYTE_LIMIT / 2
+    val tail = PRETTY_BYTE_ARRAY_BYTE_LIMIT - head
+    return buildString {
+        appendHexRange(this@toBoundedHexString, 0, head)
+        append(":…:")
+        appendHexRange(this@toBoundedHexString, size - tail, size)
+    }
+}
+
+private fun StringBuilder.appendHexRange(bytes: ByteArray, start: Int, end: Int) {
+    for (index in start until end) {
+        if (index > start) append(':')
+        append(bytes[index].toHexString(HexFormat.UpperCase))
+    }
 }
 
 fun Any?.toPrettyString(maxLength: Int, reservedPrefixLength: Int = 0): String {

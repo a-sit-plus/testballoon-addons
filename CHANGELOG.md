@@ -1,6 +1,7 @@
 # Changelog
 
-## 0.x
+## 0.10.0
+* **Matrix testing**
 
 ### 0.9.0
 

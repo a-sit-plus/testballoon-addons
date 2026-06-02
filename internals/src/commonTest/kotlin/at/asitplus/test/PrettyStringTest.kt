@@ -42,4 +42,22 @@ val PrettyStringTest by testSuite {
         value.toPrettyString(maxLength = 2) shouldBe "…"
         value.toPrettyString(maxLength = 3) shouldBe "a…d"
     }
+
+    test("Huge ByteArray Is Bounded Before Name Truncation") {
+        val value = ByteArray(1_000) { it.toByte() }
+
+        val result = value.toPrettyString()
+
+        result.length shouldBeLessThanOrEqual 512 * 3 + 8
+        result.contains(":…:") shouldBe true
+    }
+
+    test("Huge UByteArray Is Bounded Before Name Truncation") {
+        val value = UByteArray(1_000) { it.toUByte() }
+
+        val result = value.toPrettyString()
+
+        result.length shouldBeLessThanOrEqual 512 * 3 + 8
+        result.contains(":…:") shouldBe true
+    }
 }

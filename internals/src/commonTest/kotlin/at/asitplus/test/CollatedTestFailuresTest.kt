@@ -111,4 +111,15 @@ val CollatedTestFailuresTest by testSuite {
             compactProgressHeartbeatInterval = previousInterval
         }
     }
+
+    test("compact progress heartbeat accepts explicit interval") {
+        var bodyRan = false
+
+        withCompactProgressHeartbeat(1.milliseconds, { "progress" }) {
+            delay(2.milliseconds)
+            bodyRan = true
+        }
+
+        bodyRan shouldBe true
+    }
 }

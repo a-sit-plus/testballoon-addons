@@ -1,0 +1,121 @@
+package at.asitplus.testballoon.matrix
+
+import de.infix.testBalloon.framework.core.testSuite
+import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.booleans.shouldBeFalse
+import io.kotest.matchers.booleans.shouldBeTrue
+import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.property.Arb
+import io.kotest.property.arbitrary.int
+import kotlin.coroutines.EmptyCoroutineContext
+
+val MatrixCompactReportTest by testSuite {
+
+    test("compact suite planning errors are rethrown") {
+        val matrixConfig = MatrixSuiteConfigBuilder().build()
+        val compactConfig = CompactConfigBuilder(matrixConfig).build()
+        val scope = CompactScope(matrixConfig, compactConfig)
+
+        shouldThrow<IllegalArgumentException> {
+            scope.testSuite("outer") {
+                property("invalid property", Arb.int(), iterations = -1) test {}
+            }
+        }
+    }
+
+    test("compact report frames first stack trace with dashed lines") {
+        val error = shouldThrow<AssertionError> {
+            CompactRun(
+                name = "compact",
+                config = CompactConfig(
+                    report = CompactReport.FailuresOnly,
+                    addSuppressedErrors = false,
+                    reportRows = 1,
+                    progressIndicator = Indicator.None,
+                    coroutineContext = EmptyCoroutineContext,
+                ),
+            ).apply {
+                failure(listOf("row"), AssertionError("boom"))
+                throwIfAny()
+            }
+        }
+
+        val message = error.message!!
+        message.contains("----------------------------------------").shouldBeTrue()
+        message.contains("Stack trace of first error: Failure: row").shouldBeTrue()
+        message.contains("AssertionError: boom").shouldBeTrue()
+    }
+
+    test("compact report with all rows omitted has no fake summary cause") {
+        val error = shouldThrow<AssertionError> {
+            CompactRun(
+                name = "compact",
+                config = CompactConfig(
+                    report = CompactReport.FailuresOnly,
+                    addSuppressedErrors = false,
+                    reportRows = 0,
+                    progressIndicator = Indicator.None,
+                    coroutineContext = EmptyCoroutineContext,
+                ),
+            ).apply {
+                failure(listOf("row"), AssertionError("boom"))
+                throwIfAny()
+            }
+        }
+
+        val message = error.message!!
+        message.contains("... 1 failures and 0 OKs omitted from compact report").shouldBeTrue()
+        message.contains("Stack traces omitted: all compact failures were omitted from compact report").shouldBeTrue()
+        message.contains("AssertionError: boom").shouldBeFalse()
+        error.cause.shouldBeNull()
+    }
+
+    test("compact report separates multiline failure rows") {
+        val error = shouldThrow<AssertionError> {
+            CompactRun(
+                name = "compact",
+                config = CompactConfig(
+                    report = CompactReport.FailuresOnly,
+                    addSuppressedErrors = false,
+                    reportRows = 2,
+                    progressIndicator = Indicator.None,
+                    coroutineContext = EmptyCoroutineContext,
+                ),
+            ).apply {
+                failure(listOf("row 1"), AssertionError("boom\nmore"))
+                failure(listOf("row 2"), AssertionError("bang"))
+                throwIfAny()
+            }
+        }
+
+        error.message!!.contains("boom\nmore\n\nFailure: row 2").shouldBeTrue()
+    }
+
+    test("compact report indents property replay below assertion message") {
+        val replayPath = listOf(
+            MatrixPropertyReplayFrame("first", seed = 111, iteration = 1, rowName = "1: alpha"),
+            MatrixPropertyReplayFrame("second", seed = 222, iteration = 2, rowName = "2: beta"),
+        )
+        val error = shouldThrow<AssertionError> {
+            CompactRun(
+                name = "compact",
+                config = CompactConfig(
+                    report = CompactReport.FailuresOnly,
+                    addSuppressedErrors = false,
+                    reportRows = 1,
+                    progressIndicator = Indicator.None,
+                    coroutineContext = EmptyCoroutineContext,
+                ),
+            ).apply {
+                failure(listOf("row"), AssertionError("boom").withMatrixPropertyReplay(replayPath), replayPath)
+                throwIfAny()
+            }
+        }
+
+        val message = error.message!!
+        message.contains("  error: MatrixPropertyReplayAssertion: boom\n").shouldBeTrue()
+        message.contains("    Matrix property replay: first: 1: alpha / second: 2: beta\n").shouldBeTrue()
+        message.contains("      - first: seed=111, iteration=1\n").shouldBeTrue()
+        message.contains("      - second: seed=222, iteration=2\n").shouldBeTrue()
+    }
+}
