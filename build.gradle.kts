@@ -9,6 +9,8 @@ plugins {
     alias(libs.plugins.kmp) apply false
 }
 group = "at.asitplus.testballoon"
+val artifactVersion: String by extra
+version = artifactVersion
 
 //access dokka plugin from conventions plugin's classpath in root project → no need to specify version
 apply(plugin = "org.jetbrains.dokka")
