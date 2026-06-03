@@ -22,6 +22,7 @@ fun matrixSuite(
     @TestSuitePropertyName propertyName: String = "",
     execution: ExecutionMode? = null,
     defaultPropertyIterations: Int? = null,
+    defaultCompactConcurrency: CompactConcurrency? = null,
     defaultCompactReport: CompactReport? = null,
     defaultCompactAddSuppressedErrors: Boolean? = null,
     defaultCompactReportRows: Int? = null,
@@ -33,6 +34,7 @@ fun matrixSuite(
 ) = MatrixSuiteConfigBuilder().apply {
     this.execution = execution
     this.defaultPropertyIterations = defaultPropertyIterations
+    this.defaultCompactConcurrency = defaultCompactConcurrency
     this.defaultCompactReport = defaultCompactReport
     this.defaultCompactAddSuppressedErrors = defaultCompactAddSuppressedErrors
     this.defaultCompactReportRows = defaultCompactReportRows
@@ -326,10 +328,10 @@ data class MatrixSuiteScope internal constructor(
                         progress.every,
                         { run.progressMessage() }
                     ) {
-                        runVirtualNodes(nodes, this@test, run)
+                        runCompactNodes(nodes, this@test, run)
                     }
 
-                    Indicator.None -> runVirtualNodes(nodes, this@test, run)
+                    Indicator.None -> runCompactNodes(nodes, this@test, run)
                 }
                 run.throwIfAny()
             }

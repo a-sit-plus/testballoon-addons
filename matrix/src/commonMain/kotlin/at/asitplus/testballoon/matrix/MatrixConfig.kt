@@ -12,6 +12,7 @@ import kotlin.time.Duration.Companion.seconds
 internal object MatrixTestDefaults {
     var execution: ExecutionMode = ExecutionMode.Sequential
     var defaultPropertyIterations: Int = 1000
+    var defaultCompactConcurrency: CompactConcurrency = CompactConcurrency.Layered
     var defaultCompactReport: CompactReport = CompactReport.AllCases
     var defaultCompactAddSuppressedErrors: Boolean = false
     var defaultCompactReportRows: Int = 1024
@@ -24,6 +25,15 @@ internal object MatrixTestDefaults {
 sealed interface ExecutionMode {
     data object Sequential : ExecutionMode
     data class Concurrent(val parallelism: Int= 128) : ExecutionMode {
+        init {
+            require(parallelism > 0) { "parallelism must be > 0" }
+        }
+    }
+}
+
+sealed interface CompactConcurrency {
+    data object Layered : CompactConcurrency
+    data class Shared(val parallelism: Int) : CompactConcurrency {
         init {
             require(parallelism > 0) { "parallelism must be > 0" }
         }
@@ -49,6 +59,7 @@ fun TestConfig.MatrixTestDefaults(config: MatrixSuiteConfigBuilder.() -> Unit) {
     bld.build().let { suiteConfig ->
         MatrixTestDefaults.execution = suiteConfig.execution
         MatrixTestDefaults.defaultPropertyIterations = suiteConfig.defaultPropertyIterations
+        MatrixTestDefaults.defaultCompactConcurrency = suiteConfig.defaultCompactConcurrency
         MatrixTestDefaults.defaultCompactReport = suiteConfig.defaultCompactReport
         MatrixTestDefaults.defaultCompactAddSuppressedErrors = suiteConfig.defaultCompactAddSuppressedErrors
         MatrixTestDefaults.defaultCompactReportRows = suiteConfig.defaultCompactReportRows
@@ -63,6 +74,7 @@ fun TestConfig.MatrixTestDefaults(config: MatrixSuiteConfigBuilder.() -> Unit) {
 class MatrixSuiteConfigBuilder internal constructor() {
     var execution: ExecutionMode? = null
     var defaultPropertyIterations: Int? = null
+    var defaultCompactConcurrency: CompactConcurrency? = null
     var defaultCompactReport: CompactReport? = null
     var defaultCompactAddSuppressedErrors: Boolean? = null
     var defaultCompactReportRows: Int? = null
@@ -76,6 +88,7 @@ class MatrixSuiteConfigBuilder internal constructor() {
         return MatrixSuiteConfig(
             execution = executionMode,
             defaultPropertyIterations = defaultPropertyIterations ?: MatrixTestDefaults.defaultPropertyIterations,
+            defaultCompactConcurrency = defaultCompactConcurrency ?: MatrixTestDefaults.defaultCompactConcurrency,
             defaultCompactReport = defaultCompactReport ?: MatrixTestDefaults.defaultCompactReport,
             defaultCompactAddSuppressedErrors = defaultCompactAddSuppressedErrors
                 ?: MatrixTestDefaults.defaultCompactAddSuppressedErrors,
@@ -93,6 +106,7 @@ class MatrixSuiteConfigBuilder internal constructor() {
 data class MatrixSuiteConfig internal constructor(
     val execution: ExecutionMode,
     val defaultPropertyIterations: Int,
+    val defaultCompactConcurrency: CompactConcurrency,
     val defaultCompactReport: CompactReport,
     val defaultCompactAddSuppressedErrors: Boolean,
     val defaultCompactReportRows: Int,
@@ -152,6 +166,7 @@ data class PropertyLayerConfig internal constructor(
 
 @MatrixTestDsl
 class CompactConfigBuilder internal constructor(private val parent: MatrixSuiteConfig) {
+    var concurrency: CompactConcurrency? = null
     var report: CompactReport? = null
     var addSuppressedErrors: Boolean? = null
     var reportRows: Int? = null
@@ -159,6 +174,7 @@ class CompactConfigBuilder internal constructor(private val parent: MatrixSuiteC
     var coroutineContext: CoroutineContext? = null
 
     internal fun build(): CompactConfig = CompactConfig(
+        concurrency = concurrency ?: parent.defaultCompactConcurrency,
         report = report ?: parent.defaultCompactReport,
         addSuppressedErrors = addSuppressedErrors ?: parent.defaultCompactAddSuppressedErrors,
         reportRows = reportRows ?: parent.defaultCompactReportRows,
@@ -168,6 +184,7 @@ class CompactConfigBuilder internal constructor(private val parent: MatrixSuiteC
 }
 
 data class CompactConfig internal constructor(
+    val concurrency: CompactConcurrency,
     val report: CompactReport,
     val addSuppressedErrors: Boolean,
     val reportRows: Int,

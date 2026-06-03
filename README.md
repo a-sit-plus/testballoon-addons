@@ -117,6 +117,8 @@ val dataDrivenMatrix by matrixSuite(execution = ExecutionMode.Sequential) {
 
 Layer config is written as the trailing lambda before `test` or `-`. For `data`, the most important layer option is
 `execution`, which can be `ExecutionMode.Sequential` or `ExecutionMode.Concurrent(parallelism = ...)`.
+Concurrency bounds are per layer: nested concurrent layers can multiply the number of active tests or virtual checks.
+For large compacted matrices, prefer `CompactConcurrency.Shared(n)` to use one compact-wide worker budget.
 
 ### Property Matrix Layers
 
@@ -145,6 +147,7 @@ TestBalloon test and reports the virtual rows itself.
 ```kotlin
 val compactMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
     compact("all generated checks") {
+        concurrency = CompactConcurrency.Shared(16)
         report = CompactReport.FailuresOnly
         reportRows = 256
         progressIndicator = Indicator.Heartbeat(every = 1.seconds)
@@ -161,6 +164,8 @@ val compactMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
 `CompactReport.FailuresOnly` renders only failing virtual rows, `AllCases` also renders successes, and `SummaryOnly`
 keeps the report short. `reportRows` bounds rendered row details. `addSuppressedErrors` controls whether retained
 failures are attached as suppressed exceptions. `coroutineContext` controls where compact virtual children run.
+`CompactConcurrency.Layered` keeps per-layer concurrency behaviour, while `CompactConcurrency.Shared(n)` uses one
+compact-wide worker budget so nested virtual layers cannot multiply coroutine counts.
 
 Progress heartbeats are printed separately from the final failure report, for example:
 
@@ -209,6 +214,7 @@ object ProjectTestSessionConfig : TestSession(testConfig = TestConfig.apply {
     MatrixTestDefaults {
         execution = ExecutionMode.Sequential
         defaultPropertyIterations = 250
+        defaultCompactConcurrency = CompactConcurrency.Shared(16)
         defaultCompactReport = CompactReport.FailuresOnly
         defaultCompactReportRows = 128
         defaultProgressIndicator = Indicator.Heartbeat(every = 2.seconds)

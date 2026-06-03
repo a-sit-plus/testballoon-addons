@@ -28,6 +28,7 @@ val MatrixCompactReportTest by testSuite {
             CompactRun(
                 name = "compact",
                 config = CompactConfig(
+                    concurrency = CompactConcurrency.Layered,
                     report = CompactReport.FailuresOnly,
                     addSuppressedErrors = false,
                     reportRows = 1,
@@ -51,6 +52,7 @@ val MatrixCompactReportTest by testSuite {
             CompactRun(
                 name = "compact",
                 config = CompactConfig(
+                    concurrency = CompactConcurrency.Layered,
                     report = CompactReport.FailuresOnly,
                     addSuppressedErrors = false,
                     reportRows = 0,
@@ -75,6 +77,7 @@ val MatrixCompactReportTest by testSuite {
             CompactRun(
                 name = "compact",
                 config = CompactConfig(
+                    concurrency = CompactConcurrency.Layered,
                     report = CompactReport.FailuresOnly,
                     addSuppressedErrors = false,
                     reportRows = 2,
@@ -100,6 +103,7 @@ val MatrixCompactReportTest by testSuite {
             CompactRun(
                 name = "compact",
                 config = CompactConfig(
+                    concurrency = CompactConcurrency.Layered,
                     report = CompactReport.FailuresOnly,
                     addSuppressedErrors = false,
                     reportRows = 1,

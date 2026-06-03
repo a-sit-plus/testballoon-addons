@@ -43,6 +43,7 @@ val MatrixPropertyReplayTest by testSuite {
             CompactRun(
                 name = "compact",
                 config = CompactConfig(
+                    concurrency = CompactConcurrency.Layered,
                     report = CompactReport.SummaryOnly,
                     addSuppressedErrors = false,
                     reportRows = 0,
