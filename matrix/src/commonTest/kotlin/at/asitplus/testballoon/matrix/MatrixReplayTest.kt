@@ -39,8 +39,7 @@ val MatrixReplayTest by testSuite {
     test("ReplayInput overrides the standalone seed and supplies the iteration") {
         val config = PropertyLayerConfigBuilder(MatrixSuiteConfigBuilder().build()).apply {
             seed = 1L
-            replay = ReplayInput(seed = 99L, iteration = 3L)
-        }.build()
+        }.build(replay = ReplayInput(seed = 99L, iteration = 3L))
 
         config.seed shouldBe 99L
         config.replayIteration shouldBe 3L
@@ -55,8 +54,8 @@ val MatrixReplayTest by testSuite {
 
         val message = frames.message()
         message.contains("Error replay info: prop: 3: x / data: no-index-here").shouldBeTrue()
-        message.contains("- prop: seed=7L, iteration=3L").shouldBeTrue()
-        message.contains("- data: index=5L").shouldBeTrue()
+        message.contains("- prop: replay = ReplayInput(seed=7L, iteration=3L)").shouldBeTrue()
+        message.contains("- data: replayIndex = 5L").shouldBeTrue()
     }
 }
 
@@ -69,7 +68,7 @@ private fun expectedAt(seed: Long, iteration: Int): Int =
 
 val replayReproductionReal by matrixSuite {
     val expected = expectedAt(seed = 123L, iteration = 4)
-    property("p", Arb.int(), iterations = 1000, config = { replay = ReplayInput(seed = 123L, iteration = 4L) }) test { v ->
+    property("p", Arb.int(), iterations = 1000, replay = ReplayInput(seed = 123L, iteration = 4L)) test { v ->
         v shouldBe expected
     }
 }
@@ -77,7 +76,7 @@ val replayReproductionReal by matrixSuite {
 val replayReproductionCompact by matrixSuite {
     val expected = expectedAt(seed = 123L, iteration = 4)
     compact("replayed") - {
-        property("p", Arb.int(), iterations = 1000, config = { replay = ReplayInput(seed = 123L, iteration = 4L) }) test { v ->
+        property("p", Arb.int(), iterations = 1000, replay = ReplayInput(seed = 123L, iteration = 4L)) test { v ->
             v shouldBe expected
         }
     }

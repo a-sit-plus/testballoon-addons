@@ -131,10 +131,7 @@ class DataLayerConfigBuilder internal constructor(private val parent: MatrixSuit
     var execution: ExecutionMode? = null
     var nameMaxLength: Int? = null
 
-    /** Replay: when set, this data layer yields only the case at this index (from a failure's path). */
-    var replayIndex: Long? = null
-
-    internal fun build(): DataLayerConfig = DataLayerConfig(
+    internal fun build(replayIndex: Long? = null): DataLayerConfig = DataLayerConfig(
         execution = execution ?: parent.execution,
         nameMaxLength = nameMaxLength ?: parent.defaultTestNameMaxLength,
         replayIndex = replayIndex,
@@ -161,13 +158,7 @@ class PropertyLayerConfigBuilder internal constructor(private val parent: Matrix
     var edgeConfig: EdgeConfig? = null
     var nameMaxLength: Int? = null
 
-    /**
-     * Replay: pin this layer to the single recorded case in [ReplayInput] (seed + iteration), copied
-     * from a failure's replay report. Overrides [seed].
-     */
-    var replay: ReplayInput? = null
-
-    internal fun build(): PropertyLayerConfig = PropertyLayerConfig(
+    internal fun build(replay: ReplayInput? = null): PropertyLayerConfig = PropertyLayerConfig(
         execution = execution ?: parent.execution,
         seed = replay?.seed ?: seed,
         edgeConfig = edgeConfig ?: EdgeConfig.default(),

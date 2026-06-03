@@ -32,25 +32,28 @@ class CompactScope internal constructor(
         name: String,
         values: Iterable<T>,
         nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
+        replayIndex: Long? = null,
         config: DataLayerConfigBuilder.() -> Unit = {},
-    ): CompactDataLayer<T> = CompactDataLayer(this, name, IterableDataSource(values), nameFn, config)
+    ): CompactDataLayer<T> = CompactDataLayer(this, name, IterableDataSource(values), nameFn, replayIndex, config)
 
     fun <T> data(
         name: String,
         values: Sequence<T>,
         limit: Long? = null,
         nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
+        replayIndex: Long? = null,
         config: DataLayerConfigBuilder.() -> Unit = {},
-    ): CompactDataLayer<T> = CompactDataLayer(this, name, SequenceDataSource(values, limit), nameFn, config)
+    ): CompactDataLayer<T> = CompactDataLayer(this, name, SequenceDataSource(values, limit), nameFn, replayIndex, config)
 
     internal fun <T> dataInternal(
         name: String,
         source: MatrixDataSource<T>,
         nameFn: NameFn<T>,
+        replayIndex: Long?,
         configBlock: DataLayerConfigBuilder.() -> Unit,
         body: CompactScope.(T) -> Unit,
     ) {
-        val layerConfig = DataLayerConfigBuilder(matrixConfig).apply(configBlock).build()
+        val layerConfig = DataLayerConfigBuilder(matrixConfig).apply(configBlock).build(replayIndex)
         nodes += VirtualNode.Data(
             matrixName(name),
             disabled = isMatrixDisabledName(name),
@@ -70,10 +73,11 @@ class CompactScope internal constructor(
         name: String,
         source: MatrixDataSource<T>,
         nameFn: NameFn<T>,
+        replayIndex: Long?,
         configBlock: DataLayerConfigBuilder.() -> Unit,
         body: suspend Test.ExecutionScope.(T) -> Unit,
     ) {
-        val layerConfig = DataLayerConfigBuilder(matrixConfig).apply(configBlock).build()
+        val layerConfig = DataLayerConfigBuilder(matrixConfig).apply(configBlock).build(replayIndex)
         nodes += VirtualNode.DataTest(
             matrixName(name),
             disabled = isMatrixDisabledName(name),
@@ -89,19 +93,21 @@ class CompactScope internal constructor(
         gen: Gen<T>,
         iterations: Int = matrixConfig.defaultPropertyIterations,
         nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
+        replay: ReplayInput? = null,
         config: PropertyLayerConfigBuilder.() -> Unit = {},
-    ): CompactPropertyLayer<T> = CompactPropertyLayer(this, name, gen, iterations, nameFn, config)
+    ): CompactPropertyLayer<T> = CompactPropertyLayer(this, name, gen, iterations, nameFn, replay, config)
 
     internal fun <T> propertyInternal(
         name: String,
         gen: Gen<T>,
         iterations: Int,
         nameFn: NameFn<T>,
+        replay: ReplayInput?,
         config: PropertyLayerConfigBuilder.() -> Unit,
         body: CompactScope.(T) -> Unit,
     ) {
         require(iterations >= 0) { "iterations must be >= 0" }
-        val layerConfig = PropertyLayerConfigBuilder(matrixConfig).apply(config).build()
+        val layerConfig = PropertyLayerConfigBuilder(matrixConfig).apply(config).build(replay)
         nodes += VirtualNode.Property(
             matrixName(name),
             disabled = isMatrixDisabledName(name),
@@ -123,11 +129,12 @@ class CompactScope internal constructor(
         gen: Gen<T>,
         iterations: Int,
         nameFn: NameFn<T>,
+        replay: ReplayInput?,
         config: PropertyLayerConfigBuilder.() -> Unit,
         body: suspend Test.ExecutionScope.(T) -> Unit,
     ) {
         require(iterations >= 0) { "iterations must be >= 0" }
-        val layerConfig = PropertyLayerConfigBuilder(matrixConfig).apply(config).build()
+        val layerConfig = PropertyLayerConfigBuilder(matrixConfig).apply(config).build(replay)
         nodes += VirtualNode.PropertyTest(
             matrixName(name),
             disabled = isMatrixDisabledName(name),
@@ -145,14 +152,15 @@ class CompactDataLayer<T> internal constructor(
     private val name: String,
     private val source: MatrixDataSource<T>,
     private val nameFn: NameFn<T>,
+    private val replayIndex: Long?,
     private val config: DataLayerConfigBuilder.() -> Unit,
 ) {
     operator fun minus(body: CompactScope.(T) -> Unit) {
-        scope.dataInternal(name, source, nameFn, config, body)
+        scope.dataInternal(name, source, nameFn, replayIndex, config, body)
     }
 
     infix fun test(body: suspend Test.ExecutionScope.(T) -> Unit) {
-        scope.dataTestInternal(name, source, nameFn, config, body)
+        scope.dataTestInternal(name, source, nameFn, replayIndex, config, body)
     }
 }
 
@@ -162,13 +170,14 @@ class CompactPropertyLayer<T> internal constructor(
     private val gen: Gen<T>,
     private val iterations: Int,
     private val nameFn: NameFn<T>,
+    private val replay: ReplayInput?,
     private val config: PropertyLayerConfigBuilder.() -> Unit,
 ) {
     operator fun minus(body: CompactScope.(T) -> Unit) {
-        scope.propertyInternal(name, gen, iterations, nameFn, config, body)
+        scope.propertyInternal(name, gen, iterations, nameFn, replay, config, body)
     }
 
     infix fun test(body: suspend Test.ExecutionScope.(T) -> Unit) {
-        scope.propertyTestInternal(name, gen, iterations, nameFn, config, body)
+        scope.propertyTestInternal(name, gen, iterations, nameFn, replay, config, body)
     }
 }
