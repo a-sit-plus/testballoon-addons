@@ -23,7 +23,7 @@ TestBalloon Addons started as migration helpers for people coming from Kotest. T
 compact reports look like if they were designed directly for TestBalloon's KMP-first, coroutine-first execution model?_
 
 The answer is a single DSL that keeps Kotest's excellent assertion and generator libraries, but gives TestBalloon full
-control over registration, execution, concurrency, compaction, and reporting.
+control over registration, execution, concurrency, compaction, reporting and replaying.
 
 ```kotlin
 val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
@@ -44,7 +44,7 @@ val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12
 
 <div align="center">
 
-## Demo
+## Matrix Demo
 
 ![demo.webp](docs/demo.webp)
 
@@ -73,7 +73,7 @@ val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12
 |-------------------|-------------------------------------------|
 
 **The `matrix` module provides an original, advanced, next-generation testing DSL.**  
-It may not be for the faint of heart but it combines data-driven testing,
+It may not be for the faint of heart, but it combines data-driven testing,
 property testing, FreeSpec-style names, fixture generation, concurrency controls, and compact reports – things you will need
 for truly powerful, comprehensive test suites.
 
