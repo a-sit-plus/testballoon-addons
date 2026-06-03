@@ -160,21 +160,22 @@ class PropertyLayerConfigBuilder internal constructor(private val parent: Matrix
     var edgeConfig: EdgeConfig? = null
     var nameMaxLength: Int? = null
 
-    internal fun build(replay: ReplayInput? = null): PropertyLayerConfig = PropertyLayerConfig(
+    internal fun build(replays: List<ReplayInput>? = null): PropertyLayerConfig = PropertyLayerConfig(
         execution = execution ?: parent.execution,
-        seed = replay?.seed ?: seed,
+        seed = seed,
         edgeConfig = edgeConfig ?: EdgeConfig.default(),
         nameMaxLength = nameMaxLength ?: parent.defaultTestNameMaxLength,
-        replayIterations = replay?.iterations,
+        replays = replays,
     )
 }
 
 data class PropertyLayerConfig internal constructor(
     val execution: ExecutionMode,
+    // Seed for a deterministic *full* run (ignored while replaying — each ReplayInput carries its own seed).
     val seed: Long?,
     val edgeConfig: EdgeConfig,
     val nameMaxLength: Int,
-    val replayIterations: List<Long>? = null,
+    val replays: List<ReplayInput>? = null,
 )
 
 @MatrixTestDsl

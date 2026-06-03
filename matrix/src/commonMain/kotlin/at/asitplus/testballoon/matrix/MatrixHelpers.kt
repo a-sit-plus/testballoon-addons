@@ -11,8 +11,11 @@ import kotlinx.coroutines.sync.Semaphore
 internal fun defaultLayerName(index: Long, value: Any?): String =
     "${index}: ${value.toPrettyString()}"
 
-/** One generated/enumerated case of a matrix layer, carrying its original (authoritative) index. */
-internal class Case<out T>(val index: Long, val value: T)
+/**
+ * One generated/enumerated case of a matrix layer, carrying its original (authoritative) index and,
+ * for property layers, the [seed] of the random source that produced it (`null` for data layers).
+ */
+internal class Case<out T>(val index: Long, val value: T, val seed: Long? = null)
 
 /**
  * Enumerates a data layer's cases. With [replayIndexes] set, yields only cases at those indexes
@@ -25,20 +28,40 @@ internal fun <T> MatrixDataSource<T>.cases(replayIndexes: List<Long>?): Iterator
 }
 
 /**
- * Generates a property layer's cases from [random]/[edgeConfig]. With [replayIterations] set, advances
- * the same generator and yields only cases at those indexes, exactly reproducing recorded values.
+ * Generates a property layer's cases. Normally generates [iterations] cases from a single random source
+ * (seeded by [seed], or random when null). When [replays] is set, it instead reproduces exactly the
+ * recorded cases: for each [ReplayInput] it seeds a fresh source and yields only its iterations — so a
+ * group of failures can carry several seed/iteration pairs at once. Each [Case] is tagged with its seed.
  */
 internal fun <T> propertyCases(
     gen: Gen<T>,
     iterations: Int,
-    random: RandomSource,
     edgeConfig: EdgeConfig,
-    replayIterations: List<Long>?,
+    seed: Long?,
+    replays: List<ReplayInput>?,
 ): Iterator<Case<T>> {
-    val all = gen.generate(random, edgeConfig).mapIndexed { index, sample -> Case(index.toLong(), sample.value) }
-    val selected = replayIterations?.toSet()
-    return (if (selected == null) all.take(iterations) else all.filter { it.index in selected }.take(selected.size)).iterator()
+    if (replays == null) {
+        val random = seed?.let { RandomSource.seeded(it) } ?: RandomSource.default()
+        return gen.generate(random, edgeConfig).take(iterations)
+            .mapIndexed { index, sample -> Case(index.toLong(), sample.value, random.seed) }
+            .iterator()
+    }
+    return replays.asSequence().flatMap { input ->
+        val random = RandomSource.seeded(input.seed)
+        val selected = input.iterations.toSet()
+        gen.generate(random, edgeConfig)
+            .mapIndexed { index, sample -> Case(index.toLong(), sample.value, input.seed) }
+            .filter { it.index in selected }
+            .take(selected.size)
+    }.iterator()
 }
+
+/** Number of cases a layer will run: the selected replay cases when replaying, else its full size. */
+internal fun PropertyLayerConfig.caseCount(iterations: Int): Long =
+    replays?.sumOf { it.iterations.distinct().size.toLong() } ?: iterations.toLong()
+
+internal fun DataLayerConfig.caseCount(knownSize: Long?): Long? =
+    replayIndexes?.distinct()?.size?.toLong() ?: knownSize
 
 internal fun ExecutionMode.caseLimiter(): Semaphore? =
     when (this) {

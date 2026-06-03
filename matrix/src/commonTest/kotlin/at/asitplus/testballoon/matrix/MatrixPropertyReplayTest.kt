@@ -21,8 +21,8 @@ val MatrixPropertyReplayTest by testSuite {
         val message = wrapped.message!!
         message.startsWith("boom\n    Error replay info:").shouldBeTrue()
         message.contains("    Error replay info: outer: 12: alpha / inner: 417: beta").shouldBeTrue()
-        message.contains("      - outer: seed=111L, iteration=12L").shouldBeTrue()
-        message.contains("      - inner: seed=222L, iteration=417L").shouldBeTrue()
+        message.contains("      - outer: replay = ReplayInput(seed=111L, iteration=12L)").shouldBeTrue()
+        message.contains("      - inner: replay = ReplayInput(seed=222L, iteration=417L)").shouldBeTrue()
         message.contains("boom").shouldBeTrue()
         wrapped.cause shouldBe original
     }
@@ -60,8 +60,8 @@ val MatrixPropertyReplayTest by testSuite {
         message.contains(
             "First error replay info omitted from row report: outer: 12: alpha / inner: 417: beta"
         ).shouldBeTrue()
-        message.contains("- outer: seed=111L, iteration=12L").shouldBeTrue()
-        message.contains("- inner: seed=222L, iteration=417L").shouldBeTrue()
+        message.contains("- outer: replay = ReplayInput(seed=111L, iteration=12L)").shouldBeTrue()
+        message.contains("- inner: replay = ReplayInput(seed=222L, iteration=417L)").shouldBeTrue()
         message.contains("Failure: row").shouldBeFalse()
     }
 }

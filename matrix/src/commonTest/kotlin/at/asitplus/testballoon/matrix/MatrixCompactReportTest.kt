@@ -5,6 +5,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.booleans.shouldBeFalse
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.nulls.shouldBeNull
+import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.int
 import kotlin.coroutines.EmptyCoroutineContext
@@ -117,9 +118,9 @@ val MatrixCompactReportTest by testSuite {
         }
 
         val message = error.message!!
-        message.contains("  error: MatrixPropertyReplayAssertion: boom\n").shouldBeTrue()
-        message.contains("    Error replay info: first: 1: alpha / second: 2: beta\n").shouldBeTrue()
-        message.contains("      - first: seed=111L, iteration=1L\n").shouldBeTrue()
-        message.contains("      - second: seed=222L, iteration=2L\n").shouldBeTrue()
+        message.shouldContain("  error: AssertionError: boom\n")
+        message.shouldContain("    Error replay info: first: 1: alpha / second: 2: beta\n")
+        message.shouldContain("      - first: replay = ReplayInput(seed=111L, iteration=1L)\n")
+        message.shouldContain("      - second: replay = ReplayInput(seed=222L, iteration=2L)\n")
     }
 }

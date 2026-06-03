@@ -110,21 +110,30 @@ class CompactScope internal constructor(
         gen: Gen<T>,
         iterations: Int = matrixConfig.defaultPropertyIterations,
         nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
-        replay: ReplayInput? = null,
+        replays: List<ReplayInput>? = null,
         config: PropertyLayerConfigBuilder.() -> Unit = {},
-    ): CompactPropertyLayer<T> = CompactPropertyLayer(this, name, gen, iterations, nameFn, replay, config)
+    ): CompactPropertyLayer<T> = CompactPropertyLayer(this, name, gen, iterations, nameFn, replays, config)
+
+    fun <T> property(
+        name: String,
+        gen: Gen<T>,
+        iterations: Int = matrixConfig.defaultPropertyIterations,
+        nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
+        replay: ReplayInput,
+        config: PropertyLayerConfigBuilder.() -> Unit = {},
+    ): CompactPropertyLayer<T> = property(name, gen, iterations, nameFn, listOf(replay), config)
 
     internal fun <T> propertyInternal(
         name: String,
         gen: Gen<T>,
         iterations: Int,
         nameFn: NameFn<T>,
-        replay: ReplayInput?,
+        replays: List<ReplayInput>?,
         config: PropertyLayerConfigBuilder.() -> Unit,
         body: CompactScope.(T) -> Unit,
     ) {
         require(iterations >= 0) { "iterations must be >= 0" }
-        val layerConfig = PropertyLayerConfigBuilder(matrixConfig).apply(config).build(replay)
+        val layerConfig = PropertyLayerConfigBuilder(matrixConfig).apply(config).build(replays)
         nodes += VirtualNode.Property(
             matrixName(name),
             disabled = isMatrixDisabledName(name),
@@ -146,12 +155,12 @@ class CompactScope internal constructor(
         gen: Gen<T>,
         iterations: Int,
         nameFn: NameFn<T>,
-        replay: ReplayInput?,
+        replays: List<ReplayInput>?,
         config: PropertyLayerConfigBuilder.() -> Unit,
         body: suspend Test.ExecutionScope.(T) -> Unit,
     ) {
         require(iterations >= 0) { "iterations must be >= 0" }
-        val layerConfig = PropertyLayerConfigBuilder(matrixConfig).apply(config).build(replay)
+        val layerConfig = PropertyLayerConfigBuilder(matrixConfig).apply(config).build(replays)
         nodes += VirtualNode.PropertyTest(
             matrixName(name),
             disabled = isMatrixDisabledName(name),
@@ -187,14 +196,14 @@ class CompactPropertyLayer<T> internal constructor(
     private val gen: Gen<T>,
     private val iterations: Int,
     private val nameFn: NameFn<T>,
-    private val replay: ReplayInput?,
+    private val replays: List<ReplayInput>?,
     private val config: PropertyLayerConfigBuilder.() -> Unit,
 ) {
     operator fun minus(body: CompactScope.(T) -> Unit) {
-        scope.propertyInternal(name, gen, iterations, nameFn, replay, config, body)
+        scope.propertyInternal(name, gen, iterations, nameFn, replays, config, body)
     }
 
     infix fun test(body: suspend Test.ExecutionScope.(T) -> Unit) {
-        scope.propertyTestInternal(name, gen, iterations, nameFn, replay, config, body)
+        scope.propertyTestInternal(name, gen, iterations, nameFn, replays, config, body)
     }
 }
