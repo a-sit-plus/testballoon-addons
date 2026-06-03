@@ -4,7 +4,6 @@ import at.asitplus.testballoon.truncated
 import at.asitplus.testballoon.stackTraceForCollatedReport
 import de.infix.testBalloon.framework.core.Test
 import io.kotest.property.RandomSource
-import io.kotest.property.Sample
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.joinAll
@@ -169,83 +168,17 @@ private fun StringBuilder.appendOmittedCounts(failures: Int, successes: Int) {
     append(" OKs")
 }
 
-internal suspend fun runCompactNodes(
-    nodes: List<VirtualNode>,
-    testScope: Test.ExecutionScope,
-    run: CompactRun,
-) {
-    when (val concurrency = run.config.concurrency) {
-        CompactConcurrency.Layered -> runVirtualNodes(nodes, testScope, run)
-        is CompactConcurrency.Shared -> runVirtualNodesShared(nodes, testScope, run, concurrency.parallelism)
-    }
-}
-
-internal suspend fun runVirtualNodes(
-    nodes: List<VirtualNode>,
-    testScope: Test.ExecutionScope,
-    run: CompactRun,
-    path: List<String> = emptyList(),
-    replayPath: List<MatrixPropertyReplayFrame> = emptyList(),
-) {
-    for (node in nodes) {
-        when (node) {
-            is VirtualNode.Suite -> if (!node.disabled) {
-                runVirtualNodes(node.children, testScope, run, path + node.name, replayPath)
-            }
-            is VirtualNode.DynamicSuite -> if (!node.disabled) {
-                runVirtualNodes(node.children(), testScope, run, path + node.name, replayPath)
-            }
-            is VirtualNode.Test -> {
-                if (node.disabled) continue
-                run.start()
-                try {
-                    testScope.withMatrixPropertyReplay(replayPath) { node.body(testScope) }
-                    run.success(path + node.name)
-                } catch (t: AssertionError) {
-                    run.failure(path + node.name, t, replayPath)
-                } catch (t: Throwable) {
-                    run.failure(path + node.name, t)
-                }
-            }
-
-            is VirtualNode.Data -> if (!node.disabled) runDataNode(node, testScope, run, path, replayPath)
-            is VirtualNode.DataTest -> if (!node.disabled) runDataTestNode(node, testScope, run, path, replayPath)
-            is VirtualNode.Property -> if (!node.disabled) runPropertyNode(node, testScope, run, path, replayPath)
-            is VirtualNode.PropertyTest -> if (!node.disabled) runPropertyTestNode(node, testScope, run, path, replayPath)
-        }
-    }
-}
+private typealias OnTest = suspend (
+    path: List<String>,
+    replayPath: List<MatrixPropertyReplayFrame>,
+    body: suspend Test.ExecutionScope.() -> Unit,
+) -> Unit
 
 private data class CompactWork(
     val path: List<String>,
     val replayPath: List<MatrixPropertyReplayFrame>,
     val body: suspend Test.ExecutionScope.() -> Unit,
 )
-
-private suspend fun runVirtualNodesShared(
-    nodes: List<VirtualNode>,
-    testScope: Test.ExecutionScope,
-    run: CompactRun,
-    parallelism: Int,
-) = coroutineScope {
-    val channel = Channel<CompactWork>(parallelism)
-    val producer = launch {
-        try {
-            enqueueVirtualNodes(nodes, channel, run)
-        } finally {
-            channel.close()
-        }
-    }
-    val workers = List(parallelism) {
-        launch(run.config.coroutineContext) {
-            for (work in channel) {
-                runCompactWork(work, testScope, run)
-            }
-        }
-    }
-    producer.join()
-    workers.joinAll()
-}
 
 private suspend fun runCompactWork(
     work: CompactWork,
@@ -263,285 +196,161 @@ private suspend fun runCompactWork(
     }
 }
 
-private suspend fun enqueueVirtualNodes(
+internal suspend fun runCompactNodes(
     nodes: List<VirtualNode>,
-    channel: Channel<CompactWork>,
+    testScope: Test.ExecutionScope,
+    run: CompactRun,
+) {
+    when (val concurrency = run.config.concurrency) {
+        CompactConcurrency.Layered -> traverseVirtualNodes(
+            nodes, run, respectLayerConcurrency = true,
+        ) { path, replayPath, body ->
+            run.start()
+            try {
+                testScope.withMatrixPropertyReplay(replayPath) { body(testScope) }
+                run.success(path)
+            } catch (t: AssertionError) {
+                run.failure(path, t, replayPath)
+            } catch (t: Throwable) {
+                run.failure(path, t)
+            }
+        }
+        is CompactConcurrency.Shared -> coroutineScope {
+            val channel = Channel<CompactWork>(concurrency.parallelism)
+            val producer = launch {
+                try {
+                    traverseVirtualNodes(nodes, run, respectLayerConcurrency = false) { path, replayPath, body ->
+                        channel.send(CompactWork(path, replayPath, body))
+                    }
+                } finally {
+                    channel.close()
+                }
+            }
+            val workers = List(concurrency.parallelism) {
+                launch(run.config.coroutineContext) {
+                    for (work in channel) runCompactWork(work, testScope, run)
+                }
+            }
+            producer.join()
+            workers.joinAll()
+        }
+    }
+}
+
+private suspend fun traverseVirtualNodes(
+    nodes: List<VirtualNode>,
     run: CompactRun,
     path: List<String> = emptyList(),
     replayPath: List<MatrixPropertyReplayFrame> = emptyList(),
+    respectLayerConcurrency: Boolean,
+    onTest: OnTest,
 ) {
+    // In Shared mode a single worker pool bounds total concurrency, so layers iterate
+    // sequentially and let the pool parallelize; in Layered mode each layer honors its own setting.
+    fun layerExecution(mode: ExecutionMode) = if (respectLayerConcurrency) mode else ExecutionMode.Sequential
+
     for (node in nodes) {
         when (node) {
-            is VirtualNode.Suite -> if (!node.disabled) {
-                enqueueVirtualNodes(node.children, channel, run, path + node.name, replayPath)
+            is VirtualNode.Suite -> if (!node.disabled)
+                traverseVirtualNodes(node.children, run, path + node.name, replayPath, respectLayerConcurrency, onTest)
+            is VirtualNode.DynamicSuite -> if (!node.disabled)
+                traverseVirtualNodes(node.children(), run, path + node.name, replayPath, respectLayerConcurrency, onTest)
+            is VirtualNode.Test -> if (!node.disabled)
+                onTest(path + node.name, replayPath, node.body)
+
+            is VirtualNode.Data -> if (!node.disabled) traverseLayer(
+                run, node.source.knownSize, node.source.open(), node.name, node.layerConfig.nameMaxLength,
+                node.nameFn, frameOf = null, layerExecution(node.layerConfig.execution), path, replayPath, valueOf = { it },
+            ) { childPath, childReplay, value ->
+                traverseVirtualNodes(node.body(value), run, childPath, childReplay, respectLayerConcurrency, onTest)
             }
-
-            is VirtualNode.DynamicSuite -> if (!node.disabled) {
-                enqueueVirtualNodes(node.children(), channel, run, path + node.name, replayPath)
+            is VirtualNode.DataTest -> if (!node.disabled) traverseLayer(
+                run, node.source.knownSize, node.source.open(), node.name, node.layerConfig.nameMaxLength,
+                node.nameFn, frameOf = null, layerExecution(node.layerConfig.execution), path, replayPath, valueOf = { it },
+            ) { childPath, childReplay, value ->
+                onTest(childPath, childReplay) { node.body(this, value) }
             }
-
-            is VirtualNode.Test -> if (!node.disabled) {
-                channel.send(CompactWork(path + node.name, replayPath, node.body))
+            is VirtualNode.Property -> if (!node.disabled) {
+                val random = node.layerConfig.seed?.let { RandomSource.seeded(it) } ?: RandomSource.default()
+                traverseLayer(
+                    run, node.iterations.toLong(),
+                    node.gen.generate(random, node.layerConfig.edgeConfig).take(node.iterations).iterator(),
+                    node.name, node.layerConfig.nameMaxLength, node.nameFn,
+                    frameOf = { index, rawName -> MatrixPropertyReplayFrame(node.name, random.seed, index, rawName) },
+                    layerExecution(node.layerConfig.execution), path, replayPath, valueOf = { it.value },
+                ) { childPath, childReplay, value ->
+                    traverseVirtualNodes(node.body(value), run, childPath, childReplay, respectLayerConcurrency, onTest)
+                }
             }
-
-            is VirtualNode.Data -> if (!node.disabled) enqueueDataNode(node, channel, run, path, replayPath)
-            is VirtualNode.DataTest -> if (!node.disabled) enqueueDataTestNode(node, channel, run, path, replayPath)
-            is VirtualNode.Property -> if (!node.disabled) enqueuePropertyNode(node, channel, run, path, replayPath)
-            is VirtualNode.PropertyTest -> if (!node.disabled) enqueuePropertyTestNode(node, channel, run, path, replayPath)
-        }
-    }
-}
-
-private suspend fun enqueueDataNode(
-    node: VirtualNode.Data,
-    channel: Channel<CompactWork>,
-    run: CompactRun,
-    path: List<String>,
-    replayPath: List<MatrixPropertyReplayFrame>,
-) {
-    run.addSourceCases(node.source.knownSize)
-    val iterator = node.source.open()
-    var index = 0L
-    while (iterator.hasNext()) {
-        val value = iterator.next()
-        val rawName = node.nameFn(index, value).truncated(node.layerConfig.nameMaxLength)
-        val name = "${node.name}: $rawName"
-        enqueueVirtualNodes(node.body(value), channel, run, path + name, replayPath)
-        index++
-    }
-}
-
-private suspend fun enqueueDataTestNode(
-    node: VirtualNode.DataTest,
-    channel: Channel<CompactWork>,
-    run: CompactRun,
-    path: List<String>,
-    replayPath: List<MatrixPropertyReplayFrame>,
-) {
-    run.addSourceCases(node.source.knownSize)
-    val iterator = node.source.open()
-    var index = 0L
-    while (iterator.hasNext()) {
-        val value = iterator.next()
-        val rawName = node.nameFn(index, value).truncated(node.layerConfig.nameMaxLength)
-        val name = "${node.name}: $rawName"
-        channel.send(CompactWork(path + name, replayPath) { node.body(this, value) })
-        index++
-    }
-}
-
-private suspend fun enqueuePropertyNode(
-    node: VirtualNode.Property,
-    channel: Channel<CompactWork>,
-    run: CompactRun,
-    path: List<String>,
-    replayPath: List<MatrixPropertyReplayFrame>,
-) {
-    val random = node.layerConfig.seed?.let { RandomSource.seeded(it) } ?: RandomSource.default()
-    val seed = random.seed
-    run.addSourceCases(node.iterations.toLong())
-    val iterator = node.gen.generate(random, node.layerConfig.edgeConfig).take(node.iterations).iterator()
-    var index = 0L
-    while (iterator.hasNext()) {
-        val sample = iterator.next()
-        val value = sample.value
-        val rawName = node.nameFn(index, value).truncated(node.layerConfig.nameMaxLength)
-        val name = "${node.name}: $rawName"
-        val frame = MatrixPropertyReplayFrame(node.name, seed, index, rawName)
-        enqueueVirtualNodes(node.body(value), channel, run, path + name, replayPath + frame)
-        index++
-    }
-}
-
-private suspend fun enqueuePropertyTestNode(
-    node: VirtualNode.PropertyTest,
-    channel: Channel<CompactWork>,
-    run: CompactRun,
-    path: List<String>,
-    replayPath: List<MatrixPropertyReplayFrame>,
-) {
-    val random = node.layerConfig.seed?.let { RandomSource.seeded(it) } ?: RandomSource.default()
-    val seed = random.seed
-    run.addSourceCases(node.iterations.toLong())
-    val iterator = node.gen.generate(random, node.layerConfig.edgeConfig).take(node.iterations).iterator()
-    var index = 0L
-    while (iterator.hasNext()) {
-        val sample = iterator.next()
-        val value = sample.value
-        val rawName = node.nameFn(index, value).truncated(node.layerConfig.nameMaxLength)
-        val name = "${node.name}: $rawName"
-        val frame = MatrixPropertyReplayFrame(node.name, seed, index, rawName)
-        val currentReplayPath = replayPath + frame
-        channel.send(CompactWork(path + name, currentReplayPath) { node.body(this, value) })
-        index++
-    }
-}
-
-private suspend fun runDataNode(
-    node: VirtualNode.Data,
-    testScope: Test.ExecutionScope,
-    run: CompactRun,
-    path: List<String>,
-    replayPath: List<MatrixPropertyReplayFrame>,
-) {
-    run.addSourceCases(node.source.knownSize)
-    val iterator = node.source.open()
-    suspend fun runOne(index: Long, value: Any?) {
-        val rawName = node.nameFn(index, value).truncated(node.layerConfig.nameMaxLength)
-        val name = "${node.name}: $rawName"
-        runVirtualNodes(node.body(value), testScope, run, path + name, replayPath)
-    }
-    when (val execution = node.layerConfig.execution) {
-        ExecutionMode.Sequential -> {
-            var index = 0L
-            while (iterator.hasNext()) {
-                runOne(index, iterator.next())
-                index++
+            is VirtualNode.PropertyTest -> if (!node.disabled) {
+                val random = node.layerConfig.seed?.let { RandomSource.seeded(it) } ?: RandomSource.default()
+                traverseLayer(
+                    run, node.iterations.toLong(),
+                    node.gen.generate(random, node.layerConfig.edgeConfig).take(node.iterations).iterator(),
+                    node.name, node.layerConfig.nameMaxLength, node.nameFn,
+                    frameOf = { index, rawName -> MatrixPropertyReplayFrame(node.name, random.seed, index, rawName) },
+                    layerExecution(node.layerConfig.execution), path, replayPath, valueOf = { it.value },
+                ) { childPath, childReplay, value ->
+                    onTest(childPath, childReplay) { node.body(this, value) }
+                }
             }
         }
-
-        is ExecutionMode.Concurrent -> iterator.forEachConcurrentBounded(
-            execution.parallelism,
-            run.config.coroutineContext,
-            ::runOne
-        )
     }
 }
 
-private suspend fun runDataTestNode(
-    node: VirtualNode.DataTest,
-    testScope: Test.ExecutionScope,
+/**
+ * Iterates one matrix layer, building each case's name/replay path and handing the resulting
+ * value to [visit] (which either recurses into child nodes or emits a leaf test). The only
+ * differences between data and property layers are captured by [valueOf] (unwrapping a sample)
+ * and [frameOf] (recording a property replay frame; `null` for data layers).
+ */
+private suspend fun <T> traverseLayer(
     run: CompactRun,
+    sourceCases: Long?,
+    samples: Iterator<T>,
+    layerName: String,
+    nameMaxLength: Int,
+    nameOf: NameFn<Any?>,
+    frameOf: ((index: Long, rawName: String) -> MatrixPropertyReplayFrame)?,
+    execution: ExecutionMode,
     path: List<String>,
     replayPath: List<MatrixPropertyReplayFrame>,
+    valueOf: (T) -> Any?,
+    visit: suspend (path: List<String>, replayPath: List<MatrixPropertyReplayFrame>, value: Any?) -> Unit,
 ) {
-    run.addSourceCases(node.source.knownSize)
-    val iterator = node.source.open()
-    suspend fun runOne(index: Long, value: Any?) {
-        val rawName = node.nameFn(index, value).truncated(node.layerConfig.nameMaxLength)
-        val name = "${node.name}: $rawName"
-        run.start()
-        try {
-            testScope.withMatrixPropertyReplay(replayPath) { node.body(testScope, value) }
-            run.success(path + name)
-        } catch (t: AssertionError) {
-            run.failure(path + name, t, replayPath)
-        } catch (t: Throwable) {
-            run.failure(path + name, t)
-        }
-    }
-    when (val execution = node.layerConfig.execution) {
-        ExecutionMode.Sequential -> {
-            var index = 0L
-            while (iterator.hasNext()) {
-                runOne(index, iterator.next())
-                index++
-            }
-        }
-
-        is ExecutionMode.Concurrent -> iterator.forEachConcurrentBounded(
-            execution.parallelism,
-            run.config.coroutineContext,
-            ::runOne
-        )
+    run.addSourceCases(sourceCases)
+    samples.forEachCase(execution, run.config.coroutineContext) { index, sample ->
+        val value = valueOf(sample)
+        val rawName = nameOf(index, value).truncated(nameMaxLength)
+        val childReplay = frameOf?.let { replayPath + it(index, rawName) } ?: replayPath
+        visit(path + "$layerName: $rawName", childReplay, value)
     }
 }
 
-private suspend fun runPropertyNode(
-    node: VirtualNode.Property,
-    testScope: Test.ExecutionScope,
-    run: CompactRun,
-    path: List<String>,
-    replayPath: List<MatrixPropertyReplayFrame>,
-) {
-    val random = node.layerConfig.seed?.let { RandomSource.seeded(it) } ?: RandomSource.default()
-    val seed = random.seed
-    run.addSourceCases(node.iterations.toLong())
-    val iterator = node.gen.generate(random, node.layerConfig.edgeConfig).take(node.iterations).iterator()
-    suspend fun runOne(index: Long, sample: Sample<Any?>) {
-        val value = sample.value
-        val rawName = node.nameFn(index, value).truncated(node.layerConfig.nameMaxLength)
-        val name = "${node.name}: $rawName"
-        val frame = MatrixPropertyReplayFrame(node.name, seed, index, rawName)
-        runVirtualNodes(node.body(value), testScope, run, path + name, replayPath + frame)
-    }
-    when (val execution = node.layerConfig.execution) {
-        ExecutionMode.Sequential -> {
-            var index = 0L
-            while (iterator.hasNext()) {
-                runOne(index, iterator.next())
-                index++
-            }
-        }
-
-        is ExecutionMode.Concurrent -> iterator.forEachConcurrentBounded(
-            execution.parallelism,
-            run.config.coroutineContext,
-            ::runOne
-        )
-    }
-}
-
-private suspend fun runPropertyTestNode(
-    node: VirtualNode.PropertyTest,
-    testScope: Test.ExecutionScope,
-    run: CompactRun,
-    path: List<String>,
-    replayPath: List<MatrixPropertyReplayFrame>,
-) {
-    val random = node.layerConfig.seed?.let { RandomSource.seeded(it) } ?: RandomSource.default()
-    val seed = random.seed
-    run.addSourceCases(node.iterations.toLong())
-    val iterator = node.gen.generate(random, node.layerConfig.edgeConfig).take(node.iterations).iterator()
-    suspend fun runOne(index: Long, sample: Sample<Any?>) {
-        val value = sample.value
-        val rawName = node.nameFn(index, value).truncated(node.layerConfig.nameMaxLength)
-        val name = "${node.name}: $rawName"
-        val frame = MatrixPropertyReplayFrame(node.name, seed, index, rawName)
-        val currentReplayPath = replayPath + frame
-        run.start()
-        try {
-            testScope.withMatrixPropertyReplay(currentReplayPath) { node.body(testScope, value) }
-            run.success(path + name)
-        } catch (t: AssertionError) {
-            run.failure(path + name, t, currentReplayPath)
-        } catch (t: Throwable) {
-            run.failure(path + name, t)
-        }
-    }
-    when (val execution = node.layerConfig.execution) {
-        ExecutionMode.Sequential -> {
-            var index = 0L
-            while (iterator.hasNext()) {
-                runOne(index, iterator.next())
-                index++
-            }
-        }
-
-        is ExecutionMode.Concurrent -> iterator.forEachConcurrentBounded(
-            execution.parallelism,
-            run.config.coroutineContext,
-            ::runOne
-        )
-    }
-}
-
-private suspend fun <T> Iterator<T>.forEachConcurrentBounded(
-    parallelism: Int,
+/** Drives [body] over the iterator either sequentially or with a bounded worker pool. */
+private suspend fun <T> Iterator<T>.forEachCase(
+    execution: ExecutionMode,
     coroutineContext: CoroutineContext,
     body: suspend (Long, T) -> Unit,
-) = coroutineScope {
-    val iteratorMutex = Mutex()
-    var index = 0L
-    val workers = List(parallelism) {
-        launch(coroutineContext) {
-            while (true) {
-                val nextItem = iteratorMutex.withLock {
-                    if (!hasNext()) null else (index++ to next())
-                } ?: return@launch
-                body(nextItem.first, nextItem.second)
-            }
+) {
+    when (execution) {
+        ExecutionMode.Sequential -> {
+            var index = 0L
+            while (hasNext()) body(index++, next())
+        }
+        is ExecutionMode.Concurrent -> coroutineScope {
+            val iteratorMutex = Mutex()
+            var index = 0L
+            List(execution.parallelism) {
+                launch(coroutineContext) {
+                    while (true) {
+                        val item = iteratorMutex.withLock {
+                            if (!hasNext()) null else index++ to next()
+                        } ?: return@launch
+                        body(item.first, item.second)
+                    }
+                }
+            }.joinAll()
         }
     }
-    workers.joinAll()
 }

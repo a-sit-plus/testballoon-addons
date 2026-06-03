@@ -2,7 +2,6 @@ package at.asitplus.testballoon.matrix
 
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.comparables.shouldBeGreaterThan
-import io.kotest.matchers.comparables.shouldBeLessThan
 import io.kotest.matchers.ints.shouldBeOdd
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
@@ -163,9 +162,12 @@ val fixtureMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
 val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
     fixture { Random.nextBytes(16) } - {
         "data, properties, fixtures, and compact reports" - { fixture ->
-            data("multiplier", listOf(1, 2, 3)) - { multiplier ->
-                compact("generated checks") { report = CompactReport.FailuresOnly } - {
-                    property("offset", Arb.int(0..100), iterations = 50) test { offset ->
+            data("multiplier", listOf(0, 1, 2, 3)) - { multiplier ->
+                compact("generated checks") {
+                    report = CompactReport.AllCases
+                    concurrency = CompactConcurrency.Shared(1)
+                } - {
+                    property("offset", Arb.int(0..100), iterations = 500) test { offset ->
                         val result = fixture.size * multiplier + offset
                         result shouldBeGreaterThan 0
                     }
