@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.11.0
+
+* **Matrix testing: bounded compact concurrency**
+    * `CompactConcurrency.Shared(n)` runs a compact block through one compact-wide worker budget, so nested virtual
+      layers can no longer multiply coroutine counts; `CompactConcurrency.Layered` keeps per-layer behaviour.
+      Set it per `compact` block or via `defaultCompactConcurrency`.
+* **Matrix testing: replay failing cases**
+    * Failure reports — real test-tree leaves and compacted virtual rows alike — now include a copy-paste-ready
+      `Error replay info` block whose lines are valid `property` / `data` arguments.
+    * Pin a property layer to recorded cases with `replay = ReplayInput(seed, iteration)`, or
+      `replays = listOf(...)` for several seed/iteration pairs at once; pin a data layer with `replayIndex` /
+      `replayIndexes`. Pasting the reported lines re-runs exactly the failing case(s).
+    * `replay` is independent of a layer's `seed` (deterministic full run vs. selecting recorded cases).
+    * Replay info captures the full enclosing layer chain and records data indexes independently of `nameFn`.
+
 ## 0.10.0
 * **Matrix testing**
 

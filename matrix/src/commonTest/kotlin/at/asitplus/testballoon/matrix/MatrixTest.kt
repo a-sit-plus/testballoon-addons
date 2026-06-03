@@ -179,10 +179,10 @@ val combinedFeaturesReport by matrixSuite(execution = ExecutionMode.Concurrent(1
 
 
 val showcaseReport by matrixSuite(execution = ExecutionMode.Concurrent()) {
-    property("first", Arb.int(min = 1), iterations = 5, replay = ReplayInput(seed=4779463605442148766L, iteration=4L)) - { first ->
-        property("second", Arb.short(min = 1), iterations = 5, replay = ReplayInput(seed=-1353176301820643450L, iteration=2L)) - { second ->
-            data("third", listOf(1, 2, 3, 4, 5), replayIndex = 1L) - { third ->
-                property("fourth", Arb.byte(min = 1), iterations = 5, replay = ReplayInput(seed=5014696554795393980L, iteration=3L)) test { fourth ->
+    property("first", Arb.int(min = 1), iterations = 5, replay = ReplayInput(seed=3670123237710162097L, iteration=3L)) - { first ->
+        property("second", Arb.short(min = 1), iterations = 5, replay = ReplayInput(seed=-4301790338209125271L, iteration=4L)) - { second ->
+            data("third", listOf(1, 2, 3, 4, 5), replayIndex = 0L) - { third ->
+                property("fourth", Arb.byte(min = 1), iterations = 5, replay = ReplayInput(seed=827621822537504615L, iteration=4L)) test { fourth ->
                     (first / second / third / fourth).shouldBeLessThan(256_000)
                 }
             }

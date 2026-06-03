@@ -42,6 +42,14 @@ val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12
 }
 ```
 
+<div align="center">
+
+## Demo
+
+![demo.webp](docs/demo.webp)
+
+</div>
+
 > [!TIP]  
 > Looking for a smooth migration path from Kotest?  
 > Check out the [Coming from Kotest](#coming-from-kotest) section!
@@ -177,6 +185,49 @@ all generated checks: compact progress: 512 of 900 queued completed (1200 source
 > Compact virtual children are not real TestBalloon test elements, so virtual `test` / `testSuite` declarations and terminal
 > `data(...) test { ... }` / `property(...) test { ... }` rows inside `compact` cannot honor per-child `TestConfig`.
 > Put `TestConfig` on real matrix tests/suites outside compact, or configure the compact block itself.
+
+### Replaying Failures
+
+Every matrix failure — a real test-tree leaf or a compacted virtual row — carries an **`Error replay info`**
+block whose detail lines are valid `property` / `data` arguments. Copy them back onto the failing layers and the
+matrix re-runs exactly those cases.
+
+```
+at.asitplus.AssertionError: 360888 should be < 256000
+    Error replay info: first: 4: 2018089192 / second: 2: 2796 / third: 1: 2 / fourth: 3: 1
+      - first:  replay = ReplayInput(seed=4779463605442148766L, iteration=4L)
+      - second: replay = ReplayInput(seed=-1353176301820643450L, iteration=2L)
+      - third:  replayIndex = 1L
+      - fourth: replay = ReplayInput(seed=5014696554795393980L, iteration=3L)
+```
+
+Paste the text after each layer name into that layer's call:
+
+```kotlin
+val replay by matrixSuite {
+    property("first", Arb.int(), replay = ReplayInput(seed=4779463605442148766L, iteration=4L)) - { first ->
+        property("second", Arb.double(), replay = ReplayInput(seed=-1353176301820643450L, iteration=2L)) - { second ->
+            data("third", listOf(1, 2, 3, 4, 5), replayIndex = 1L) - { third ->
+                property("fourth", Arb.byte(), replay = ReplayInput(seed=5014696554795393980L, iteration=3L)) test { fourth ->
+                    // now runs only the single failing combination
+                }
+            }
+        }
+    }
+}
+```
+
+Each pinned layer collapses to just the recorded case, so the whole matrix narrows to the failing leaf.
+
+* **Property layers** take `replay = ReplayInput(seed, iteration)` for one case (what the report prints), or
+  `replays = listOf(ReplayInput(...), ...)` to reproduce several recorded cases — each with its own seed — at once.
+* **Data layers** take `replayIndex = n` (printed), or `replayIndexes = listOf(...)` for several. Data is
+  deterministic, so only the index is needed.
+* A layer's `replay` / `replayIndex` is independent of its `seed`: `seed` pins a deterministic *full* run, while
+  `replay` selects specific recorded cases (which carry their own seeds).
+
+Replay info inherits the enclosing layers' frames, so a compacted leaf records the full chain (outer real layers
+included), and the data index is recorded even when a custom `nameFn` omits it from the displayed name.
 
 ### Fixtures
 
