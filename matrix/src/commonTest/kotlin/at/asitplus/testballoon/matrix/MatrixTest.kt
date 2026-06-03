@@ -2,7 +2,7 @@ package at.asitplus.testballoon.matrix
 
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.comparables.shouldBeGreaterThan
-import io.kotest.matchers.ints.shouldBeOdd
+import io.kotest.matchers.ints.shouldBeLessThan
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -177,24 +177,13 @@ val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12
     }
 }
 
-val propMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
-    property("first", Arb.int(), iterations = 10) {replay= ReplayInput (seed=-1272159868248889892L, iteration=0)} - { first ->
-        "foorst" {
-            first shouldBe 0
-        }
-        property("second", Arb.double(), iterations = 10) {replay= ReplayInput(seed=-5492992884210636114L, iteration=1L) } - { second ->
-            "soocond" {
-                second shouldBe 0
-            }
-            data("intermed",listOf(1,2,34,0,5), nameFn = {_,it->"it: $it"}) - { intermed->
 
-                compact("third") - {
-                    property("third", Arb.float(), iterations = 10) test { third ->
-
-                        third.toInt().shouldBeOdd()
-
-                        intermed shouldBe 0
-                    }
+val showcaseMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
+    property("first", Arb.int(min = 1), iterations = 5) {replay = ReplayInput(seed=4779463605442148766L, iteration=4L)} - { first ->
+        property("second", Arb.short(min = 1), iterations = 5) {replay = ReplayInput(seed=-1353176301820643450L, iteration=2L)} - { second ->
+            data("third", listOf(1, 2, 3, 4, 5)) {replayIndex = 1L} - { third ->
+                property("fourth", Arb.byte(min = 1), iterations = 5) {replay = ReplayInput(seed=5014696554795393980L, iteration=3L)} test { fourth ->
+                    (first / second / third / fourth).shouldBeLessThan(256_000)
                 }
             }
         }

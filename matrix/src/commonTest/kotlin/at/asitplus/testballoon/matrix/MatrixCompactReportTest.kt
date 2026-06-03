@@ -96,8 +96,8 @@ val MatrixCompactReportTest by testSuite {
 
     test("compact report indents property replay below assertion message") {
         val replayPath = listOf(
-            MatrixPropertyReplayFrame("first", seed = 111, iteration = 1, rowName = "1: alpha"),
-            MatrixPropertyReplayFrame("second", seed = 222, iteration = 2, rowName = "2: beta"),
+            MatrixReplayFrame.Property("first", seed = 111, iteration = 1, rowName = "1: alpha"),
+            MatrixReplayFrame.Property("second", seed = 222, iteration = 2, rowName = "2: beta"),
         )
         val error = shouldThrow<AssertionError> {
             CompactRun(
@@ -111,15 +111,15 @@ val MatrixCompactReportTest by testSuite {
                     coroutineContext = EmptyCoroutineContext,
                 ),
             ).apply {
-                failure(listOf("row"), AssertionError("boom").withMatrixPropertyReplay(replayPath), replayPath)
+                failure(listOf("row"), AssertionError("boom").withMatrixReplay(replayPath), replayPath)
                 throwIfAny()
             }
         }
 
         val message = error.message!!
         message.contains("  error: MatrixPropertyReplayAssertion: boom\n").shouldBeTrue()
-        message.contains("    Matrix property replay: first: 1: alpha / second: 2: beta\n").shouldBeTrue()
-        message.contains("      - first: seed=111, iteration=1\n").shouldBeTrue()
-        message.contains("      - second: seed=222, iteration=2\n").shouldBeTrue()
+        message.contains("    Error replay info: first: 1: alpha / second: 2: beta\n").shouldBeTrue()
+        message.contains("      - first: seed=111L, iteration=1L\n").shouldBeTrue()
+        message.contains("      - second: seed=222L, iteration=2L\n").shouldBeTrue()
     }
 }

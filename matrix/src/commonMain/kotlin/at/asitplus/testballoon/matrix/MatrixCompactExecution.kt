@@ -15,7 +15,7 @@ import kotlin.coroutines.CoroutineContext
 internal data class CompactFailure(
     internal val path: List<String>,
     val error: Throwable,
-    val replayPath: List<MatrixPropertyReplayFrame>,
+    val replayPath: List<MatrixReplayFrame>,
 )
 
 internal class CompactRun(
@@ -31,7 +31,7 @@ internal class CompactRun(
     private var sourceCaseCount = 0L
     private var omittedFailures = 0
     private var omittedSuccesses = 0
-    private var firstOmittedReplayPath: List<MatrixPropertyReplayFrame> = emptyList()
+    private var firstOmittedReplayPath: List<MatrixReplayFrame> = emptyList()
     private val failureDetails = mutableListOf<CompactFailure>()
 
     suspend fun start() = mutex.withLock { started += 1 }
@@ -62,7 +62,7 @@ internal class CompactRun(
     suspend fun failure(
         path: List<String>,
         error: Throwable,
-        replayPath: List<MatrixPropertyReplayFrame> = emptyList(),
+        replayPath: List<MatrixReplayFrame> = emptyList(),
     ) = mutex.withLock {
         failureCount += 1
         completed += 1
@@ -119,7 +119,7 @@ internal class CompactRun(
                 appendLine(" omitted from compact report")
             }
             if (firstOmittedReplayPath.isNotEmpty()) {
-                appendLine(firstOmittedReplayPath.message("First matrix property replay omitted from row report:"))
+                appendLine(firstOmittedReplayPath.message("First error replay info omitted from row report:"))
             }
             appendLine("----------------------------------------")
             val first = failureDetails.firstOrNull()
@@ -170,13 +170,13 @@ private fun StringBuilder.appendOmittedCounts(failures: Int, successes: Int) {
 
 private typealias OnTest = suspend (
     path: List<String>,
-    replayPath: List<MatrixPropertyReplayFrame>,
+    replayPath: List<MatrixReplayFrame>,
     body: suspend Test.ExecutionScope.() -> Unit,
 ) -> Unit
 
 private data class CompactWork(
     val path: List<String>,
-    val replayPath: List<MatrixPropertyReplayFrame>,
+    val replayPath: List<MatrixReplayFrame>,
     val body: suspend Test.ExecutionScope.() -> Unit,
 )
 
@@ -187,7 +187,7 @@ private suspend fun runCompactWork(
 ) {
     run.start()
     try {
-        testScope.withMatrixPropertyReplay(work.replayPath) { work.body(testScope) }
+        testScope.withMatrixReplay(work.replayPath) { work.body(testScope) }
         run.success(work.path)
     } catch (t: AssertionError) {
         run.failure(work.path, t, work.replayPath)
@@ -200,7 +200,7 @@ internal suspend fun runCompactNodes(
     nodes: List<VirtualNode>,
     testScope: Test.ExecutionScope,
     run: CompactRun,
-    replayPath: List<MatrixPropertyReplayFrame> = emptyList(),
+    replayPath: List<MatrixReplayFrame> = emptyList(),
 ) {
     when (val concurrency = run.config.concurrency) {
         CompactConcurrency.Layered -> traverseVirtualNodes(
@@ -208,7 +208,7 @@ internal suspend fun runCompactNodes(
         ) { path, replay, body ->
             run.start()
             try {
-                testScope.withMatrixPropertyReplay(replay) { body(testScope) }
+                testScope.withMatrixReplay(replay) { body(testScope) }
                 run.success(path)
             } catch (t: AssertionError) {
                 run.failure(path, t, replay)
@@ -242,7 +242,7 @@ private suspend fun traverseVirtualNodes(
     nodes: List<VirtualNode>,
     run: CompactRun,
     path: List<String> = emptyList(),
-    replayPath: List<MatrixPropertyReplayFrame> = emptyList(),
+    replayPath: List<MatrixReplayFrame> = emptyList(),
     respectLayerConcurrency: Boolean,
     onTest: OnTest,
 ) {
@@ -261,14 +261,16 @@ private suspend fun traverseVirtualNodes(
 
             is VirtualNode.Data -> if (!node.disabled) traverseLayer(
                 run, node.layerConfig.replayCases(node.source.knownSize), node.source.cases(node.layerConfig.replayIndex),
-                node.name, node.layerConfig.nameMaxLength, node.nameFn, frameOf = null,
+                node.name, node.layerConfig.nameMaxLength, node.nameFn,
+                frameOf = { index, rawName -> MatrixReplayFrame.Data(node.name, index, rawName) },
                 layerExecution(node.layerConfig.execution), path, replayPath,
             ) { childPath, childReplay, value ->
                 traverseVirtualNodes(node.body(value), run, childPath, childReplay, respectLayerConcurrency, onTest)
             }
             is VirtualNode.DataTest -> if (!node.disabled) traverseLayer(
                 run, node.layerConfig.replayCases(node.source.knownSize), node.source.cases(node.layerConfig.replayIndex),
-                node.name, node.layerConfig.nameMaxLength, node.nameFn, frameOf = null,
+                node.name, node.layerConfig.nameMaxLength, node.nameFn,
+                frameOf = { index, rawName -> MatrixReplayFrame.Data(node.name, index, rawName) },
                 layerExecution(node.layerConfig.execution), path, replayPath,
             ) { childPath, childReplay, value ->
                 onTest(childPath, childReplay) { node.body(this, value) }
@@ -279,7 +281,7 @@ private suspend fun traverseVirtualNodes(
                     run, node.layerConfig.replayCases(node.iterations.toLong()),
                     propertyCases(node.gen, node.iterations, random, node.layerConfig.edgeConfig, node.layerConfig.replayIteration),
                     node.name, node.layerConfig.nameMaxLength, node.nameFn,
-                    frameOf = { index, rawName -> MatrixPropertyReplayFrame(node.name, random.seed, index, rawName) },
+                    frameOf = { index, rawName -> MatrixReplayFrame.Property(node.name, random.seed, index, rawName) },
                     layerExecution(node.layerConfig.execution), path, replayPath,
                 ) { childPath, childReplay, value ->
                     traverseVirtualNodes(node.body(value), run, childPath, childReplay, respectLayerConcurrency, onTest)
@@ -291,7 +293,7 @@ private suspend fun traverseVirtualNodes(
                     run, node.layerConfig.replayCases(node.iterations.toLong()),
                     propertyCases(node.gen, node.iterations, random, node.layerConfig.edgeConfig, node.layerConfig.replayIteration),
                     node.name, node.layerConfig.nameMaxLength, node.nameFn,
-                    frameOf = { index, rawName -> MatrixPropertyReplayFrame(node.name, random.seed, index, rawName) },
+                    frameOf = { index, rawName -> MatrixReplayFrame.Property(node.name, random.seed, index, rawName) },
                     layerExecution(node.layerConfig.execution), path, replayPath,
                 ) { childPath, childReplay, value ->
                     onTest(childPath, childReplay) { node.body(this, value) }
@@ -306,9 +308,9 @@ private fun DataLayerConfig.replayCases(knownSize: Long?): Long? = if (replayInd
 private fun PropertyLayerConfig.replayCases(iterations: Long): Long = if (replayIteration != null) 1L else iterations
 
 /**
- * Iterates one matrix layer's [cases], building each case's name/replay path and handing the value
- * to [visit] (which either recurses into child nodes or emits a leaf test). [frameOf] records a
- * property replay frame and is `null` for data layers.
+ * Iterates one matrix layer's [cases], building each case's name and appending its replay frame
+ * (via [frameOf]) before handing the value to [visit] (which either recurses into child nodes or
+ * emits a leaf test).
  */
 private suspend fun traverseLayer(
     run: CompactRun,
@@ -317,17 +319,16 @@ private suspend fun traverseLayer(
     layerName: String,
     nameMaxLength: Int,
     nameOf: NameFn<Any?>,
-    frameOf: ((index: Long, rawName: String) -> MatrixPropertyReplayFrame)?,
+    frameOf: (index: Long, rawName: String) -> MatrixReplayFrame,
     execution: ExecutionMode,
     path: List<String>,
-    replayPath: List<MatrixPropertyReplayFrame>,
-    visit: suspend (path: List<String>, replayPath: List<MatrixPropertyReplayFrame>, value: Any?) -> Unit,
+    replayPath: List<MatrixReplayFrame>,
+    visit: suspend (path: List<String>, replayPath: List<MatrixReplayFrame>, value: Any?) -> Unit,
 ) {
     run.addSourceCases(sourceCases)
     cases.forEachCase(execution, run.config.coroutineContext) { case ->
         val rawName = nameOf(case.index, case.value).truncated(nameMaxLength)
-        val childReplay = frameOf?.let { replayPath + it(case.index, rawName) } ?: replayPath
-        visit(path + "$layerName: $rawName", childReplay, case.value)
+        visit(path + "$layerName: $rawName", replayPath + frameOf(case.index, rawName), case.value)
     }
 }
 
