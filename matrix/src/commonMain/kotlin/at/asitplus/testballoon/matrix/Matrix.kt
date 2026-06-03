@@ -117,30 +117,47 @@ data class MatrixSuiteScope internal constructor(
         name: String,
         values: Iterable<T>,
         nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
-        replayIndex: Long? = null,
+        replayIndexes: List<Long>? = null,
         config: DataLayerConfigBuilder.() -> Unit = {},
-    ): MatrixDataLayer<T> = MatrixDataLayer(this, name, IterableDataSource(values), nameFn, replayIndex, config)
+    ): MatrixDataLayer<T> = MatrixDataLayer(this, name, IterableDataSource(values), nameFn, replayIndexes, config)
+
+    fun <T> data(
+        name: String,
+        values: Iterable<T>,
+        nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
+        replayIndex: Long,
+        config: DataLayerConfigBuilder.() -> Unit = {},
+    ): MatrixDataLayer<T> = data(name, values, nameFn, listOf(replayIndex), config)
 
     fun <T> data(
         name: String,
         values: Sequence<T>,
         limit: Long? = null,
         nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
-        replayIndex: Long? = null,
+        replayIndexes: List<Long>? = null,
         config: DataLayerConfigBuilder.() -> Unit = {},
-    ): MatrixDataLayer<T> = MatrixDataLayer(this, name, SequenceDataSource(values, limit), nameFn, replayIndex, config)
+    ): MatrixDataLayer<T> = MatrixDataLayer(this, name, SequenceDataSource(values, limit), nameFn, replayIndexes, config)
+
+    fun <T> data(
+        name: String,
+        values: Sequence<T>,
+        limit: Long? = null,
+        nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
+        replayIndex: Long,
+        config: DataLayerConfigBuilder.() -> Unit = {},
+    ): MatrixDataLayer<T> = data(name, values, limit, nameFn, listOf(replayIndex), config)
 
     internal fun <T> dataInternal(
         name: String,
         source: MatrixDataSource<T>,
         nameFn: NameFn<T>,
-        replayIndex: Long?,
+        replayIndexes: List<Long>?,
         configBlock: DataLayerConfigBuilder.() -> Unit,
         body: MatrixSuiteScope.(T) -> Unit,
     ) {
-        val layerConfig = DataLayerConfigBuilder(config).apply(configBlock).build(replayIndex)
+        val layerConfig = DataLayerConfigBuilder(config).apply(configBlock).build(replayIndexes)
         val strippedName = matrixName(name)
-        val iterator = source.cases(layerConfig.replayIndex)
+        val iterator = source.cases(layerConfig.replayIndexes)
         val dataConfig = config.copy(execution = layerConfig.execution)
         val caseLimiter = layerConfig.execution.caseLimiter()
         val caseTestConfig = dataConfig.testConfig.boundBy(caseLimiter)
@@ -176,13 +193,13 @@ data class MatrixSuiteScope internal constructor(
         name: String,
         source: MatrixDataSource<T>,
         nameFn: NameFn<T>,
-        replayIndex: Long?,
+        replayIndexes: List<Long>?,
         configBlock: DataLayerConfigBuilder.() -> Unit,
         body: suspend Test.ExecutionScope.(T) -> Unit,
     ) {
-        val layerConfig = DataLayerConfigBuilder(config).apply(configBlock).build(replayIndex)
+        val layerConfig = DataLayerConfigBuilder(config).apply(configBlock).build(replayIndexes)
         val strippedName = matrixName(name)
-        val iterator = source.cases(layerConfig.replayIndex)
+        val iterator = source.cases(layerConfig.replayIndexes)
         val dataConfig = config.copy(execution = layerConfig.execution)
         val caseLimiter = layerConfig.execution.caseLimiter()
         val caseTestConfig = dataConfig.testConfig.boundBy(caseLimiter)
@@ -237,7 +254,7 @@ data class MatrixSuiteScope internal constructor(
         target.apply {
             testSuite(strippedName, testConfig = propertyConfig.testConfig.disableByMatrixName(name)) {
                 val progress = registrationProgress(strippedName, iterations.toLong(), registrationPath, registrationReporter)
-                val iterator = propertyCases(gen, iterations, random, layerConfig.edgeConfig, layerConfig.replayIteration)
+                val iterator = propertyCases(gen, iterations, random, layerConfig.edgeConfig, layerConfig.replayIterations)
                 var registered = 0L
                 progress.registered(registered)
                 while (iterator.hasNext()) {
@@ -283,7 +300,7 @@ data class MatrixSuiteScope internal constructor(
         target.apply {
             testSuite(strippedName, testConfig = propertyConfig.testConfig.disableByMatrixName(name)) {
                 val progress = registrationProgress(strippedName, iterations.toLong(), registrationPath, registrationReporter)
-                val iterator = propertyCases(gen, iterations, random, layerConfig.edgeConfig, layerConfig.replayIteration)
+                val iterator = propertyCases(gen, iterations, random, layerConfig.edgeConfig, layerConfig.replayIterations)
                 var registered = 0L
                 progress.registered(registered)
                 while (iterator.hasNext()) {
@@ -347,15 +364,15 @@ class MatrixDataLayer<T> internal constructor(
     private val name: String,
     private val source: MatrixDataSource<T>,
     private val nameFn: NameFn<T>,
-    private val replayIndex: Long?,
+    private val replayIndexes: List<Long>?,
     private val config: DataLayerConfigBuilder.() -> Unit,
 ) {
     operator fun minus(body: MatrixSuiteScope.(T) -> Unit) {
-        scope.dataInternal(name, source, nameFn, replayIndex, config, body)
+        scope.dataInternal(name, source, nameFn, replayIndexes, config, body)
     }
 
     infix fun test(body: suspend Test.ExecutionScope.(T) -> Unit) {
-        scope.dataTestInternal(name, source, nameFn, replayIndex, config, body)
+        scope.dataTestInternal(name, source, nameFn, replayIndexes, config, body)
     }
 }
 

@@ -131,25 +131,27 @@ class DataLayerConfigBuilder internal constructor(private val parent: MatrixSuit
     var execution: ExecutionMode? = null
     var nameMaxLength: Int? = null
 
-    internal fun build(replayIndex: Long? = null): DataLayerConfig = DataLayerConfig(
+    internal fun build(replayIndexes: List<Long>? = null): DataLayerConfig = DataLayerConfig(
         execution = execution ?: parent.execution,
         nameMaxLength = nameMaxLength ?: parent.defaultTestNameMaxLength,
-        replayIndex = replayIndex,
+        replayIndexes = replayIndexes,
     )
 }
 
 data class DataLayerConfig internal constructor(
     val execution: ExecutionMode,
     val nameMaxLength: Int,
-    val replayIndex: Long? = null,
+    val replayIndexes: List<Long>? = null,
 )
 
 /**
- * Coordinates to reproduce a single recorded property case, copied from a failure's replay report.
- * [seed] and [iteration] always travel together — an iteration index only reproduces a value relative
- * to the seed that generated it, so they cannot be set independently.
+ * Coordinates to reproduce recorded property cases, copied from a failure's replay report.
+ * [seed] and [iterations] always travel together — iteration indexes only reproduce values relative
+ * to the seed that generated them, so they cannot be set independently.
  */
-data class ReplayInput(val seed: Long, val iteration: Long)
+data class ReplayInput(val seed: Long, val iterations: List<Long>) {
+    constructor(seed: Long, iteration: Long) : this(seed, listOf(iteration))
+}
 
 @MatrixTestDsl
 class PropertyLayerConfigBuilder internal constructor(private val parent: MatrixSuiteConfig) {
@@ -163,7 +165,7 @@ class PropertyLayerConfigBuilder internal constructor(private val parent: Matrix
         seed = replay?.seed ?: seed,
         edgeConfig = edgeConfig ?: EdgeConfig.default(),
         nameMaxLength = nameMaxLength ?: parent.defaultTestNameMaxLength,
-        replayIteration = replay?.iteration,
+        replayIterations = replay?.iterations,
     )
 }
 
@@ -172,7 +174,7 @@ data class PropertyLayerConfig internal constructor(
     val seed: Long?,
     val edgeConfig: EdgeConfig,
     val nameMaxLength: Int,
-    val replayIteration: Long? = null,
+    val replayIterations: List<Long>? = null,
 )
 
 @MatrixTestDsl

@@ -32,28 +32,45 @@ class CompactScope internal constructor(
         name: String,
         values: Iterable<T>,
         nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
-        replayIndex: Long? = null,
+        replayIndexes: List<Long>? = null,
         config: DataLayerConfigBuilder.() -> Unit = {},
-    ): CompactDataLayer<T> = CompactDataLayer(this, name, IterableDataSource(values), nameFn, replayIndex, config)
+    ): CompactDataLayer<T> = CompactDataLayer(this, name, IterableDataSource(values), nameFn, replayIndexes, config)
+
+    fun <T> data(
+        name: String,
+        values: Iterable<T>,
+        nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
+        replayIndex: Long,
+        config: DataLayerConfigBuilder.() -> Unit = {},
+    ): CompactDataLayer<T> = data(name, values, nameFn, listOf(replayIndex), config)
 
     fun <T> data(
         name: String,
         values: Sequence<T>,
         limit: Long? = null,
         nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
-        replayIndex: Long? = null,
+        replayIndexes: List<Long>? = null,
         config: DataLayerConfigBuilder.() -> Unit = {},
-    ): CompactDataLayer<T> = CompactDataLayer(this, name, SequenceDataSource(values, limit), nameFn, replayIndex, config)
+    ): CompactDataLayer<T> = CompactDataLayer(this, name, SequenceDataSource(values, limit), nameFn, replayIndexes, config)
+
+    fun <T> data(
+        name: String,
+        values: Sequence<T>,
+        limit: Long? = null,
+        nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
+        replayIndex: Long,
+        config: DataLayerConfigBuilder.() -> Unit = {},
+    ): CompactDataLayer<T> = data(name, values, limit, nameFn, listOf(replayIndex), config)
 
     internal fun <T> dataInternal(
         name: String,
         source: MatrixDataSource<T>,
         nameFn: NameFn<T>,
-        replayIndex: Long?,
+        replayIndexes: List<Long>?,
         configBlock: DataLayerConfigBuilder.() -> Unit,
         body: CompactScope.(T) -> Unit,
     ) {
-        val layerConfig = DataLayerConfigBuilder(matrixConfig).apply(configBlock).build(replayIndex)
+        val layerConfig = DataLayerConfigBuilder(matrixConfig).apply(configBlock).build(replayIndexes)
         nodes += VirtualNode.Data(
             matrixName(name),
             disabled = isMatrixDisabledName(name),
@@ -73,11 +90,11 @@ class CompactScope internal constructor(
         name: String,
         source: MatrixDataSource<T>,
         nameFn: NameFn<T>,
-        replayIndex: Long?,
+        replayIndexes: List<Long>?,
         configBlock: DataLayerConfigBuilder.() -> Unit,
         body: suspend Test.ExecutionScope.(T) -> Unit,
     ) {
-        val layerConfig = DataLayerConfigBuilder(matrixConfig).apply(configBlock).build(replayIndex)
+        val layerConfig = DataLayerConfigBuilder(matrixConfig).apply(configBlock).build(replayIndexes)
         nodes += VirtualNode.DataTest(
             matrixName(name),
             disabled = isMatrixDisabledName(name),
@@ -152,15 +169,15 @@ class CompactDataLayer<T> internal constructor(
     private val name: String,
     private val source: MatrixDataSource<T>,
     private val nameFn: NameFn<T>,
-    private val replayIndex: Long?,
+    private val replayIndexes: List<Long>?,
     private val config: DataLayerConfigBuilder.() -> Unit,
 ) {
     operator fun minus(body: CompactScope.(T) -> Unit) {
-        scope.dataInternal(name, source, nameFn, replayIndex, config, body)
+        scope.dataInternal(name, source, nameFn, replayIndexes, config, body)
     }
 
     infix fun test(body: suspend Test.ExecutionScope.(T) -> Unit) {
-        scope.dataTestInternal(name, source, nameFn, replayIndex, config, body)
+        scope.dataTestInternal(name, source, nameFn, replayIndexes, config, body)
     }
 }
 

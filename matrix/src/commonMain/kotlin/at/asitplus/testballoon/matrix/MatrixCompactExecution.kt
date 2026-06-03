@@ -260,7 +260,7 @@ private suspend fun traverseVirtualNodes(
                 onTest(path + node.name, replayPath, node.body)
 
             is VirtualNode.Data -> if (!node.disabled) traverseLayer(
-                run, node.layerConfig.replayCases(node.source.knownSize), node.source.cases(node.layerConfig.replayIndex),
+                run, node.layerConfig.replayCases(node.source.knownSize), node.source.cases(node.layerConfig.replayIndexes),
                 node.name, node.layerConfig.nameMaxLength, node.nameFn,
                 frameOf = { index, rawName -> MatrixReplayFrame.Data(node.name, index, rawName) },
                 layerExecution(node.layerConfig.execution), path, replayPath,
@@ -268,7 +268,7 @@ private suspend fun traverseVirtualNodes(
                 traverseVirtualNodes(node.body(value), run, childPath, childReplay, respectLayerConcurrency, onTest)
             }
             is VirtualNode.DataTest -> if (!node.disabled) traverseLayer(
-                run, node.layerConfig.replayCases(node.source.knownSize), node.source.cases(node.layerConfig.replayIndex),
+                run, node.layerConfig.replayCases(node.source.knownSize), node.source.cases(node.layerConfig.replayIndexes),
                 node.name, node.layerConfig.nameMaxLength, node.nameFn,
                 frameOf = { index, rawName -> MatrixReplayFrame.Data(node.name, index, rawName) },
                 layerExecution(node.layerConfig.execution), path, replayPath,
@@ -279,7 +279,7 @@ private suspend fun traverseVirtualNodes(
                 val random = node.layerConfig.seed?.let { RandomSource.seeded(it) } ?: RandomSource.default()
                 traverseLayer(
                     run, node.layerConfig.replayCases(node.iterations.toLong()),
-                    propertyCases(node.gen, node.iterations, random, node.layerConfig.edgeConfig, node.layerConfig.replayIteration),
+                    propertyCases(node.gen, node.iterations, random, node.layerConfig.edgeConfig, node.layerConfig.replayIterations),
                     node.name, node.layerConfig.nameMaxLength, node.nameFn,
                     frameOf = { index, rawName -> MatrixReplayFrame.Property(node.name, random.seed, index, rawName) },
                     layerExecution(node.layerConfig.execution), path, replayPath,
@@ -291,7 +291,7 @@ private suspend fun traverseVirtualNodes(
                 val random = node.layerConfig.seed?.let { RandomSource.seeded(it) } ?: RandomSource.default()
                 traverseLayer(
                     run, node.layerConfig.replayCases(node.iterations.toLong()),
-                    propertyCases(node.gen, node.iterations, random, node.layerConfig.edgeConfig, node.layerConfig.replayIteration),
+                    propertyCases(node.gen, node.iterations, random, node.layerConfig.edgeConfig, node.layerConfig.replayIterations),
                     node.name, node.layerConfig.nameMaxLength, node.nameFn,
                     frameOf = { index, rawName -> MatrixReplayFrame.Property(node.name, random.seed, index, rawName) },
                     layerExecution(node.layerConfig.execution), path, replayPath,
@@ -303,9 +303,10 @@ private suspend fun traverseVirtualNodes(
     }
 }
 
-// A replaying layer contributes exactly one case to the source-case count; otherwise the layer's full size.
-private fun DataLayerConfig.replayCases(knownSize: Long?): Long? = if (replayIndex != null) 1L else knownSize
-private fun PropertyLayerConfig.replayCases(iterations: Long): Long = if (replayIteration != null) 1L else iterations
+// A replaying layer contributes its selected case count; otherwise the layer's full size.
+private fun DataLayerConfig.replayCases(knownSize: Long?): Long? = replayIndexes?.distinct()?.size?.toLong() ?: knownSize
+private fun PropertyLayerConfig.replayCases(iterations: Long): Long =
+    replayIterations?.distinct()?.size?.toLong() ?: iterations
 
 /**
  * Iterates one matrix layer's [cases], building each case's name and appending its replay frame

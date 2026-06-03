@@ -15,27 +15,29 @@ internal fun defaultLayerName(index: Long, value: Any?): String =
 internal class Case<out T>(val index: Long, val value: T)
 
 /**
- * Enumerates a data layer's cases. With [replayIndex] set, yields only the case at that index
- * (used to reproduce a single recorded failure).
+ * Enumerates a data layer's cases. With [replayIndexes] set, yields only cases at those indexes
+ * (used to reproduce recorded failures).
  */
-internal fun <T> MatrixDataSource<T>.cases(replayIndex: Long?): Iterator<Case<T>> {
+internal fun <T> MatrixDataSource<T>.cases(replayIndexes: List<Long>?): Iterator<Case<T>> {
     val all = open().asSequence().mapIndexed { index, value -> Case(index.toLong(), value) }
-    return (if (replayIndex == null) all else all.filter { it.index == replayIndex }.take(1)).iterator()
+    val selected = replayIndexes?.toSet()
+    return (if (selected == null) all else all.filter { it.index in selected }).iterator()
 }
 
 /**
- * Generates a property layer's cases from [random]/[edgeConfig]. With [replayIteration] set, advances
- * the same generator and yields only the case at that index, exactly reproducing its recorded value.
+ * Generates a property layer's cases from [random]/[edgeConfig]. With [replayIterations] set, advances
+ * the same generator and yields only cases at those indexes, exactly reproducing recorded values.
  */
 internal fun <T> propertyCases(
     gen: Gen<T>,
     iterations: Int,
     random: RandomSource,
     edgeConfig: EdgeConfig,
-    replayIteration: Long?,
+    replayIterations: List<Long>?,
 ): Iterator<Case<T>> {
     val all = gen.generate(random, edgeConfig).mapIndexed { index, sample -> Case(index.toLong(), sample.value) }
-    return (if (replayIteration == null) all.take(iterations) else all.filter { it.index == replayIteration }.take(1)).iterator()
+    val selected = replayIterations?.toSet()
+    return (if (selected == null) all.take(iterations) else all.filter { it.index in selected }.take(selected.size)).iterator()
 }
 
 internal fun ExecutionMode.caseLimiter(): Semaphore? =

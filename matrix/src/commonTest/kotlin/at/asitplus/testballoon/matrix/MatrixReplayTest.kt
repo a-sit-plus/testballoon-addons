@@ -15,9 +15,9 @@ val MatrixReplayTest by testSuite {
 
     test("propertyCases replays exactly the recorded iteration with its original value") {
         val seed = 42L
-        val full = propertyCases(Arb.int(), 50, RandomSource.seeded(seed), EdgeConfig.default(), replayIteration = null)
+        val full = propertyCases(Arb.int(), 50, RandomSource.seeded(seed), EdgeConfig.default(), replayIterations = null)
             .asSequence().toList()
-        val replayed = propertyCases(Arb.int(), 50, RandomSource.seeded(seed), EdgeConfig.default(), replayIteration = 7L)
+        val replayed = propertyCases(Arb.int(), 50, RandomSource.seeded(seed), EdgeConfig.default(), replayIterations = listOf(7L))
             .asSequence().toList()
 
         replayed shouldHaveSize 1
@@ -25,24 +25,52 @@ val MatrixReplayTest by testSuite {
         replayed.single().value shouldBe full[7].value
     }
 
+    test("propertyCases can replay multiple recorded iterations") {
+        val seed = 42L
+        val full = propertyCases(Arb.int(), 50, RandomSource.seeded(seed), EdgeConfig.default(), replayIterations = null)
+            .asSequence().toList()
+        val replayed = propertyCases(
+            Arb.int(),
+            50,
+            RandomSource.seeded(seed),
+            EdgeConfig.default(),
+            replayIterations = listOf(3L, 7L),
+        ).asSequence().toList()
+
+        replayed.map { it.index } shouldBe listOf(3L, 7L)
+        replayed.map { it.value } shouldBe listOf(full[3].value, full[7].value)
+    }
+
     test("data cases replay exactly the recorded index") {
         val source = IterableDataSource(listOf(10, 20, 30, 40))
 
-        source.cases(replayIndex = null).asSequence().map { it.value }.toList() shouldBe listOf(10, 20, 30, 40)
+        source.cases(replayIndexes = null).asSequence().map { it.value }.toList() shouldBe listOf(10, 20, 30, 40)
 
-        val replayed = source.cases(replayIndex = 2L).asSequence().toList()
+        val replayed = source.cases(replayIndexes = listOf(2L)).asSequence().toList()
         replayed shouldHaveSize 1
         replayed.single().index shouldBe 2L
         replayed.single().value shouldBe 30
     }
 
-    test("ReplayInput overrides the standalone seed and supplies the iteration") {
+    test("data cases can replay multiple recorded indexes") {
+        val source = IterableDataSource(listOf(10, 20, 30, 40))
+        val replayed = source.cases(replayIndexes = listOf(1L, 3L)).asSequence().toList()
+
+        replayed.map { it.index } shouldBe listOf(1L, 3L)
+        replayed.map { it.value } shouldBe listOf(20, 40)
+    }
+
+    test("ReplayInput overrides the standalone seed and supplies iterations") {
         val config = PropertyLayerConfigBuilder(MatrixSuiteConfigBuilder().build()).apply {
             seed = 1L
-        }.build(replay = ReplayInput(seed = 99L, iteration = 3L))
+        }.build(replay = ReplayInput(seed = 99L, iterations = listOf(3L, 7L)))
 
         config.seed shouldBe 99L
-        config.replayIteration shouldBe 3L
+        config.replayIterations shouldBe listOf(3L, 7L)
+    }
+
+    test("ReplayInput keeps single iteration constructor for report copy-paste") {
+        ReplayInput(seed = 99L, iteration = 3L).iterations shouldBe listOf(3L)
     }
 
     test("error replay info records data indexes alongside property frames, independent of nameFn") {
