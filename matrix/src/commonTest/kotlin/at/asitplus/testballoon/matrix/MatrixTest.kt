@@ -178,18 +178,23 @@ val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12
 }
 
 val propMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
-    property("first", Arb.int(), iterations = 10) - { first ->
+    property("first", Arb.int(), iterations = 10) {replay= ReplayInput (seed=-1272159868248889892L, iteration=0)} - { first ->
         "foorst" {
             first shouldBe 0
         }
-        property("second", Arb.double(), iterations = 10) - { second ->
+        property("second", Arb.double(), iterations = 10) {replay= ReplayInput(seed=-5492992884210636114L, iteration=1L) } - { second ->
             "soocond" {
                 second shouldBe 0
             }
-            compact("third") - {
-                property("third", Arb.float(), iterations = 10) test { third ->
+            data("intermed",listOf(1,2,34,0,5), nameFn = {_,it->"it: $it"}) - { intermed->
 
-                    third.toInt().shouldBeOdd()
+                compact("third") - {
+                    property("third", Arb.float(), iterations = 10) test { third ->
+
+                        third.toInt().shouldBeOdd()
+
+                        intermed shouldBe 0
+                    }
                 }
             }
         }

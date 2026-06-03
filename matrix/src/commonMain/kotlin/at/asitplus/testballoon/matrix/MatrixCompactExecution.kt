@@ -200,17 +200,18 @@ internal suspend fun runCompactNodes(
     nodes: List<VirtualNode>,
     testScope: Test.ExecutionScope,
     run: CompactRun,
+    replayPath: List<MatrixPropertyReplayFrame> = emptyList(),
 ) {
     when (val concurrency = run.config.concurrency) {
         CompactConcurrency.Layered -> traverseVirtualNodes(
-            nodes, run, respectLayerConcurrency = true,
-        ) { path, replayPath, body ->
+            nodes, run, replayPath = replayPath, respectLayerConcurrency = true,
+        ) { path, replay, body ->
             run.start()
             try {
-                testScope.withMatrixPropertyReplay(replayPath) { body(testScope) }
+                testScope.withMatrixPropertyReplay(replay) { body(testScope) }
                 run.success(path)
             } catch (t: AssertionError) {
-                run.failure(path, t, replayPath)
+                run.failure(path, t, replay)
             } catch (t: Throwable) {
                 run.failure(path, t)
             }
@@ -219,8 +220,8 @@ internal suspend fun runCompactNodes(
             val channel = Channel<CompactWork>(concurrency.parallelism)
             val producer = launch {
                 try {
-                    traverseVirtualNodes(nodes, run, respectLayerConcurrency = false) { path, replayPath, body ->
-                        channel.send(CompactWork(path, replayPath, body))
+                    traverseVirtualNodes(nodes, run, replayPath = replayPath, respectLayerConcurrency = false) { path, replay, body ->
+                        channel.send(CompactWork(path, replay, body))
                     }
                 } finally {
                     channel.close()
@@ -259,25 +260,27 @@ private suspend fun traverseVirtualNodes(
                 onTest(path + node.name, replayPath, node.body)
 
             is VirtualNode.Data -> if (!node.disabled) traverseLayer(
-                run, node.source.knownSize, node.source.open(), node.name, node.layerConfig.nameMaxLength,
-                node.nameFn, frameOf = null, layerExecution(node.layerConfig.execution), path, replayPath, valueOf = { it },
+                run, node.layerConfig.replayCases(node.source.knownSize), node.source.cases(node.layerConfig.replayIndex),
+                node.name, node.layerConfig.nameMaxLength, node.nameFn, frameOf = null,
+                layerExecution(node.layerConfig.execution), path, replayPath,
             ) { childPath, childReplay, value ->
                 traverseVirtualNodes(node.body(value), run, childPath, childReplay, respectLayerConcurrency, onTest)
             }
             is VirtualNode.DataTest -> if (!node.disabled) traverseLayer(
-                run, node.source.knownSize, node.source.open(), node.name, node.layerConfig.nameMaxLength,
-                node.nameFn, frameOf = null, layerExecution(node.layerConfig.execution), path, replayPath, valueOf = { it },
+                run, node.layerConfig.replayCases(node.source.knownSize), node.source.cases(node.layerConfig.replayIndex),
+                node.name, node.layerConfig.nameMaxLength, node.nameFn, frameOf = null,
+                layerExecution(node.layerConfig.execution), path, replayPath,
             ) { childPath, childReplay, value ->
                 onTest(childPath, childReplay) { node.body(this, value) }
             }
             is VirtualNode.Property -> if (!node.disabled) {
                 val random = node.layerConfig.seed?.let { RandomSource.seeded(it) } ?: RandomSource.default()
                 traverseLayer(
-                    run, node.iterations.toLong(),
-                    node.gen.generate(random, node.layerConfig.edgeConfig).take(node.iterations).iterator(),
+                    run, node.layerConfig.replayCases(node.iterations.toLong()),
+                    propertyCases(node.gen, node.iterations, random, node.layerConfig.edgeConfig, node.layerConfig.replayIteration),
                     node.name, node.layerConfig.nameMaxLength, node.nameFn,
                     frameOf = { index, rawName -> MatrixPropertyReplayFrame(node.name, random.seed, index, rawName) },
-                    layerExecution(node.layerConfig.execution), path, replayPath, valueOf = { it.value },
+                    layerExecution(node.layerConfig.execution), path, replayPath,
                 ) { childPath, childReplay, value ->
                     traverseVirtualNodes(node.body(value), run, childPath, childReplay, respectLayerConcurrency, onTest)
                 }
@@ -285,11 +288,11 @@ private suspend fun traverseVirtualNodes(
             is VirtualNode.PropertyTest -> if (!node.disabled) {
                 val random = node.layerConfig.seed?.let { RandomSource.seeded(it) } ?: RandomSource.default()
                 traverseLayer(
-                    run, node.iterations.toLong(),
-                    node.gen.generate(random, node.layerConfig.edgeConfig).take(node.iterations).iterator(),
+                    run, node.layerConfig.replayCases(node.iterations.toLong()),
+                    propertyCases(node.gen, node.iterations, random, node.layerConfig.edgeConfig, node.layerConfig.replayIteration),
                     node.name, node.layerConfig.nameMaxLength, node.nameFn,
                     frameOf = { index, rawName -> MatrixPropertyReplayFrame(node.name, random.seed, index, rawName) },
-                    layerExecution(node.layerConfig.execution), path, replayPath, valueOf = { it.value },
+                    layerExecution(node.layerConfig.execution), path, replayPath,
                 ) { childPath, childReplay, value ->
                     onTest(childPath, childReplay) { node.body(this, value) }
                 }
@@ -298,16 +301,19 @@ private suspend fun traverseVirtualNodes(
     }
 }
 
+// A replaying layer contributes exactly one case to the source-case count; otherwise the layer's full size.
+private fun DataLayerConfig.replayCases(knownSize: Long?): Long? = if (replayIndex != null) 1L else knownSize
+private fun PropertyLayerConfig.replayCases(iterations: Long): Long = if (replayIteration != null) 1L else iterations
+
 /**
- * Iterates one matrix layer, building each case's name/replay path and handing the resulting
- * value to [visit] (which either recurses into child nodes or emits a leaf test). The only
- * differences between data and property layers are captured by [valueOf] (unwrapping a sample)
- * and [frameOf] (recording a property replay frame; `null` for data layers).
+ * Iterates one matrix layer's [cases], building each case's name/replay path and handing the value
+ * to [visit] (which either recurses into child nodes or emits a leaf test). [frameOf] records a
+ * property replay frame and is `null` for data layers.
  */
-private suspend fun <T> traverseLayer(
+private suspend fun traverseLayer(
     run: CompactRun,
     sourceCases: Long?,
-    samples: Iterator<T>,
+    cases: Iterator<Case<Any?>>,
     layerName: String,
     nameMaxLength: Int,
     nameOf: NameFn<Any?>,
@@ -315,39 +321,31 @@ private suspend fun <T> traverseLayer(
     execution: ExecutionMode,
     path: List<String>,
     replayPath: List<MatrixPropertyReplayFrame>,
-    valueOf: (T) -> Any?,
     visit: suspend (path: List<String>, replayPath: List<MatrixPropertyReplayFrame>, value: Any?) -> Unit,
 ) {
     run.addSourceCases(sourceCases)
-    samples.forEachCase(execution, run.config.coroutineContext) { index, sample ->
-        val value = valueOf(sample)
-        val rawName = nameOf(index, value).truncated(nameMaxLength)
-        val childReplay = frameOf?.let { replayPath + it(index, rawName) } ?: replayPath
-        visit(path + "$layerName: $rawName", childReplay, value)
+    cases.forEachCase(execution, run.config.coroutineContext) { case ->
+        val rawName = nameOf(case.index, case.value).truncated(nameMaxLength)
+        val childReplay = frameOf?.let { replayPath + it(case.index, rawName) } ?: replayPath
+        visit(path + "$layerName: $rawName", childReplay, case.value)
     }
 }
 
-/** Drives [body] over the iterator either sequentially or with a bounded worker pool. */
-private suspend fun <T> Iterator<T>.forEachCase(
+/** Drives [body] over the cases either sequentially or with a bounded worker pool. */
+private suspend fun Iterator<Case<Any?>>.forEachCase(
     execution: ExecutionMode,
     coroutineContext: CoroutineContext,
-    body: suspend (Long, T) -> Unit,
+    body: suspend (Case<Any?>) -> Unit,
 ) {
     when (execution) {
-        ExecutionMode.Sequential -> {
-            var index = 0L
-            while (hasNext()) body(index++, next())
-        }
+        ExecutionMode.Sequential -> for (case in this) body(case)
         is ExecutionMode.Concurrent -> coroutineScope {
             val iteratorMutex = Mutex()
-            var index = 0L
             List(execution.parallelism) {
                 launch(coroutineContext) {
                     while (true) {
-                        val item = iteratorMutex.withLock {
-                            if (!hasNext()) null else index++ to next()
-                        } ?: return@launch
-                        body(item.first, item.second)
+                        val case = iteratorMutex.withLock { if (hasNext()) next() else null } ?: return@launch
+                        body(case)
                     }
                 }
             }.joinAll()

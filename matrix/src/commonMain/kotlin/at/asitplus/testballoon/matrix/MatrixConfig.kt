@@ -131,16 +131,28 @@ class DataLayerConfigBuilder internal constructor(private val parent: MatrixSuit
     var execution: ExecutionMode? = null
     var nameMaxLength: Int? = null
 
+    /** Replay: when set, this data layer yields only the case at this index (from a failure's path). */
+    var replayIndex: Long? = null
+
     internal fun build(): DataLayerConfig = DataLayerConfig(
         execution = execution ?: parent.execution,
         nameMaxLength = nameMaxLength ?: parent.defaultTestNameMaxLength,
+        replayIndex = replayIndex,
     )
 }
 
 data class DataLayerConfig internal constructor(
     val execution: ExecutionMode,
     val nameMaxLength: Int,
+    val replayIndex: Long? = null,
 )
+
+/**
+ * Coordinates to reproduce a single recorded property case, copied from a failure's replay report.
+ * [seed] and [iteration] always travel together — an iteration index only reproduces a value relative
+ * to the seed that generated it, so they cannot be set independently.
+ */
+data class ReplayInput(val seed: Long, val iteration: Long)
 
 @MatrixTestDsl
 class PropertyLayerConfigBuilder internal constructor(private val parent: MatrixSuiteConfig) {
@@ -149,11 +161,18 @@ class PropertyLayerConfigBuilder internal constructor(private val parent: Matrix
     var edgeConfig: EdgeConfig? = null
     var nameMaxLength: Int? = null
 
+    /**
+     * Replay: pin this layer to the single recorded case in [ReplayInput] (seed + iteration), copied
+     * from a failure's replay report. Overrides [seed].
+     */
+    var replay: ReplayInput? = null
+
     internal fun build(): PropertyLayerConfig = PropertyLayerConfig(
         execution = execution ?: parent.execution,
-        seed = seed,
+        seed = replay?.seed ?: seed,
         edgeConfig = edgeConfig ?: EdgeConfig.default(),
         nameMaxLength = nameMaxLength ?: parent.defaultTestNameMaxLength,
+        replayIteration = replay?.iteration,
     )
 }
 
@@ -162,6 +181,7 @@ data class PropertyLayerConfig internal constructor(
     val seed: Long?,
     val edgeConfig: EdgeConfig,
     val nameMaxLength: Int,
+    val replayIteration: Long? = null,
 )
 
 @MatrixTestDsl

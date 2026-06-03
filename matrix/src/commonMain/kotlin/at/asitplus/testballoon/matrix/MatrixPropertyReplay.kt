@@ -26,9 +26,10 @@ internal fun List<MatrixPropertyReplayFrame>.message(
             append("- ")
             append(frame.propertyName)
             append(": seed=")
-            append(frame.seed)
+            append(frame.seed).append("L")
             append(", iteration=")
-            appendLine(frame.iteration)
+            append(frame.iteration)
+            appendLine("L")
         }
     }.trimEnd()
 
