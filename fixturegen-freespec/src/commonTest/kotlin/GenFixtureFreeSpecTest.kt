@@ -5,7 +5,7 @@ import de.infix.testBalloon.framework.core.testSuite
 import io.kotest.matchers.string.shouldContain
 import kotlin.random.Random
 
-val aGeneratingFreeSpecSuite by testSuite {
+val aGeneratingFreeSpecReport by testSuite {
     withFixtureGenerator { Random.nextBytes(32) } - {
 
         //need to explicitly specify parameter to avoid ambiguities when nesting

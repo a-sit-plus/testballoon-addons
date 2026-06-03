@@ -38,12 +38,15 @@ jobs:
         with:
           xcode-version: 16.2.0
       - name: Run tests
-        run: ./gradlew allTests || true
+        run: ./gradlew allTests
+        env:
+          TESTBALLOON_INCLUDE_PATTERNS: '*'
+          TESTBALLOON_EXCLUDE_PATTERNS: '*Report*'
       - name: Test Report
         uses: dorny/test-reporter@v2
         env:
           NODE_OPTIONS: --max-old-space-size=8192
-        if: success() || failure()
+        if: success()
         with:
           name: Tests
           path: '**/build/test-results/**/TEST*.xml'

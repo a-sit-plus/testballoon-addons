@@ -8,7 +8,7 @@ import io.kotest.property.Arb
 import io.kotest.property.arbitrary.int
 import kotlin.random.Random
 
-val combinedFeaturesSuite by testSuite {
+val combinedFeaturesReport by testSuite {
 
     // Generate a fresh fixture for every test
     withFixtureGenerator { Random.nextInt() } - {

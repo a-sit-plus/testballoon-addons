@@ -13,7 +13,7 @@ import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 
 
-val matrix by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
+val matrixReport by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
     data("outer", listOf(1, 6, Random.nextBytes(300))) - { num ->
         property("layer 1", Arb.boolean(), iterations = 50) - { bool ->
             compact("whatever") {
@@ -44,7 +44,7 @@ val matrix by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
 }
 
 
-val matrix2 by matrixSuite {
+val matrix2Report by matrixSuite {
     data("first", listOf(1, 2, 3, 4, 6), nameFn = { i, v -> "$i: ${v.toHexString()}" }) {
         execution = ExecutionMode.Concurrent(12)
     } - { num ->
@@ -103,7 +103,7 @@ val matrix2 by matrixSuite {
     }
 }
 
-val hugeMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
+val hugeMatrixReport by matrixSuite(execution = ExecutionMode.Concurrent()) {
     property("property layer 2", Arb.uLong(), iterations = 100) - { uLong ->
         compact("compacted") {
             report = CompactReport.AllCases
@@ -117,7 +117,7 @@ val hugeMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
     }
 }
 
-val fixtureMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
+val fixtureMatrixReport by matrixSuite(execution = ExecutionMode.Concurrent()) {
     property("property layer 1", Arb.uLong(), iterations = 100) - { uLong ->
         fixture { Random.nextBytes(16) } - {
             "pinned randomness 1" - { num ->
@@ -159,7 +159,7 @@ val fixtureMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
 }
 
 
-val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
+val combinedFeaturesReport by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
     fixture { Random.nextBytes(16) } - {
         "data, properties, fixtures, and compact reports" - { fixture ->
             data("multiplier", listOf(0, 1, 2, 3)) - { multiplier ->
@@ -178,7 +178,7 @@ val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12
 }
 
 
-val showcaseMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
+val showcaseReport by matrixSuite(execution = ExecutionMode.Concurrent()) {
     property("first", Arb.int(min = 1), iterations = 5, replay = ReplayInput(seed=4779463605442148766L, iteration=4L)) - { first ->
         property("second", Arb.short(min = 1), iterations = 5, replay = ReplayInput(seed=-1353176301820643450L, iteration=2L)) - { second ->
             data("third", listOf(1, 2, 3, 4, 5), replayIndex = 1L) - { third ->
