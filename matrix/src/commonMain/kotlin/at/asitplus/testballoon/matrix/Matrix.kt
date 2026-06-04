@@ -326,7 +326,7 @@ data class MatrixSuiteScope internal constructor(
     }
 
     fun compact(
-        name: String = "compacted",
+        name: String,
         config: CompactConfigBuilder.() -> Unit = {},
     ): MatrixCompactLayer = MatrixCompactLayer(this, name, config)
 

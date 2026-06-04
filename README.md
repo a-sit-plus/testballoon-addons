@@ -44,9 +44,8 @@ val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12
 
 <div align="center">
 
-## Matrix Demo
-
-![demo.webp](docs/demo.webp)
+![demo.webp](docs/demo.webp)  
+(Replay in action)
 
 </div>
 
@@ -59,7 +58,7 @@ val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12
 
 | TestBalloon Addons | TestBalloon                 |
 |--------------------|-----------------------------|
-| `0.9.0`            | `1.0.0` (Kotlin `2.3.0+`)   |
+| `0.9.0`+           | `1.0.0` (Kotlin `2.3.0+`)   |
 | `0.7.0` - `0.8.0`  | `0.8.2+` (Kotlin `2.3.0+`)  |
 | `0.7.0-RC`         | `0.8.0-RC` (Kotlin `2.3.0`) |
 | `0.1.1`–`0.6.1`    | `0.7.1` (Kotlin `2.2.21`)   |
@@ -74,7 +73,7 @@ val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12
 
 **The `matrix` module provides an original, advanced, next-generation testing DSL.**  
 It may not be for the faint of heart, but it combines data-driven testing,
-property testing, FreeSpec-style names, fixture generation, concurrency controls, and compact reports – things you will need
+property testing, FreeSpec-style names, fixture generation, concurrency controls, compact reports, and targeted replay of failed tests – things you will need
 for truly powerful, comprehensive test suites.
 
 Matrix tests are built from composable layers. A `data` layer, a `property` layer, a generated fixture, and a plain
@@ -303,7 +302,8 @@ Prefix any matrix name with `!` to disable it. This works for `test`, `testSuite
 ### Notes
 
 * `data(...) test { ... }` / `property(...) test { ... }` creates row test elements; `data(...) - { ... }` / `property(...) - { ... }` creates row suite or dimension test elements.
-* Forgetting `test { ... }` or `- { ... }` leaves a configured layer unopened, so no child tests are registered. This could leave you wondering on the innermost layer…
+* Forgetting `test { ... }` or `- { ... }` leaves a configured layer unopened, so no child tests are registered. The layer itself does nothing until its trailing lambda receives content; either tests or more rows.
+* `data` and `property` can each appear multiple times in the same suite.
 * Terminal row tests are named by the layer `nameFn`. Use `- { ... }` plus an explicit `"name" { ... }` leaf when the invariant itself needs a separate name.
 * Generated rows are registered at runtime. Running an individual generated row from the IDE gutter is nonsensical; run the
   enclosing suite or use filters.

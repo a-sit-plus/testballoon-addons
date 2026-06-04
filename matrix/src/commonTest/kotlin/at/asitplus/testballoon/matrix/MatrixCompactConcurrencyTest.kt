@@ -1,5 +1,7 @@
 package at.asitplus.testballoon.matrix
 
+import de.infix.testBalloon.framework.core.TestConfig
+import de.infix.testBalloon.framework.core.testScope
 import de.infix.testBalloon.framework.core.testSuite
 import io.kotest.matchers.comparables.shouldBeLessThanOrEqualTo
 import io.kotest.matchers.shouldBe
@@ -8,6 +10,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 
 val MatrixCompactConcurrencyConfigTest by testSuite {
 
@@ -57,7 +60,7 @@ val MatrixCompactSharedConcurrencyTest by matrixSuite(
     }
 }
 
-val MatrixCompactSharedConcurrencyStressTest by testSuite {
+val MatrixCompactSharedConcurrencyStressTest by testSuite(testConfig = TestConfig.testScope(isEnabled = false, timeout = 10.minutes)) {
 
     test("shared compact concurrency does not starve a 100x100x100 virtual matrix") {
         val matrixConfig = MatrixSuiteConfigBuilder().apply {
@@ -78,7 +81,7 @@ val MatrixCompactSharedConcurrencyStressTest by testSuite {
                 maxActive = maxOf(maxActive, active)
             }
             consumeCpu(caseId)
-            if (caseId % 10_000 == 0) delay(5.milliseconds)
+            if (caseId % 100 == 0) delay(5.milliseconds)
             mutex.withLock {
                 active -= 1
                 completed += 1

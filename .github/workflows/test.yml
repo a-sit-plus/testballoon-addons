@@ -46,12 +46,9 @@ jobs:
         uses: dorny/test-reporter@v2
         env:
           NODE_OPTIONS: --max-old-space-size=8192
-        if: success()
+        if: success() || failure()
         with:
           name: Tests
           path: '**/build/test-results/**/TEST*.xml'
           reporter: java-junit
-          list-suites: failed
-          list-tests: failed
           use-actions-summary: true
-          fail-on-error: false

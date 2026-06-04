@@ -1,7 +1,6 @@
 # Changelog
 
 ## 0.11.0
-
 * **Matrix testing: bounded compact concurrency**
     * `CompactConcurrency.Shared(n)` runs a compact block through one compact-wide worker budget, so nested virtual
       layers can no longer multiply coroutine counts; `CompactConcurrency.Layered` keeps per-layer behaviour.
@@ -14,6 +13,8 @@
       `replayIndexes`. Pasting the reported lines re-runs exactly the failing case(s).
     * `replay` is independent of a layer's `seed` (deterministic full run vs. selecting recorded cases).
     * Replay info captures the full enclosing layer chain and records data indexes independently of `nameFn`.
+* **Matrix testing: API changes:**
+    * Make name for compact layers mandatory 
 
 ## 0.10.0
 * **Matrix testing**

@@ -127,7 +127,7 @@ val fixtureMatrixReport by matrixSuite(execution = ExecutionMode.Concurrent()) {
                         num.find { it == word?.first()?.code?.toByte() }.shouldNotBeNull()
                     }
                 }
-                compact { report = CompactReport.AllCases } - {
+                compact("lower layers") { report = CompactReport.AllCases } - {
                     data("data layer 2.2", listOf(null, "foo", "bar", "baz")) - { word ->
 
                         "contained" {
@@ -179,12 +179,22 @@ val combinedFeaturesReport by matrixSuite(execution = ExecutionMode.Concurrent(1
 
 
 val showcaseReport by matrixSuite(execution = ExecutionMode.Concurrent()) {
-    property("first", Arb.int(min = 1), iterations = 5, replay = ReplayInput(seed=3670123237710162097L, iteration=3L)) - { first ->
-        property("second", Arb.short(min = 1), iterations = 5, replay = ReplayInput(seed=-4301790338209125271L, iteration=4L)) - { second ->
-            data("third", listOf(1, 2, 3, 4, 5), replayIndex = 0L) - { third ->
-                property("fourth", Arb.byte(min = 1), iterations = 5, replay = ReplayInput(seed=827621822537504615L, iteration=4L)) test { fourth ->
-                    (first / second / third / fourth).shouldBeLessThan(256_000)
-                }
+    property(
+        "first",
+        Arb.int(min = 1), iterations = 5, replay = ReplayInput(seed=-6390287234787975868L, iteration=2L)
+    ) - { first ->
+        property(
+            "second",
+            Arb.short(min = 1), iterations = 5, replay = ReplayInput(seed=-8543743835751713023L, iteration=0L)
+        ) - { second ->
+            data(
+                "third",
+                listOf(1, 2, 3, 4, 5), replayIndex = 3L
+            ) - { third ->
+                property(
+                    "fourth",
+                    Arb.byte(min = 1), iterations = 5, replay = ReplayInput(seed=-1520609654322826870L, iteration=4L)
+                ) test { fourth -> (first / second / third / fourth).shouldBeLessThan(256_000) }
             }
         }
     }
