@@ -3,6 +3,7 @@ package at.asitplus.testballoon.matrix
 import de.infix.testBalloon.framework.core.testSuite
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import io.kotest.matchers.string.shouldStartWith
 
 /** Rendering of the "Error replay info" block and the assertion-wrapping helper. */
@@ -34,9 +35,29 @@ val MatrixReplayMessageTest by testSuite {
         message.shouldContain("- (property): replay = ReplayInput(seed=9L, iteration=4L)")
     }
 
+    test("group frames appear in the path but produce no replay-argument line") {
+        val frames = listOf(
+            MatrixReplayFrame.Group("outer group"),
+            MatrixReplayFrame.Data("d", index = 2L, rowName = "two"),
+            MatrixReplayFrame.Group("leaf"),
+        )
+        val message = frames.message(prefix = "Repro:")
+        // full path includes the structural groups...
+        message.shouldStartWith("Repro: outer group ↘ (data) d: two ↘ leaf")
+        // ...but only the replayable layer contributes a detail line
+        message.shouldContain("- (data) d: replayIndex = 2L")
+        message.shouldNotContain("outer group:")
+        message.shouldNotContain("- leaf")
+    }
+
     test("withMatrixReplay on empty frames returns the original error unchanged") {
         val original = AssertionError("boom")
         original.withMatrixReplay(emptyList()) shouldBe original
+    }
+
+    test("withMatrixReplay on a group-only path (nothing to replay) returns the original unchanged") {
+        val original = AssertionError("boom")
+        original.withMatrixReplay(listOf(MatrixReplayFrame.Group("a"), MatrixReplayFrame.Group("b"))) shouldBe original
     }
 
     test("withMatrixReplay preserves the original as the cause and keeps its message") {

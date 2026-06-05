@@ -70,7 +70,13 @@ data class MatrixSuiteScope internal constructor(
                 name = matrixName(name),
                 testConfig = config.testConfig.chainedWith(testConfig).disableByMatrixName(name),
             ) {
-                MatrixSuiteScope(this, config, registrationPath, registrationReporter, replayPath).body()
+                MatrixSuiteScope(
+                    this,
+                    config,
+                    registrationPath,
+                    registrationReporter,
+                    replayPath + MatrixReplayFrame.Group(matrixName(name)),
+                ).body()
             }
         }
     }
@@ -85,7 +91,7 @@ data class MatrixSuiteScope internal constructor(
             test(
                 name = matrixName(name),
                 testConfig = config.testConfig.chainedWith(testConfig).disableByMatrixName(name),
-                action = { withMatrixReplay(replayPath, body) },
+                action = { withMatrixReplay(replayPath + MatrixReplayFrame.Group(matrixName(name)), body) },
             )
         }
     }

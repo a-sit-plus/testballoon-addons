@@ -35,7 +35,7 @@ class MatrixFixtureGeneratorScope<T> internal constructor(
                     matrix.config,
                     matrix.registrationPath,
                     matrix.registrationReporter,
-                    matrix.replayPath,
+                    matrix.replayPath + MatrixReplayFrame.Group(matrixName(name)),
                 ).body(generator())
             }
         }

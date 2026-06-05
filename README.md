@@ -243,8 +243,11 @@ Each pinned layer collapses to just the recorded case, so the whole matrix narro
 * A layer's `replay` / `replayIndex` is independent of its `seed`: `seed` pins a deterministic *full* run, while
   `replay` selects specific recorded cases (which carry their own seeds).
 
-Replay info inherits the enclosing layers' frames, so a compacted leaf records the full chain (outer real layers
-included), and the data index is recorded even when a custom `nameFn` omits it from the displayed name.
+The path on the first line mirrors the compact report path in full: it includes the enclosing grouping suites
+(`"name" - { ... }`) as plain segments, with the `(property)` / `(data)` layers carrying the markers. Only the
+replayable layers get a `- ...` argument line below — grouping suites appear in the path but have nothing to paste.
+A compacted leaf therefore records the full chain (outer real layers included), and the data index is recorded even
+when a custom `nameFn` omits it from the displayed name.
 
 ### Fixtures
 
