@@ -2,8 +2,7 @@ package at.asitplus.testballoon.matrix
 
 import io.kotest.matchers.booleans.shouldBeTrue
 import io.kotest.matchers.comparables.shouldBeGreaterThan
-import io.kotest.matchers.comparables.shouldBeLessThan
-import io.kotest.matchers.ints.shouldBeOdd
+import io.kotest.matchers.ints.shouldBeLessThan
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -14,7 +13,7 @@ import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 
 
-val matrix by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
+val matrixReport by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
     data("outer", listOf(1, 6, Random.nextBytes(300))) - { num ->
         property("layer 1", Arb.boolean(), iterations = 50) - { bool ->
             compact("whatever") {
@@ -45,7 +44,7 @@ val matrix by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
 }
 
 
-val matrix2 by matrixSuite {
+val matrix2Report by matrixSuite {
     data("first", listOf(1, 2, 3, 4, 6), nameFn = { i, v -> "$i: ${v.toHexString()}" }) {
         execution = ExecutionMode.Concurrent(12)
     } - { num ->
@@ -104,7 +103,7 @@ val matrix2 by matrixSuite {
     }
 }
 
-val hugeMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
+val hugeMatrixReport by matrixSuite(execution = ExecutionMode.Concurrent()) {
     property("property layer 2", Arb.uLong(), iterations = 100) - { uLong ->
         compact("compacted") {
             report = CompactReport.AllCases
@@ -118,7 +117,7 @@ val hugeMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
     }
 }
 
-val fixtureMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
+val fixtureMatrixReport by matrixSuite(execution = ExecutionMode.Concurrent()) {
     property("property layer 1", Arb.uLong(), iterations = 100) - { uLong ->
         fixture { Random.nextBytes(16) } - {
             "pinned randomness 1" - { num ->
@@ -128,7 +127,7 @@ val fixtureMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
                         num.find { it == word?.first()?.code?.toByte() }.shouldNotBeNull()
                     }
                 }
-                compact { report = CompactReport.AllCases } - {
+                compact("lower layers") { report = CompactReport.AllCases } - {
                     data("data layer 2.2", listOf(null, "foo", "bar", "baz")) - { word ->
 
                         "contained" {
@@ -160,12 +159,15 @@ val fixtureMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
 }
 
 
-val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
+val combinedFeaturesReport by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
     fixture { Random.nextBytes(16) } - {
         "data, properties, fixtures, and compact reports" - { fixture ->
-            data("multiplier", listOf(1, 2, 3)) - { multiplier ->
-                compact("generated checks") { report = CompactReport.FailuresOnly } - {
-                    property("offset", Arb.int(0..100), iterations = 50) test { offset ->
+            data("multiplier", listOf(0, 1, 2, 3)) - { multiplier ->
+                compact("generated checks") {
+                    report = CompactReport.AllCases
+                    concurrency = CompactConcurrency.Shared(1)
+                } - {
+                    property("offset", Arb.int(0..100), iterations = 500) test { offset ->
                         val result = fixture.size * multiplier + offset
                         result shouldBeGreaterThan 0
                     }
@@ -175,20 +177,24 @@ val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12
     }
 }
 
-val propMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
-    property("first", Arb.int(), iterations = 10) - { first ->
-        "foorst" {
-            first shouldBe 0
-        }
-        property("second", Arb.double(), iterations = 10) - { second ->
-            "soocond" {
-                second shouldBe 0
-            }
-            compact("third") - {
-                property("third", Arb.float(), iterations = 10) test { third ->
 
-                    third.toInt().shouldBeOdd()
-                }
+val showcaseReport by matrixSuite(execution = ExecutionMode.Concurrent()) {
+    property(
+        "first",
+        Arb.int(min = 1), iterations = 5, replay = ReplayInput(seed=-6390287234787975868L, iteration=2L)
+    ) - { first ->
+        property(
+            "second",
+            Arb.short(min = 1), iterations = 5, replay = ReplayInput(seed=-8543743835751713023L, iteration=0L)
+        ) - { second ->
+            data(
+                "third",
+                listOf(1, 2, 3, 4, 5), replayIndex = 3L
+            ) - { third ->
+                property(
+                    "fourth",
+                    Arb.byte(min = 1), iterations = 5, replay = ReplayInput(seed=-1520609654322826870L, iteration=4L)
+                ) test { fourth -> (first / second / third / fourth).shouldBeLessThan(256_000) }
             }
         }
     }

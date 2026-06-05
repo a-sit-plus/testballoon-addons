@@ -20,7 +20,7 @@ import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 
-val propertySuite by testSuite {
+val propertyReport by testSuite {
     PropertyTest.compactByDefault = false
 
     checkAll(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte()), prefix = "first") - { byteArray ->
@@ -61,7 +61,7 @@ val propertySuite by testSuite {
 }
 
 
-val compactingSuite by testSuite {
+val compactingSuiteReport by testSuite {
     PropertyTest.compactByDefault = true
 
     checkAll(iterations = 100, Arb.byteArray(Arb.int(100, 200), Arb.byte()), prefix = "first") - { byteArray ->
@@ -103,7 +103,7 @@ val compactingSuite by testSuite {
 
 
 @OptIn(ExperimentalUuidApi::class)
-val iterationsTest by testSuite(
+val iterationsTestReport by testSuite(
     testConfig = DefaultConfiguration.invocation(TestConfig.Invocation.Concurrent)
 ) {
     PropertyTest.compactByDefault = true
@@ -121,7 +121,7 @@ val iterationsTest by testSuite(
 }
 
 @OptIn(ExperimentalUuidApi::class)
-val iterations by testSuite(
+val iterationsReport by testSuite(
     testConfig = DefaultConfiguration.invocation(TestConfig.Invocation.Concurrent)
 ) {
     PropertyTest.compactByDefault = true

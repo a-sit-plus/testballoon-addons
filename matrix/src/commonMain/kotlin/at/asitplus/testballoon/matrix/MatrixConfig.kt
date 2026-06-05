@@ -12,6 +12,7 @@ import kotlin.time.Duration.Companion.seconds
 internal object MatrixTestDefaults {
     var execution: ExecutionMode = ExecutionMode.Sequential
     var defaultPropertyIterations: Int = 1000
+    var defaultCompactConcurrency: CompactConcurrency = CompactConcurrency.Layered
     var defaultCompactReport: CompactReport = CompactReport.AllCases
     var defaultCompactAddSuppressedErrors: Boolean = false
     var defaultCompactReportRows: Int = 1024
@@ -24,6 +25,15 @@ internal object MatrixTestDefaults {
 sealed interface ExecutionMode {
     data object Sequential : ExecutionMode
     data class Concurrent(val parallelism: Int= 128) : ExecutionMode {
+        init {
+            require(parallelism > 0) { "parallelism must be > 0" }
+        }
+    }
+}
+
+sealed interface CompactConcurrency {
+    data object Layered : CompactConcurrency
+    data class Shared(val parallelism: Int) : CompactConcurrency {
         init {
             require(parallelism > 0) { "parallelism must be > 0" }
         }
@@ -49,6 +59,7 @@ fun TestConfig.MatrixTestDefaults(config: MatrixSuiteConfigBuilder.() -> Unit) {
     bld.build().let { suiteConfig ->
         MatrixTestDefaults.execution = suiteConfig.execution
         MatrixTestDefaults.defaultPropertyIterations = suiteConfig.defaultPropertyIterations
+        MatrixTestDefaults.defaultCompactConcurrency = suiteConfig.defaultCompactConcurrency
         MatrixTestDefaults.defaultCompactReport = suiteConfig.defaultCompactReport
         MatrixTestDefaults.defaultCompactAddSuppressedErrors = suiteConfig.defaultCompactAddSuppressedErrors
         MatrixTestDefaults.defaultCompactReportRows = suiteConfig.defaultCompactReportRows
@@ -63,6 +74,7 @@ fun TestConfig.MatrixTestDefaults(config: MatrixSuiteConfigBuilder.() -> Unit) {
 class MatrixSuiteConfigBuilder internal constructor() {
     var execution: ExecutionMode? = null
     var defaultPropertyIterations: Int? = null
+    var defaultCompactConcurrency: CompactConcurrency? = null
     var defaultCompactReport: CompactReport? = null
     var defaultCompactAddSuppressedErrors: Boolean? = null
     var defaultCompactReportRows: Int? = null
@@ -76,6 +88,7 @@ class MatrixSuiteConfigBuilder internal constructor() {
         return MatrixSuiteConfig(
             execution = executionMode,
             defaultPropertyIterations = defaultPropertyIterations ?: MatrixTestDefaults.defaultPropertyIterations,
+            defaultCompactConcurrency = defaultCompactConcurrency ?: MatrixTestDefaults.defaultCompactConcurrency,
             defaultCompactReport = defaultCompactReport ?: MatrixTestDefaults.defaultCompactReport,
             defaultCompactAddSuppressedErrors = defaultCompactAddSuppressedErrors
                 ?: MatrixTestDefaults.defaultCompactAddSuppressedErrors,
@@ -93,6 +106,7 @@ class MatrixSuiteConfigBuilder internal constructor() {
 data class MatrixSuiteConfig internal constructor(
     val execution: ExecutionMode,
     val defaultPropertyIterations: Int,
+    val defaultCompactConcurrency: CompactConcurrency,
     val defaultCompactReport: CompactReport,
     val defaultCompactAddSuppressedErrors: Boolean,
     val defaultCompactReportRows: Int,
@@ -117,16 +131,27 @@ class DataLayerConfigBuilder internal constructor(private val parent: MatrixSuit
     var execution: ExecutionMode? = null
     var nameMaxLength: Int? = null
 
-    internal fun build(): DataLayerConfig = DataLayerConfig(
+    internal fun build(replayIndexes: List<Long>? = null): DataLayerConfig = DataLayerConfig(
         execution = execution ?: parent.execution,
         nameMaxLength = nameMaxLength ?: parent.defaultTestNameMaxLength,
+        replayIndexes = replayIndexes,
     )
 }
 
 data class DataLayerConfig internal constructor(
     val execution: ExecutionMode,
     val nameMaxLength: Int,
+    val replayIndexes: List<Long>? = null,
 )
+
+/**
+ * Coordinates to reproduce recorded property cases, copied from a failure's replay report.
+ * [seed] and [iterations] always travel together — iteration indexes only reproduce values relative
+ * to the seed that generated them, so they cannot be set independently.
+ */
+data class ReplayInput(val seed: Long, val iterations: List<Long>) {
+    constructor(seed: Long, iteration: Long) : this(seed, listOf(iteration))
+}
 
 @MatrixTestDsl
 class PropertyLayerConfigBuilder internal constructor(private val parent: MatrixSuiteConfig) {
@@ -135,23 +160,27 @@ class PropertyLayerConfigBuilder internal constructor(private val parent: Matrix
     var edgeConfig: EdgeConfig? = null
     var nameMaxLength: Int? = null
 
-    internal fun build(): PropertyLayerConfig = PropertyLayerConfig(
+    internal fun build(replays: List<ReplayInput>? = null): PropertyLayerConfig = PropertyLayerConfig(
         execution = execution ?: parent.execution,
         seed = seed,
         edgeConfig = edgeConfig ?: EdgeConfig.default(),
         nameMaxLength = nameMaxLength ?: parent.defaultTestNameMaxLength,
+        replays = replays,
     )
 }
 
 data class PropertyLayerConfig internal constructor(
     val execution: ExecutionMode,
+    // Seed for a deterministic *full* run (ignored while replaying — each ReplayInput carries its own seed).
     val seed: Long?,
     val edgeConfig: EdgeConfig,
     val nameMaxLength: Int,
+    val replays: List<ReplayInput>? = null,
 )
 
 @MatrixTestDsl
 class CompactConfigBuilder internal constructor(private val parent: MatrixSuiteConfig) {
+    var concurrency: CompactConcurrency? = null
     var report: CompactReport? = null
     var addSuppressedErrors: Boolean? = null
     var reportRows: Int? = null
@@ -159,6 +188,7 @@ class CompactConfigBuilder internal constructor(private val parent: MatrixSuiteC
     var coroutineContext: CoroutineContext? = null
 
     internal fun build(): CompactConfig = CompactConfig(
+        concurrency = concurrency ?: parent.defaultCompactConcurrency,
         report = report ?: parent.defaultCompactReport,
         addSuppressedErrors = addSuppressedErrors ?: parent.defaultCompactAddSuppressedErrors,
         reportRows = reportRows ?: parent.defaultCompactReportRows,
@@ -168,6 +198,7 @@ class CompactConfigBuilder internal constructor(private val parent: MatrixSuiteC
 }
 
 data class CompactConfig internal constructor(
+    val concurrency: CompactConcurrency,
     val report: CompactReport,
     val addSuppressedErrors: Boolean,
     val reportRows: Int,

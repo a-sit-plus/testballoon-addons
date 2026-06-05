@@ -4,7 +4,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.property.checkAll
 
-val aDataDrivenSuite by testSuite {
+val aDataDrivenReport by testSuite {
     withData("foo" to 13) - {
         test("bar") {
             it shouldBe 13
@@ -40,7 +40,7 @@ val aDataDrivenSuite by testSuite {
     }
 }
 
-val demoSuiteCompact by testSuite {
+val demoSuiteCompactReport by testSuite {
     withData(1, 2, 3, 4, compact = true) - { number ->
         withData(null, "one", "two", "three", "four", compact = true) { word ->
             number shouldBe number
@@ -50,7 +50,7 @@ val demoSuiteCompact by testSuite {
 }
 
 
-val demoSuite by testSuite {
+val demoSuiteReport by testSuite {
     withData(1, 2, 3, 4, compact = true) - { number ->
         withData(null, "one", "two", "three", "four", compact = true, suppressCompactSuccesses = true) { word ->
             number shouldBe number

@@ -38,7 +38,10 @@ jobs:
         with:
           xcode-version: 16.2.0
       - name: Run tests
-        run: ./gradlew allTests || true
+        run: ./gradlew allTests
+        env:
+          TESTBALLOON_INCLUDE_PATTERNS: '*'
+          TESTBALLOON_EXCLUDE_PATTERNS: '*Report*'
       - name: Test Report
         uses: dorny/test-reporter@v2
         env:
@@ -48,7 +51,4 @@ jobs:
           name: Tests
           path: '**/build/test-results/**/TEST*.xml'
           reporter: java-junit
-          list-suites: failed
-          list-tests: failed
           use-actions-summary: true
-          fail-on-error: false

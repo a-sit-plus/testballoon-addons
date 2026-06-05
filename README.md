@@ -23,7 +23,7 @@ TestBalloon Addons started as migration helpers for people coming from Kotest. T
 compact reports look like if they were designed directly for TestBalloon's KMP-first, coroutine-first execution model?_
 
 The answer is a single DSL that keeps Kotest's excellent assertion and generator libraries, but gives TestBalloon full
-control over registration, execution, concurrency, compaction, and reporting.
+control over registration, execution, concurrency, compaction, reporting and replaying.
 
 ```kotlin
 val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
@@ -42,6 +42,13 @@ val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12
 }
 ```
 
+<div align="center">
+
+![demo.webp](docs/demo.webp)  
+(Replay in action)
+
+</div>
+
 > [!TIP]  
 > Looking for a smooth migration path from Kotest?  
 > Check out the [Coming from Kotest](#coming-from-kotest) section!
@@ -51,7 +58,7 @@ val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12
 
 | TestBalloon Addons | TestBalloon                 |
 |--------------------|-----------------------------|
-| `0.9.0`            | `1.0.0` (Kotlin `2.3.0+`)   |
+| `0.9.0`+           | `1.0.0` (Kotlin `2.3.0+`)   |
 | `0.7.0` - `0.8.0`  | `0.8.2+` (Kotlin `2.3.0+`)  |
 | `0.7.0-RC`         | `0.8.0-RC` (Kotlin `2.3.0`) |
 | `0.1.1`–`0.6.1`    | `0.7.1` (Kotlin `2.2.21`)   |
@@ -65,8 +72,8 @@ val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12
 |-------------------|-------------------------------------------|
 
 **The `matrix` module provides an original, advanced, next-generation testing DSL.**  
-It may not be for the faint of heart but it combines data-driven testing,
-property testing, FreeSpec-style names, fixture generation, concurrency controls, and compact reports – things you will need
+It may not be for the faint of heart, but it combines data-driven testing,
+property testing, FreeSpec-style names, fixture generation, concurrency controls, compact reports, and targeted replay of failed tests – things you will need
 for truly powerful, comprehensive test suites.
 
 Matrix tests are built from composable layers. A `data` layer, a `property` layer, a generated fixture, and a plain
@@ -117,6 +124,8 @@ val dataDrivenMatrix by matrixSuite(execution = ExecutionMode.Sequential) {
 
 Layer config is written as the trailing lambda before `test` or `-`. For `data`, the most important layer option is
 `execution`, which can be `ExecutionMode.Sequential` or `ExecutionMode.Concurrent(parallelism = ...)`.
+Concurrency bounds are per layer: nested concurrent layers can multiply the number of active tests or virtual checks.
+For large compacted matrices, prefer `CompactConcurrency.Shared(n)` to use one compact-wide worker budget.
 
 ### Property Matrix Layers
 
@@ -145,6 +154,7 @@ TestBalloon test and reports the virtual rows itself.
 ```kotlin
 val compactMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
     compact("all generated checks") {
+        concurrency = CompactConcurrency.Shared(16)
         report = CompactReport.FailuresOnly
         reportRows = 256
         progressIndicator = Indicator.Heartbeat(every = 1.seconds)
@@ -161,6 +171,8 @@ val compactMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
 `CompactReport.FailuresOnly` renders only failing virtual rows, `AllCases` also renders successes, and `SummaryOnly`
 keeps the report short. `reportRows` bounds rendered row details. `addSuppressedErrors` controls whether retained
 failures are attached as suppressed exceptions. `coroutineContext` controls where compact virtual children run.
+`CompactConcurrency.Layered` keeps per-layer concurrency behaviour, while `CompactConcurrency.Shared(n)` uses one
+compact-wide worker budget so nested virtual layers cannot multiply coroutine counts.
 
 Progress heartbeats are printed separately from the final failure report, for example:
 
@@ -172,6 +184,49 @@ all generated checks: compact progress: 512 of 900 queued completed (1200 source
 > Compact virtual children are not real TestBalloon test elements, so virtual `test` / `testSuite` declarations and terminal
 > `data(...) test { ... }` / `property(...) test { ... }` rows inside `compact` cannot honor per-child `TestConfig`.
 > Put `TestConfig` on real matrix tests/suites outside compact, or configure the compact block itself.
+
+### Replaying Failures
+
+Every matrix failure — a real test-tree leaf or a compacted virtual row — carries an **`Error replay info`**
+block whose detail lines are valid `property` / `data` arguments. Copy them back onto the failing layers and the
+matrix re-runs exactly those cases.
+
+```
+at.asitplus.AssertionError: 360888 should be < 256000
+    Error replay info: first: 4: 2018089192 / second: 2: 2796 / third: 1: 2 / fourth: 3: 1
+      - first:  replay = ReplayInput(seed=4779463605442148766L, iteration=4L)
+      - second: replay = ReplayInput(seed=-1353176301820643450L, iteration=2L)
+      - third:  replayIndex = 1L
+      - fourth: replay = ReplayInput(seed=5014696554795393980L, iteration=3L)
+```
+
+Paste the text after each layer name into that layer's call:
+
+```kotlin
+val replay by matrixSuite {
+    property("first", Arb.int(), replay = ReplayInput(seed=4779463605442148766L, iteration=4L)) - { first ->
+        property("second", Arb.double(), replay = ReplayInput(seed=-1353176301820643450L, iteration=2L)) - { second ->
+            data("third", listOf(1, 2, 3, 4, 5), replayIndex = 1L) - { third ->
+                property("fourth", Arb.byte(), replay = ReplayInput(seed=5014696554795393980L, iteration=3L)) test { fourth ->
+                    // now runs only the single failing combination
+                }
+            }
+        }
+    }
+}
+```
+
+Each pinned layer collapses to just the recorded case, so the whole matrix narrows to the failing leaf.
+
+* **Property layers** take `replay = ReplayInput(seed, iteration)` for one case (what the report prints), or
+  `replays = listOf(ReplayInput(...), ...)` to reproduce several recorded cases — each with its own seed — at once.
+* **Data layers** take `replayIndex = n` (printed), or `replayIndexes = listOf(...)` for several. Data is
+  deterministic, so only the index is needed.
+* A layer's `replay` / `replayIndex` is independent of its `seed`: `seed` pins a deterministic *full* run, while
+  `replay` selects specific recorded cases (which carry their own seeds).
+
+Replay info inherits the enclosing layers' frames, so a compacted leaf records the full chain (outer real layers
+included), and the data index is recorded even when a custom `nameFn` omits it from the displayed name.
 
 ### Fixtures
 
@@ -209,6 +264,7 @@ object ProjectTestSessionConfig : TestSession(testConfig = TestConfig.apply {
     MatrixTestDefaults {
         execution = ExecutionMode.Sequential
         defaultPropertyIterations = 250
+        defaultCompactConcurrency = CompactConcurrency.Shared(16)
         defaultCompactReport = CompactReport.FailuresOnly
         defaultCompactReportRows = 128
         defaultProgressIndicator = Indicator.Heartbeat(every = 2.seconds)
@@ -246,7 +302,8 @@ Prefix any matrix name with `!` to disable it. This works for `test`, `testSuite
 ### Notes
 
 * `data(...) test { ... }` / `property(...) test { ... }` creates row test elements; `data(...) - { ... }` / `property(...) - { ... }` creates row suite or dimension test elements.
-* Forgetting `test { ... }` or `- { ... }` leaves a configured layer unopened, so no child tests are registered. This could leave you wondering on the innermost layer…
+* Forgetting `test { ... }` or `- { ... }` leaves a configured layer unopened, so no child tests are registered. The layer itself does nothing until its trailing lambda receives content; either tests or more rows.
+* `data` and `property` can each appear multiple times in the same suite.
 * Terminal row tests are named by the layer `nameFn`. Use `- { ... }` plus an explicit `"name" { ... }` leaf when the invariant itself needs a separate name.
 * Generated rows are registered at runtime. Running an individual generated row from the IDE gutter is nonsensical; run the
   enclosing suite or use filters.

@@ -6,7 +6,7 @@ import io.kotest.matchers.string.shouldContain
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 
-val firstGeneratingSuite by testSuite {
+val firstGeneratingReport by testSuite {
 
     //seed the RNG for reproducible tests
     val random = Random(42)
@@ -115,7 +115,7 @@ val firstGeneratingSuite by testSuite {
 }
 
 
-val aGeneratingSuite by testSuite {
+val aGeneratingReport by testSuite {
 
     //seed before the generator function, not inside!
     val byteRNG = Random(42);

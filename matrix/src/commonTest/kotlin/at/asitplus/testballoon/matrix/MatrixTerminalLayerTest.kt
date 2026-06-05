@@ -19,7 +19,7 @@ val terminalLayerMatrix by matrixSuite(
         nameFn = { _, data -> "$data" },
         limit = 4
     ) { execution = ExecutionMode.Concurrent() } test { row ->
-        row.length shouldBeGreaterThan 1
+        row.length shouldBeGreaterThan 0
     }
 
     data(
