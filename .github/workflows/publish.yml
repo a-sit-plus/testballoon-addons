@@ -1,5 +1,11 @@
 name: Publish
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      modules:
+        description: 'Comma-separated list of module names to publish'
+        required: false
+        default: 'internals,commons,matrix,freespec,property,datatest,fixturegen,fixturegen-freespec'
 permissions:
   contents: read
   pages: write
@@ -23,15 +29,18 @@ jobs:
       - name: Publish modules serially to Sonatype
         run: |
           ./gradlew clean
-          ./gradlew :internals:publishToSonatype closeSonatypeStagingRepository
-          ./gradlew :commons:publishToSonatype closeSonatypeStagingRepository
-          ./gradlew :matrix:publishToSonatype closeSonatypeStagingRepository
-          ./gradlew :freespec:publishToSonatype closeSonatypeStagingRepository
-          ./gradlew :property:publishToSonatype closeSonatypeStagingRepository
-          ./gradlew :datatest:publishToSonatype closeSonatypeStagingRepository
-          ./gradlew :fixturegen:publishToSonatype closeSonatypeStagingRepository
-          ./gradlew :fixturegen-freespec:publishToSonatype closeSonatypeStagingRepository
+          IFS=',' read -ra MODULES <<< "$PUBLISH_MODULES"
+          for module in "${MODULES[@]}"; do
+            module="$(echo "$module" | xargs)"
+            [ -z "$module" ] && continue
+            case "$module" in
+              *[!a-zA-Z0-9_-]*)
+                echo "::error::Invalid module name: '$module'"; exit 1 ;;
+            esac
+            ./gradlew ":${module}:publishToSonatype" closeSonatypeStagingRepository
+          done
         env:
+          PUBLISH_MODULES: ${{ github.event.inputs.modules }}
           ORG_GRADLE_PROJECT_signingKeyId: ${{ secrets.PUBLISH_SIGNING_KEYID }}
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.PUBLISH_SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.PUBLISH_SIGNING_PASSWORD }}

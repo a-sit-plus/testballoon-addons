@@ -97,6 +97,23 @@ val quickstart by matrixSuite(execution = ExecutionMode.Sequential) {
 }
 ```
 
+A layer's leading name is just a label for a grouping node that wraps the rows it generates. Naming a layer is
+shorthand for wrapping a nameless one in a labeled suite by hand — these two produce the same test-tree shape:
+
+```kotlin
+data("numbers", listOf(1, 2, 3)) - { /* … */ }   // named layer
+
+"numbers" - {                                    // equivalent structure
+    data(listOf(1, 2, 3)) - { /* … */ }
+}
+```
+
+Both nest the three rows under a `numbers` node. Drop the name entirely (`data(listOf(1, 2, 3))`) and the rows attach
+directly to the surrounding scope with no grouping node at all. The name, when present, additionally becomes the
+layer's label in failure/replay output (`(data) numbers: …`); a nameless layer just shows its kind (`(data) …`). The
+same applies to `property`. The sections below use named layers throughout, but every `data`/`property` form has a
+nameless overload.
+
 ### Data-Driven Matrix Layers
 
 `data` layers accept `Iterable` values and lazy `Sequence` values. Use `test { ... }` when each row is the test, and
@@ -114,7 +131,7 @@ val dataDrivenMatrix by matrixSuite(execution = ExecutionMode.Sequential) {
         number shouldBeGreaterThan 0
     }
 
-    data("as a dimension", listOf("foo", "bar")) - { word ->
+    data("string data", listOf("foo", "bar")) - { word ->
         "has a length" {
             word.length shouldBeGreaterThan 0
         }
@@ -189,15 +206,16 @@ all generated checks: compact progress: 512 of 900 queued completed (1200 source
 
 Every matrix failure — a real test-tree leaf or a compacted virtual row — carries an **`Error replay info`**
 block whose detail lines are valid `property` / `data` arguments. Copy them back onto the failing layers and the
-matrix re-runs exactly those cases.
+matrix re-runs exactly those cases. Each frame is tagged with its layer kind — `(property)` or `(data)` — so the
+marker still pinpoints the right layer even for nameless layers (see below), where no layer name is printed.
 
 ```
 at.asitplus.AssertionError: 360888 should be < 256000
-    Error replay info: first: 4: 2018089192 / second: 2: 2796 / third: 1: 2 / fourth: 3: 1
-      - first:  replay = ReplayInput(seed=4779463605442148766L, iteration=4L)
-      - second: replay = ReplayInput(seed=-1353176301820643450L, iteration=2L)
-      - third:  replayIndex = 1L
-      - fourth: replay = ReplayInput(seed=5014696554795393980L, iteration=3L)
+    Error replay info: (property) first: 4: 2018089192 ↘ (property) second: 2: 2796 ↘ (data) third: 1: 2 ↘ (property) fourth: 3: 1
+      - (property) first:  replay = ReplayInput(seed=4779463605442148766L, iteration=4L)
+      - (property) second: replay = ReplayInput(seed=-1353176301820643450L, iteration=2L)
+      - (data)     third:  replayIndex = 1L
+      - (property) fourth: replay = ReplayInput(seed=5014696554795393980L, iteration=3L)
 ```
 
 Paste the text after each layer name into that layer's call:
@@ -225,30 +243,69 @@ Each pinned layer collapses to just the recorded case, so the whole matrix narro
 * A layer's `replay` / `replayIndex` is independent of its `seed`: `seed` pins a deterministic *full* run, while
   `replay` selects specific recorded cases (which carry their own seeds).
 
-Replay info inherits the enclosing layers' frames, so a compacted leaf records the full chain (outer real layers
-included), and the data index is recorded even when a custom `nameFn` omits it from the displayed name.
+The path on the first line mirrors the compact report path in full: it includes the enclosing grouping suites
+(`"name" - { ... }`) as plain segments, with the `(property)` / `(data)` layers carrying the markers. Only the
+replayable layers get a `- ...` argument line below — grouping suites appear in the path but have nothing to paste.
+A compacted leaf therefore records the full chain (outer real layers included), and the data index is recorded even
+when a custom `nameFn` omits it from the displayed name.
 
 ### Fixtures
 
-`fixture` creates fresh values for each directly nested test or suite. It also works inside compact blocks.
+`fixture { ... }` produces a fresh value, and **every test or suite you declare inside its `- { ... }` block gains an
+extra lambda parameter that hands you that value**. You name that parameter yourself — it is the freshly generated
+fixture, scoped to the element it is attached to:
+
+```kotlin
+fixture { Random.nextBytes(16) } - {
+    //                              ^ open the fixture scope with `- { }`
+
+    "a single test" { bytes ->   // <-- `bytes` is the fixture, freshly generated for THIS test
+        bytes.size shouldBe 16
+    }
+
+    "a nested suite" - { bytes ->   // <-- `bytes` is one fixture, shared by everything in this suite
+        data("word", listOf("foo", "bar")) test { word ->
+            bytes.isNotEmpty() shouldBe true
+        }
+    }
+}
+```
+
+The parameter appears on **every** nested form — `"name" { value -> }`, `"name" - { value -> }`,
+`test(...) { value -> }`, and `testSuite(...) { value -> }` — so the fixture threads in wherever you declare a child.
+
+Freshness follows the element the lambda is attached to:
+
+* a **terminal test** (`"name" { value -> }` / `test { value -> }`) gets its **own** fresh value;
+* a **suite** (`"name" - { value -> }`) gets **one** fresh value that all of its children share.
+
+So fixtures isolate per test by default, but give you a single shared instance when you group children under a suite.
+
+Directly inside the fixture block you can only declare tests and suites — not `data`/`property`/`compact` layers. To add
+those, open a suite first: a `"name" - { value -> ... }` body is a normal matrix scope, so every layer you declare in it
+closes over that suite's `value`. Nesting composes the other direction too: a `fixture` inside a `data` row regenerates
+once per row, and a `fixture` inside another fixture's suite threads both values down to the leaves.
 
 ```kotlin
 val fixtureMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
     fixture { Random.nextBytes(16) } - {
-        "regular test with fresh bytes" { bytes ->
+        "regular test with fresh bytes" { bytes ->        // fresh value, this test only
             bytes.size shouldBe 16
         }
 
-        "suite with a fresh fixture" - { bytes ->
-            data("word", listOf("foo", "bar")) test { word ->
+        "suite with a shared fixture" - { bytes ->        // one value for the whole suite; `- { }` opens a matrix scope,
+            data("word", listOf("foo", "bar")) test { word ->   // so data/property/compact layers are available here
                 bytes.isNotEmpty() shouldBe true
                 word.length shouldBeGreaterThan 0
             }
         }
+    }
 
-        compact("compact checks with fresh fixture") { report = CompactReport.AllCases } - {
-            data("byte", bytes.toList()) test { byte ->
-                byte shouldBe byte
+    // Fixtures also work inside compact blocks — same parameter, same freshness rules:
+    compact("compact checks with fresh fixture") { report = CompactReport.AllCases } - {
+        fixture { Random.nextBytes(16) } - {
+            "fresh bytes per row" { bytes ->
+                bytes.size shouldBe 16
             }
         }
     }

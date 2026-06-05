@@ -74,4 +74,32 @@ val MatrixCompactScopeTest by testSuite {
         val node = scope.nodes.single().shouldBeInstanceOf<VirtualNode.DataTest>()
         node.layerConfig.replayIndexes shouldBe listOf(1L)
     }
+
+    test("a nameless data terminal builds a DataTest node with a null layer name") {
+        val scope = compactScope()
+        scope.data(listOf(1, 2, 3)) test {}
+        val node = scope.nodes.single().shouldBeInstanceOf<VirtualNode.DataTest>()
+        node.name shouldBe null
+        node.source.knownSize shouldBe 3L
+    }
+
+    test("a nameless data container builds a Data node with a null layer name") {
+        val scope = compactScope()
+        scope.data(listOf(1, 2)) - { }
+        scope.nodes.single().shouldBeInstanceOf<VirtualNode.Data>().name shouldBe null
+    }
+
+    test("a nameless property terminal builds a PropertyTest node with a null layer name") {
+        val scope = compactScope()
+        scope.property(Arb.of(1, 2), iterations = 7) test {}
+        val node = scope.nodes.single().shouldBeInstanceOf<VirtualNode.PropertyTest>()
+        node.name shouldBe null
+        node.iterations shouldBe 7
+    }
+
+    test("a nameless property container builds a Property node with a null layer name") {
+        val scope = compactScope()
+        scope.property(Arb.of(1, 2), iterations = 2) - { }
+        scope.nodes.single().shouldBeInstanceOf<VirtualNode.Property>().name shouldBe null
+    }
 }

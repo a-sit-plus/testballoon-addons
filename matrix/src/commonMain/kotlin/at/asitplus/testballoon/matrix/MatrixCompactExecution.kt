@@ -96,7 +96,7 @@ internal class CompactRun(
                 val failureRows = rowLimitCapacity(config.reportRows)
                 failureDetails.take(failureRows).forEach { failure ->
                     append("Failure: ")
-                    append(failure.path.joinToString(" / "))
+                    append(failure.path.joinToString(" ↘ "))
                     appendFailureError(failure)
                     appendLine()
                     renderedRows += 1
@@ -107,7 +107,7 @@ internal class CompactRun(
                 val remainingRows = rowLimitCapacity(config.reportRows, renderedRows)
                 successes.take(remainingRows).forEach { success ->
                     append("OK     : ")
-                    appendLine(success.joinToString(" / "))
+                    appendLine(success.joinToString(" ↘ "))
                     renderedRows += 1
                 }
                 reportOmittedSuccesses += (successes.size - remainingRows).coerceAtLeast(0)
@@ -117,7 +117,7 @@ internal class CompactRun(
                 appendOmittedCounts(reportOmittedFailures, reportOmittedSuccesses)
                 appendLine(" omitted from compact report")
             }
-            if (firstOmittedReplayPath.isNotEmpty()) {
+            if (firstOmittedReplayPath.hasReplayable()) {
                 appendLine(firstOmittedReplayPath.message("First error replay info omitted from row report:"))
             }
             appendLine("----------------------------------------")
@@ -125,7 +125,7 @@ internal class CompactRun(
             if (first == null) {
                 appendLine("Stack traces omitted: all compact failures were omitted from compact report")
             } else {
-                appendLine("Stack trace of first error: Failure: ${first.path.joinToString(" / ")}")
+                appendLine("Stack trace of first error: Failure: ${first.path.joinToString(" ↘ ")}")
                 appendLine(first.error.stackTraceForCollatedReport())
             }
             appendLine("----------------------------------------")
@@ -146,13 +146,14 @@ private fun rowLimitCapacity(limit: Int, used: Int = 0): Int =
     if (limit < 0) Int.MAX_VALUE else (limit - used).coerceAtLeast(0)
 
 private fun StringBuilder.appendFailureError(failure: CompactFailure) {
-    val message = if (failure.replayPath.isEmpty()) {
+    val replayable = failure.replayPath.hasReplayable()
+    val message = if (!replayable) {
         failure.error.message
     } else {
         failure.error.cause?.message ?: failure.error.message
     }
     appendLine("  error: ${failure.error::class.simpleName}: $message")
-    if (failure.replayPath.isNotEmpty()) {
+    if (replayable) {
         failure.replayPath.message().lines().forEachIndexed { index, line ->
             append(if (index == 0) "    " else "      ")
             appendLine(line)
@@ -252,11 +253,11 @@ private suspend fun traverseVirtualNodes(
     for (node in nodes) {
         when (node) {
             is VirtualNode.Suite -> if (!node.disabled)
-                traverseVirtualNodes(node.children, run, path + node.name, replayPath, respectLayerConcurrency, onTest)
+                traverseVirtualNodes(node.children, run, path + node.name, replayPath + MatrixReplayFrame.Group(node.name), respectLayerConcurrency, onTest)
             is VirtualNode.DynamicSuite -> if (!node.disabled)
-                traverseVirtualNodes(node.children(), run, path + node.name, replayPath, respectLayerConcurrency, onTest)
+                traverseVirtualNodes(node.children(), run, path + node.name, replayPath + MatrixReplayFrame.Group(node.name), respectLayerConcurrency, onTest)
             is VirtualNode.Test -> if (!node.disabled)
-                onTest(path + node.name, replayPath, node.body)
+                onTest(path + node.name, replayPath + MatrixReplayFrame.Group(node.name), node.body)
 
             is VirtualNode.Data -> if (!node.disabled) traverseLayer(
                 run, node.layerConfig.caseCount(node.source.knownSize), node.source.cases(node.layerConfig.replayIndexes),
@@ -305,7 +306,7 @@ private suspend fun traverseLayer(
     run: CompactRun,
     sourceCases: Long?,
     cases: Iterator<Case<Any?>>,
-    layerName: String,
+    layerName: String?,
     nameMaxLength: Int,
     nameOf: NameFn<Any?>,
     frameOf: (case: Case<Any?>, rawName: String) -> MatrixReplayFrame,
@@ -317,7 +318,8 @@ private suspend fun traverseLayer(
     run.addSourceCases(sourceCases)
     cases.forEachCase(execution, run.config.coroutineContext) { case ->
         val rawName = nameOf(case.index, case.value).truncated(nameMaxLength)
-        visit(path + "$layerName: $rawName", replayPath + frameOf(case, rawName), case.value)
+        val pathSegment = if (layerName != null) "$layerName: $rawName" else rawName
+        visit(path + pathSegment, replayPath + frameOf(case, rawName), case.value)
     }
 }
 

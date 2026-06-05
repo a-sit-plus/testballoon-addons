@@ -62,8 +62,38 @@ class CompactScope internal constructor(
         config: DataLayerConfigBuilder.() -> Unit = {},
     ): CompactDataLayer<T> = data(name, values, limit, nameFn, listOf(replayIndex), config)
 
+    fun <T> data(
+        values: Iterable<T>,
+        nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
+        replayIndexes: List<Long>? = null,
+        config: DataLayerConfigBuilder.() -> Unit = {},
+    ): CompactDataLayer<T> = CompactDataLayer(this, null, IterableDataSource(values), nameFn, replayIndexes, config)
+
+    fun <T> data(
+        values: Iterable<T>,
+        nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
+        replayIndex: Long,
+        config: DataLayerConfigBuilder.() -> Unit = {},
+    ): CompactDataLayer<T> = data(values, nameFn, listOf(replayIndex), config)
+
+    fun <T> data(
+        values: Sequence<T>,
+        limit: Long? = null,
+        nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
+        replayIndexes: List<Long>? = null,
+        config: DataLayerConfigBuilder.() -> Unit = {},
+    ): CompactDataLayer<T> = CompactDataLayer(this, null, SequenceDataSource(values, limit), nameFn, replayIndexes, config)
+
+    fun <T> data(
+        values: Sequence<T>,
+        limit: Long? = null,
+        nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
+        replayIndex: Long,
+        config: DataLayerConfigBuilder.() -> Unit = {},
+    ): CompactDataLayer<T> = data(values, limit, nameFn, listOf(replayIndex), config)
+
     internal fun <T> dataInternal(
-        name: String,
+        name: String?,
         source: MatrixDataSource<T>,
         nameFn: NameFn<T>,
         replayIndexes: List<Long>?,
@@ -72,8 +102,8 @@ class CompactScope internal constructor(
     ) {
         val layerConfig = DataLayerConfigBuilder(matrixConfig).apply(configBlock).build(replayIndexes)
         nodes += VirtualNode.Data(
-            matrixName(name),
-            disabled = isMatrixDisabledName(name),
+            name?.let(::matrixName),
+            disabled = name?.let(::isMatrixDisabledName) ?: false,
             source = source as MatrixDataSource<Any?>,
             nameFn = nameFn as NameFn<Any?>,
             layerConfig = layerConfig,
@@ -87,7 +117,7 @@ class CompactScope internal constructor(
     }
 
     internal fun <T> dataTestInternal(
-        name: String,
+        name: String?,
         source: MatrixDataSource<T>,
         nameFn: NameFn<T>,
         replayIndexes: List<Long>?,
@@ -96,8 +126,8 @@ class CompactScope internal constructor(
     ) {
         val layerConfig = DataLayerConfigBuilder(matrixConfig).apply(configBlock).build(replayIndexes)
         nodes += VirtualNode.DataTest(
-            matrixName(name),
-            disabled = isMatrixDisabledName(name),
+            name?.let(::matrixName),
+            disabled = name?.let(::isMatrixDisabledName) ?: false,
             source = source as MatrixDataSource<Any?>,
             nameFn = nameFn as NameFn<Any?>,
             layerConfig = layerConfig,
@@ -123,8 +153,24 @@ class CompactScope internal constructor(
         config: PropertyLayerConfigBuilder.() -> Unit = {},
     ): CompactPropertyLayer<T> = property(name, gen, iterations, nameFn, listOf(replay), config)
 
+    fun <T> property(
+        gen: Gen<T>,
+        iterations: Int = matrixConfig.defaultPropertyIterations,
+        nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
+        replays: List<ReplayInput>? = null,
+        config: PropertyLayerConfigBuilder.() -> Unit = {},
+    ): CompactPropertyLayer<T> = CompactPropertyLayer(this, null, gen, iterations, nameFn, replays, config)
+
+    fun <T> property(
+        gen: Gen<T>,
+        iterations: Int = matrixConfig.defaultPropertyIterations,
+        nameFn: NameFn<T> = { index, value -> defaultLayerName(index, value) },
+        replay: ReplayInput,
+        config: PropertyLayerConfigBuilder.() -> Unit = {},
+    ): CompactPropertyLayer<T> = property(gen, iterations, nameFn, listOf(replay), config)
+
     internal fun <T> propertyInternal(
-        name: String,
+        name: String?,
         gen: Gen<T>,
         iterations: Int,
         nameFn: NameFn<T>,
@@ -135,8 +181,8 @@ class CompactScope internal constructor(
         require(iterations >= 0) { "iterations must be >= 0" }
         val layerConfig = PropertyLayerConfigBuilder(matrixConfig).apply(config).build(replays)
         nodes += VirtualNode.Property(
-            matrixName(name),
-            disabled = isMatrixDisabledName(name),
+            name?.let(::matrixName),
+            disabled = name?.let(::isMatrixDisabledName) ?: false,
             gen = gen as Gen<Any?>,
             iterations = iterations,
             nameFn = nameFn as NameFn<Any?>,
@@ -151,7 +197,7 @@ class CompactScope internal constructor(
     }
 
     internal fun <T> propertyTestInternal(
-        name: String,
+        name: String?,
         gen: Gen<T>,
         iterations: Int,
         nameFn: NameFn<T>,
@@ -162,8 +208,8 @@ class CompactScope internal constructor(
         require(iterations >= 0) { "iterations must be >= 0" }
         val layerConfig = PropertyLayerConfigBuilder(matrixConfig).apply(config).build(replays)
         nodes += VirtualNode.PropertyTest(
-            matrixName(name),
-            disabled = isMatrixDisabledName(name),
+            name?.let(::matrixName),
+            disabled = name?.let(::isMatrixDisabledName) ?: false,
             gen = gen as Gen<Any?>,
             iterations = iterations,
             nameFn = nameFn as NameFn<Any?>,
@@ -175,7 +221,7 @@ class CompactScope internal constructor(
 
 class CompactDataLayer<T> internal constructor(
     private val scope: CompactScope,
-    private val name: String,
+    private val name: String?,
     private val source: MatrixDataSource<T>,
     private val nameFn: NameFn<T>,
     private val replayIndexes: List<Long>?,
@@ -192,7 +238,7 @@ class CompactDataLayer<T> internal constructor(
 
 class CompactPropertyLayer<T> internal constructor(
     private val scope: CompactScope,
-    private val name: String,
+    private val name: String?,
     private val gen: Gen<T>,
     private val iterations: Int,
     private val nameFn: NameFn<T>,
