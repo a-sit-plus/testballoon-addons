@@ -181,18 +181,19 @@ val combinedFeaturesReport by matrixSuite(execution = ExecutionMode.Concurrent(1
 val showcaseReport by matrixSuite(execution = ExecutionMode.Concurrent()) {
     property(
         "first",
-        Arb.int(min = 1), iterations = 5, replay = ReplayInput(seed=-6390287234787975868L, iteration=2L)
+        Arb.int(min = 1), iterations = 5,
     ) - { first ->
         property(
             "second",
-            Arb.short(min = 1), iterations = 5, replay = ReplayInput(seed=-8543743835751713023L, iteration=0L)
+            Arb.short(min = 1), iterations = 5,
         ) - { second ->
-            data(
-                listOf(1, 2, 3, 4, 5), replayIndex = 3L
+            data(/*nameless third*/
+                listOf(1, 2, 3, 4, 5),
             ) - { third ->
                 property(
                     "fourth",
-                    Arb.byte(min = 1), iterations = 5, replay = ReplayInput(seed=-1520609654322826870L, iteration=4L)
+                    Arb.byte(min = 1),
+                    iterations = 5,
                 ) test { fourth -> (first / second / third / fourth).shouldBeLessThan(256_000) }
             }
         }
