@@ -45,7 +45,7 @@ internal sealed interface VirtualNode {
 
     data class Test(val name: String, val disabled: Boolean, val body: suspend Test.ExecutionScope.() -> Unit) : VirtualNode
     data class Data(
-        val name: String,
+        val name: String?,
         val disabled: Boolean,
         val source: MatrixDataSource<Any?>,
         val nameFn: NameFn<Any?>,
@@ -54,7 +54,7 @@ internal sealed interface VirtualNode {
     ) : VirtualNode
 
     data class DataTest(
-        val name: String,
+        val name: String?,
         val disabled: Boolean,
         val source: MatrixDataSource<Any?>,
         val nameFn: NameFn<Any?>,
@@ -63,7 +63,7 @@ internal sealed interface VirtualNode {
     ) : VirtualNode
 
     data class Property(
-        val name: String,
+        val name: String?,
         val disabled: Boolean,
         val gen: Gen<Any?>,
         val iterations: Int,
@@ -73,7 +73,7 @@ internal sealed interface VirtualNode {
     ) : VirtualNode
 
     data class PropertyTest(
-        val name: String,
+        val name: String?,
         val disabled: Boolean,
         val gen: Gen<Any?>,
         val iterations: Int,

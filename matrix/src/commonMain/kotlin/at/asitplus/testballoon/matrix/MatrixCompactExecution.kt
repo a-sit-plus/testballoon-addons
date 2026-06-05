@@ -305,7 +305,7 @@ private suspend fun traverseLayer(
     run: CompactRun,
     sourceCases: Long?,
     cases: Iterator<Case<Any?>>,
-    layerName: String,
+    layerName: String?,
     nameMaxLength: Int,
     nameOf: NameFn<Any?>,
     frameOf: (case: Case<Any?>, rawName: String) -> MatrixReplayFrame,
@@ -317,7 +317,8 @@ private suspend fun traverseLayer(
     run.addSourceCases(sourceCases)
     cases.forEachCase(execution, run.config.coroutineContext) { case ->
         val rawName = nameOf(case.index, case.value).truncated(nameMaxLength)
-        visit(path + "$layerName: $rawName", replayPath + frameOf(case, rawName), case.value)
+        val pathSegment = if (layerName != null) "$layerName: $rawName" else rawName
+        visit(path + pathSegment, replayPath + frameOf(case, rawName), case.value)
     }
 }
 

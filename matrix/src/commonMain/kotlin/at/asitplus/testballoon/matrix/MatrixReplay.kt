@@ -10,21 +10,29 @@ import kotlin.AssertionError as AssertionErr
  * are needed because a custom `nameFn` may omit the index from the displayed name.
  */
 internal sealed interface MatrixReplayFrame {
-    val layerName: String
+    /** The layer's explicit name, or `null` for a nameless layer. */
+    val layerName: String?
     val rowName: String
 
+    /** The layer kind, always available because frames are typed (used as a `(data)`/`(property)` marker). */
+    val kind: String
+
     data class Property(
-        override val layerName: String,
+        override val layerName: String?,
         val seed: Long,
         val iteration: Long,
         override val rowName: String,
-    ) : MatrixReplayFrame
+    ) : MatrixReplayFrame {
+        override val kind: String get() = "property"
+    }
 
     data class Data(
-        override val layerName: String,
+        override val layerName: String?,
         val index: Long,
         override val rowName: String,
-    ) : MatrixReplayFrame
+    ) : MatrixReplayFrame {
+        override val kind: String get() = "data"
+    }
 }
 
 internal fun List<MatrixReplayFrame>.message(
@@ -36,20 +44,26 @@ internal fun List<MatrixReplayFrame>.message(
         append(firstLineIndent)
         append(prefix)
         append(" ")
-        appendLine(this@message.joinToString(" / ") { frame -> "${frame.layerName}: ${frame.rowName}" })
+        appendLine(this@message.joinToString(" / ") { frame ->
+            if (frame.layerName != null) "(${frame.kind}) ${frame.layerName}: ${frame.rowName}"
+            else "(${frame.kind}) ${frame.rowName}"
+        })
         this@message.forEach { frame ->
             append(detailLineIndent)
-            append("- ")
-            append(frame.layerName)
+            append("- (")
+            append(frame.kind)
+            append(")")
+            if (frame.layerName != null) append(" ${frame.layerName}")
+            append(": ")
             when (frame) {
                 is MatrixReplayFrame.Property -> {
-                    append(": replay = ReplayInput(seed=")
+                    append("replay = ReplayInput(seed=")
                     append(frame.seed).append("L")
                     append(", iteration=")
                     append(frame.iteration).append("L)")
                 }
                 is MatrixReplayFrame.Data -> {
-                    append(": replayIndex = ")
+                    append("replayIndex = ")
                     append(frame.index).append("L")
                 }
             }

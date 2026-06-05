@@ -89,9 +89,9 @@ val MatrixReplayTest by testSuite {
         )
 
         val message = frames.message()
-        message.contains("Error replay info: prop: 3: x / data: no-index-here").shouldBeTrue()
-        message.contains("- prop: replay = ReplayInput(seed=7L, iteration=3L)").shouldBeTrue()
-        message.contains("- data: replayIndex = 5L").shouldBeTrue()
+        message.contains("Error replay info: (property) prop: 3: x / (data) data: no-index-here").shouldBeTrue()
+        message.contains("- (property) prop: replay = ReplayInput(seed=7L, iteration=3L)").shouldBeTrue()
+        message.contains("- (data) data: replayIndex = 5L").shouldBeTrue()
     }
 }
 

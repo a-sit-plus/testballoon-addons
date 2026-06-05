@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.12.0
+* **Matrix testing: nameless `data` / `property` layers**
+    * `data` and `property` now have overloads that omit the leading name (e.g. `data(listOf(...)) test { ... }`,
+      `property(Arb.int()) - { ... }`). A nameless layer skips the intermediate grouping node and registers its rows
+      directly in the surrounding scope. A named layer remains shorthand for wrapping a nameless one in a labeled
+      suite. Available in both regular and `compact` scopes, across all overloads (Iterable/Sequence,
+      `replayIndex(es)` / `replay(s)`, `- { }` and `test { }`).
+* **Matrix testing: replay info shows layer kind**
+    * `Error replay info` frames are now tagged with their layer kind — `(property)` or `(data)` — for named and
+      nameless layers alike (e.g. `(property) seed: ...`). Nameless layers print the marker without a name; the
+      general failure/report path still shows no synthesized segment.
+
 ## 0.11.0
 * **Matrix testing: bounded compact concurrency**
     * `CompactConcurrency.Shared(n)` runs a compact block through one compact-wide worker budget, so nested virtual

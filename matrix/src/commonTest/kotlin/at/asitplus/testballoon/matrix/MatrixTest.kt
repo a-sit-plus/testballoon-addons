@@ -167,7 +167,7 @@ val combinedFeaturesReport by matrixSuite(execution = ExecutionMode.Concurrent(1
                     report = CompactReport.AllCases
                     concurrency = CompactConcurrency.Shared(1)
                 } - {
-                    property("offset", Arb.int(0..100), iterations = 500) test { offset ->
+                    property(Arb.int(0..100), iterations = 500) test { offset ->
                         val result = fixture.size * multiplier + offset
                         result shouldBeGreaterThan 0
                     }

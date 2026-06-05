@@ -91,3 +91,43 @@ val matrixCompactSharedPassingTest by matrixSuite(execution = ExecutionMode.Sequ
         }
     }
 }
+
+// Nameless `data`/`property` overloads: no leading layer name, no intermediate grouping node — the
+// per-case nodes are generated directly into the surrounding scope.
+
+val matrixNamelessNestedDataTest by matrixSuite(execution = ExecutionMode.Sequential) {
+    var leaves = 0
+    data(listOf(1, 2, 3)) - {
+        data(listOf("a", "b")) test { leaves++ }
+    }
+    "nameless nested data dimensions still produce the cartesian product" {
+        leaves shouldBe 6
+    }
+}
+
+val matrixNamelessPropertyOverDataTest by matrixSuite(execution = ExecutionMode.Sequential) {
+    var leaves = 0
+    property(Arb.of(1, 2), iterations = 2) - {
+        data(listOf(10, 20, 30)) test { leaves++ }
+    }
+    "nameless property over nameless data multiplies cases" {
+        leaves shouldBe 6
+    }
+}
+
+val matrixNamelessSequenceLimitTest by matrixSuite(execution = ExecutionMode.Sequential) {
+    var count = 0
+    data(sequenceOf(1, 2, 3, 4, 5), limit = 2) test { count++ }
+    "nameless sequence limit caps the number of cases" {
+        count shouldBe 2
+    }
+}
+
+val matrixNamelessCompactTest by matrixSuite(execution = ExecutionMode.Sequential) {
+    compact("nameless compact") { report = CompactReport.AllCases } - {
+        data(listOf(1, 2, 3)) test { it shouldBeGreaterThan 0 }
+        property(Arb.of(2, 4, 6), iterations = 3) - {
+            data(listOf(8, 10)) test { it shouldBeGreaterThan 0 }
+        }
+    }
+}
