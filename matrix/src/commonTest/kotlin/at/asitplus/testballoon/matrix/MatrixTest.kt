@@ -179,22 +179,34 @@ val combinedFeaturesReport by matrixSuite(execution = ExecutionMode.Concurrent(1
 
 
 val showcaseReport by matrixSuite(execution = ExecutionMode.Concurrent()) {
-    property(
-        "first",
-        Arb.int(min = 1), iterations = 5, replay = ReplayInput(seed=-6390287234787975868L, iteration=2L)
-    ) - { first ->
+    "Fioibar" - {
         property(
-            "second",
-            Arb.short(min = 1), iterations = 5, replay = ReplayInput(seed=-8543743835751713023L, iteration=0L)
-        ) - { second ->
-            data(
-                "third",
-                listOf(1, 2, 3, 4, 5), replayIndex = 3L
-            ) - { third ->
+            "first",
+            Arb.int(min = 1), iterations = 5, replay = ReplayInput(seed = -6390287234787975868L, iteration = 2L)
+        ) - { first ->
+            "Baz" - {
                 property(
-                    "fourth",
-                    Arb.byte(min = 1), iterations = 5, replay = ReplayInput(seed=-1520609654322826870L, iteration=4L)
-                ) test { fourth -> (first / second / third / fourth).shouldBeLessThan(256_000) }
+                    "second",
+                    Arb.short(min = 1),
+                    iterations = 5,
+                    replay = ReplayInput(seed = -8543743835751713023L, iteration = 0L)
+                ) - { second ->
+                    compact("for testing") - {
+                        data(
+                            "third",
+                            listOf(1, 2, 3, 4, 5), replayIndex = 3L
+                        ) - { third ->
+                            property(
+                                "fourth",
+                                Arb.byte(min = 1),
+                                iterations = 5,
+                                replay = ReplayInput(seed = -1520609654322826870L, iteration = 4L)
+                            ) - { fourth ->
+                                "bonk" { (first / second / third / fourth).shouldBeLessThan(256_000) }
+                            }
+                        }
+                    }
+                }
             }
         }
     }

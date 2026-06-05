@@ -44,7 +44,7 @@ internal fun List<MatrixReplayFrame>.message(
         append(firstLineIndent)
         append(prefix)
         append(" ")
-        appendLine(this@message.joinToString(" / ") { frame ->
+        appendLine(this@message.joinToString(" ↘ ") { frame ->
             if (frame.layerName != null) "(${frame.kind}) ${frame.layerName}: ${frame.rowName}"
             else "(${frame.kind}) ${frame.rowName}"
         })

@@ -96,7 +96,7 @@ internal class CompactRun(
                 val failureRows = rowLimitCapacity(config.reportRows)
                 failureDetails.take(failureRows).forEach { failure ->
                     append("Failure: ")
-                    append(failure.path.joinToString(" / "))
+                    append(failure.path.joinToString(" ↘ "))
                     appendFailureError(failure)
                     appendLine()
                     renderedRows += 1
@@ -107,7 +107,7 @@ internal class CompactRun(
                 val remainingRows = rowLimitCapacity(config.reportRows, renderedRows)
                 successes.take(remainingRows).forEach { success ->
                     append("OK     : ")
-                    appendLine(success.joinToString(" / "))
+                    appendLine(success.joinToString(" ↘ "))
                     renderedRows += 1
                 }
                 reportOmittedSuccesses += (successes.size - remainingRows).coerceAtLeast(0)
@@ -125,7 +125,7 @@ internal class CompactRun(
             if (first == null) {
                 appendLine("Stack traces omitted: all compact failures were omitted from compact report")
             } else {
-                appendLine("Stack trace of first error: Failure: ${first.path.joinToString(" / ")}")
+                appendLine("Stack trace of first error: Failure: ${first.path.joinToString(" ↘ ")}")
                 appendLine(first.error.stackTraceForCollatedReport())
             }
             appendLine("----------------------------------------")

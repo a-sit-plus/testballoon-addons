@@ -120,7 +120,7 @@ val MatrixCompactResultTest by testSuite {
 
         val message = error.message!!
         message.shouldContain("  error: AssertionError: boom\n")
-        message.shouldContain("    Error replay info: (property) first: 1: alpha / (property) second: 2: beta\n")
+        message.shouldContain("    Error replay info: (property) first: 1: alpha ↘ (property) second: 2: beta\n")
         message.shouldContain("      - (property) first: replay = ReplayInput(seed=111L, iteration=1L)\n")
         message.shouldContain("      - (property) second: replay = ReplayInput(seed=222L, iteration=2L)\n")
     }

@@ -20,7 +20,7 @@ val MatrixPropertyReplayTest by testSuite {
 
         val message = wrapped.message!!
         message.startsWith("boom\n    Error replay info:").shouldBeTrue()
-        message.contains("    Error replay info: (property) outer: 12: alpha / (property) inner: 417: beta").shouldBeTrue()
+        message.contains("    Error replay info: (property) outer: 12: alpha ↘ (property) inner: 417: beta").shouldBeTrue()
         message.contains("      - (property) outer: replay = ReplayInput(seed=111L, iteration=12L)").shouldBeTrue()
         message.contains("      - (property) inner: replay = ReplayInput(seed=222L, iteration=417L)").shouldBeTrue()
         message.contains("boom").shouldBeTrue()
@@ -58,7 +58,7 @@ val MatrixPropertyReplayTest by testSuite {
 
         val message = error.message!!
         message.contains(
-            "First error replay info omitted from row report: (property) outer: 12: alpha / (property) inner: 417: beta"
+            "First error replay info omitted from row report: (property) outer: 12: alpha ↘ (property) inner: 417: beta"
         ).shouldBeTrue()
         message.contains("- (property) outer: replay = ReplayInput(seed=111L, iteration=12L)").shouldBeTrue()
         message.contains("- (property) inner: replay = ReplayInput(seed=222L, iteration=417L)").shouldBeTrue()

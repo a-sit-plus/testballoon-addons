@@ -211,7 +211,7 @@ marker still pinpoints the right layer even for nameless layers (see below), whe
 
 ```
 at.asitplus.AssertionError: 360888 should be < 256000
-    Error replay info: (property) first: 4: 2018089192 / (property) second: 2: 2796 / (data) third: 1: 2 / (property) fourth: 3: 1
+    Error replay info: (property) first: 4: 2018089192 ↘ (property) second: 2: 2796 ↘ (data) third: 1: 2 ↘ (property) fourth: 3: 1
       - (property) first:  replay = ReplayInput(seed=4779463605442148766L, iteration=4L)
       - (property) second: replay = ReplayInput(seed=-1353176301820643450L, iteration=2L)
       - (data)     third:  replayIndex = 1L

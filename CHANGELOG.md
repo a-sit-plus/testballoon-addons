@@ -11,6 +11,7 @@
     * `Error replay info` frames are now tagged with their layer kind — `(property)` or `(data)` — for named and
       nameless layers alike (e.g. `(property) seed: ...`). Nameless layers print the marker without a name; the
       general failure/report path still shows no synthesized segment.
+* **Matrix testing: replace layer separator slash with TestBalloon separator arrow**
 
 ## 0.11.0
 * **Matrix testing: bounded compact concurrency**

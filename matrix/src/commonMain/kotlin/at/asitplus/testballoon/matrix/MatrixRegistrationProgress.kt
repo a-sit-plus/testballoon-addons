@@ -51,7 +51,7 @@ private fun MatrixRegistrationProgress(
 ): MatrixRegistrationProgress {
     var registered = 0L
     var lastPrinted = -1L
-    val prefix = (path.map { it.render() } + name).joinToString(" › ")
+    val prefix = (path.map { it.render() } + name).joinToString(" ↘ ")
     fun message(): String {
         lastPrinted = registered
         return buildString {

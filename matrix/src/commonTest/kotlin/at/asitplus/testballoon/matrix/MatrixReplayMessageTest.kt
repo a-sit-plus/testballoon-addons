@@ -18,7 +18,7 @@ val MatrixReplayMessageTest by testSuite {
             MatrixReplayFrame.Property("p", seed = 9L, iteration = 4L, rowName = "four"),
         )
         val message = frames.message(prefix = "Repro:")
-        message.shouldStartWith("Repro: (data) d: two / (property) p: four")
+        message.shouldStartWith("Repro: (data) d: two ↘ (property) p: four")
         message.shouldContain("- (data) d: replayIndex = 2L")
         message.shouldContain("- (property) p: replay = ReplayInput(seed=9L, iteration=4L)")
     }
@@ -29,7 +29,7 @@ val MatrixReplayMessageTest by testSuite {
             MatrixReplayFrame.Property(null, seed = 9L, iteration = 4L, rowName = "four"),
         )
         val message = frames.message(prefix = "Repro:")
-        message.shouldStartWith("Repro: (data) two / (property) four")
+        message.shouldStartWith("Repro: (data) two ↘ (property) four")
         message.shouldContain("- (data): replayIndex = 2L")
         message.shouldContain("- (property): replay = ReplayInput(seed=9L, iteration=4L)")
     }
