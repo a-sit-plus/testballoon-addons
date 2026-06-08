@@ -13,6 +13,15 @@ class MatrixFixtureGeneratorScope<T> internal constructor(
     @TestRegistering
     fun test(
         name: String,
+        config: MatrixSuiteConfigBuilder,
+        body: suspend Test.ExecutionScope.(T) -> Unit,
+    ) {
+        matrix.test(name, config) { body(generator()) }
+    }
+
+    @TestRegistering
+    fun test(
+        name: String,
         testConfig: TestConfig = TestConfig,
         body: suspend Test.ExecutionScope.(T) -> Unit,
     ) {
@@ -22,25 +31,41 @@ class MatrixFixtureGeneratorScope<T> internal constructor(
     @TestRegistering
     fun testSuite(
         name: String,
-        testConfig: TestConfig = TestConfig,
+        config: MatrixSuiteConfigBuilder,
         body: MatrixSuiteScope.(T) -> Unit,
     ) {
         matrix.requireOpen(name)
+        val resolved = config.build(matrix.config)
         matrix.target.apply {
             testSuite(
                 name = matrixName(name),
-                testConfig = matrix.config.testConfig.chainedWith(testConfig).disableByMatrixName(name),
+                testConfig = resolved.testConfig.disableByMatrixName(name),
             ) {
                 val value = generator()
                 MatrixSuiteScope(
                     this,
-                    matrix.config,
+                    resolved.nested(resolved.execution),
                     matrix.registrationPath,
                     matrix.registrationReporter,
                     matrix.replayPath + MatrixReplayFrame.Group(matrixName(name)),
                 ).apply { building { body(value) } }
             }
         }
+    }
+
+    @TestRegistering
+    fun testSuite(
+        name: String,
+        testConfig: TestConfig = TestConfig,
+        body: MatrixSuiteScope.(T) -> Unit,
+    ) = testSuite(name, matrixConfig { this.testConfig = testConfig }, body)
+
+    @TestRegistering
+    operator fun String.invoke(
+        config: MatrixSuiteConfigBuilder,
+        body: suspend Test.ExecutionScope.(T) -> Unit,
+    ) {
+        test(this, config, body)
     }
 
     @TestRegistering
@@ -53,12 +78,18 @@ class MatrixFixtureGeneratorScope<T> internal constructor(
 
     @TestRegistering
     operator fun String.invoke(
+        config: MatrixSuiteConfigBuilder,
+    ): MatrixFixtureConfiguredSuite<T> = MatrixFixtureConfiguredSuite(this@MatrixFixtureGeneratorScope, this, config)
+
+    @TestRegistering
+    operator fun String.invoke(
         testConfig: TestConfig = TestConfig,
-    ): MatrixFixtureConfiguredSuite<T> = MatrixFixtureConfiguredSuite(this@MatrixFixtureGeneratorScope, this, testConfig)
+    ): MatrixFixtureConfiguredSuite<T> =
+        MatrixFixtureConfiguredSuite(this@MatrixFixtureGeneratorScope, this, matrixConfig { this.testConfig = testConfig })
 
     @TestRegistering
     infix operator fun MatrixFixtureConfiguredSuite<T>.minus(body: MatrixSuiteScope.(T) -> Unit) {
-        scope.testSuite(name, testConfig, body)
+        scope.testSuite(name, config, body)
     }
 
     @TestRegistering
@@ -70,7 +101,7 @@ class MatrixFixtureGeneratorScope<T> internal constructor(
 class MatrixFixtureConfiguredSuite<T> internal constructor(
     internal val scope: MatrixFixtureGeneratorScope<T>,
     internal val name: String,
-    internal val testConfig: TestConfig,
+    internal val config: MatrixSuiteConfigBuilder,
 )
 
 @MatrixTestDsl

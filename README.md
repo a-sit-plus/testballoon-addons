@@ -146,6 +146,16 @@ Layer config is written as the trailing lambda before `test` or `-`. For `data`,
 Concurrency bounds are per layer: nested concurrent layers can multiply the number of active tests or virtual checks.
 For large compacted matrices, prefer `CompactConcurrency.Shared(n)` to use one compact-wide worker budget.
 
+> **Concurrency and `TestScope`.** Real concurrency cannot run inside TestBalloon's virtual-time `TestScope`
+> (TestBalloon forbids the combination, as it can deadlock through thread starvation). So wherever matrix
+> parallelizes — any `ExecutionMode.Concurrent` layer/suite, and every `compact` block (which executes on real
+> dispatchers) — matrix automatically **disables the `TestScope`** for that scope, even if the surrounding
+> `TestSession` enabled it (the default). You therefore do **not** need `testScope(isEnabled = false)` to combine
+> matrix concurrency with the default session. This wins even over a `testConfig` you pass yourself: if your
+> `matrixConfig { … }` sets both `execution = Concurrent(…)` and a `testConfig` that enables a `TestScope`, the
+> concurrency disable takes precedence. Sequential matrix execution leaves the inherited `TestScope` untouched, so
+> virtual-time tests keep working there.
+
 ### Property Matrix Layers
 
 `property` layers use Kotest generators directly. You get Kotest's `Arb` ecosystem, edge cases, shrinking-friendly data
@@ -334,6 +344,25 @@ object ProjectTestSessionConfig : TestSession(testConfig = TestConfig.apply {
 
 Individual suites can override those defaults with `matrixSuite` parameters. Layers can override their own execution or
 generation settings. Real tests and suites also accept `TestConfig`, which is chained onto the current matrix config.
+
+`test`, `testSuite`, and their FreeSpec `"name"(…)` forms accept a full matrix config too — pass a `matrixConfig { … }`
+value to set concurrency (and any other matrix setting) for that subtree. Unset fields inherit the enclosing scope, and
+`testConfig` is one of the fields (so `matrixConfig { testConfig = … }` covers `aroundAll` etc.). The `testConfig`-only
+forms shown above are just a shorthand wrapping `matrixConfig { testConfig = … }`. The fixture-scope `test` / `testSuite`
+(and their FreeSpec forms, inside `fixture { … } - { … }`) accept `matrixConfig { … }` the same way.
+
+```kotlin
+val perScopeConfig by matrixSuite(execution = ExecutionMode.Sequential) {
+    // run just this group's children concurrently (also auto-disables the TestScope — see the concurrency note above)
+    testSuite("heavy group", matrixConfig { execution = ExecutionMode.Concurrent(8) }) {
+        data(1..1000) test { /* … */ }
+    }
+    "freespec group"(matrixConfig { execution = ExecutionMode.Concurrent(4) }) - {
+        "child" { /* … */ }
+    }
+    test("one heavy test", matrixConfig { execution = ExecutionMode.Concurrent(2) }) { /* … */ }
+}
+```
 
 ```kotlin
 val configuredMatrix by matrixSuite(

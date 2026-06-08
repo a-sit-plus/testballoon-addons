@@ -2,6 +2,25 @@
 
 ## 0.13.0
 * **Matrix testing:***
+    * Fix `TestConfig` being re-applied at every nested matrix level. The base config (a session config captured via
+      `MatrixTestDefaults { }`, or a suite-level `testConfig`) is now applied once at the level it's set and inherited
+      to children by TestBalloon, instead of being re-chained at each nested data/property case, suite, and test. This
+      caused stateful wrappers to multiply — most visibly a session `testScope` combined with `execution = Concurrent`
+      deadlocking or aborting discovery ("did not discover any tests"), and a suite-level `aroundAll` running once per
+      case. Removed the internal `MatrixTestDefaults.testSessionConfig` capture (TestBalloon already propagates the
+      session config). Per-element `testConfig` on `test` / `testSuite` / `matrixSuite` (incl. FreeSpec forms) still
+      applies exactly once, so `aroundAll` / `aroundEach` behave as expected.
+    * `test` / `testSuite` and their FreeSpec `"name"(…)` forms now accept a full matrix config via a new
+      `matrixConfig { … }` value (e.g. `testSuite("g", matrixConfig { execution = ExecutionMode.Concurrent(8) }) { }`,
+      `"g"(matrixConfig { … }) - { }`). Unset fields inherit the enclosing scope; `testConfig` is one of the fields, so
+      the existing `testConfig =` forms are now thin wrappers around `matrixConfig { testConfig = … }`. Lets you set
+      per-subtree concurrency (and have it auto-disable the `TestScope`) without a separate `matrixSuite`. Also
+      available on the fixture-scope `test` / `testSuite` (and their FreeSpec forms). When a `matrixConfig` sets both
+      `execution = Concurrent(…)` and a `testConfig` that enables a `TestScope`, the concurrency disable wins.
+    * Matrix concurrency now auto-disables TestBalloon's virtual-time `TestScope`: any `ExecutionMode.Concurrent`
+      layer/suite and every `compact` block (both execute on real dispatchers) chain `testScope(isEnabled = false)`,
+      so concurrent/compact matrices run even under a session that enables `testScope` (the default) — no manual
+      `testScope(isEnabled = false)` needed. Sequential execution leaves the inherited `TestScope` intact.
     * Fail early nesting tests in tests instead of suites
     * Deduplicate the `data` / `property` API across the real-tree and `compact` scopes. Both now share a single
       sealed `MatrixScope` surface and one set of `data` / `property` overloads (returning `DataLayer` /

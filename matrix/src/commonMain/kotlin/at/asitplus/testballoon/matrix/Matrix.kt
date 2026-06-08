@@ -5,6 +5,7 @@ import at.asitplus.testballoon.withCompactProgressHeartbeatSuspending
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.TestSuiteScope
+import de.infix.testBalloon.framework.core.testScope
 import de.infix.testBalloon.framework.core.testSuite
 import de.infix.testBalloon.framework.shared.TestRegistering
 import de.infix.testBalloon.framework.shared.TestSuitePropertyName
@@ -79,18 +80,19 @@ data class MatrixSuiteScope internal constructor(
     @TestRegistering
     fun testSuite(
         name: String,
-        testConfig: TestConfig = TestConfig,
+        config: MatrixSuiteConfigBuilder,
         body: MatrixSuiteScope.() -> Unit,
     ) {
         requireOpen(name)
+        val resolved = config.build(this@MatrixSuiteScope.config)
         target.apply {
             testSuite(
                 name = matrixName(name),
-                testConfig = config.testConfig.chainedWith(testConfig).disableByMatrixName(name),
+                testConfig = resolved.testConfig.disableByMatrixName(name),
             ) {
                 MatrixSuiteScope(
                     this,
-                    config,
+                    resolved.nested(resolved.execution),
                     registrationPath,
                     registrationReporter,
                     replayPath + MatrixReplayFrame.Group(matrixName(name)),
@@ -99,20 +101,44 @@ data class MatrixSuiteScope internal constructor(
         }
     }
 
+    /** Shorthand for the most common case — wraps [matrixConfig] with only a [testConfig] (e.g. for `aroundAll`). */
+    @TestRegistering
+    fun testSuite(
+        name: String,
+        testConfig: TestConfig = TestConfig,
+        body: MatrixSuiteScope.() -> Unit,
+    ) = testSuite(name, matrixConfig { this.testConfig = testConfig }, body)
+
+    @TestRegistering
+    fun test(
+        name: String,
+        config: MatrixSuiteConfigBuilder,
+        body: suspend Test.ExecutionScope.() -> Unit,
+    ) {
+        requireOpen(name)
+        val resolved = config.build(this@MatrixSuiteScope.config)
+        target.apply {
+            test(
+                name = matrixName(name),
+                testConfig = resolved.testConfig.disableByMatrixName(name),
+                action = { withMatrixReplay(replayPath + MatrixReplayFrame.Group(matrixName(name)), body) },
+            )
+        }
+    }
+
     @TestRegistering
     fun test(
         name: String,
         testConfig: TestConfig = TestConfig,
         body: suspend Test.ExecutionScope.() -> Unit,
+    ) = test(name, matrixConfig { this.testConfig = testConfig }, body)
+
+    @TestRegistering
+    operator fun String.invoke(
+        config: MatrixSuiteConfigBuilder,
+        body: suspend Test.ExecutionScope.() -> Unit,
     ) {
-        requireOpen(name)
-        target.apply {
-            test(
-                name = matrixName(name),
-                testConfig = config.testConfig.chainedWith(testConfig).disableByMatrixName(name),
-                action = { withMatrixReplay(replayPath + MatrixReplayFrame.Group(matrixName(name)), body) },
-            )
-        }
+        test(this, config, body)
     }
 
     @TestRegistering
@@ -125,12 +151,17 @@ data class MatrixSuiteScope internal constructor(
 
     @TestRegistering
     operator fun String.invoke(
+        config: MatrixSuiteConfigBuilder,
+    ): MatrixConfiguredSuite = MatrixConfiguredSuite(this@MatrixSuiteScope, this, config)
+
+    @TestRegistering
+    operator fun String.invoke(
         testConfig: TestConfig = TestConfig,
-    ): MatrixConfiguredSuite = MatrixConfiguredSuite(this@MatrixSuiteScope, this, testConfig)
+    ): MatrixConfiguredSuite = MatrixConfiguredSuite(this@MatrixSuiteScope, this, matrixConfig { this.testConfig = testConfig })
 
     @TestRegistering
     infix operator fun MatrixConfiguredSuite.minus(body: MatrixSuiteScope.() -> Unit) {
-        scope.testSuite(name, testConfig, body)
+        scope.testSuite(name, config, body)
     }
 
     @TestRegistering
@@ -149,7 +180,7 @@ data class MatrixSuiteScope internal constructor(
         requireOpen(name)
         val layerName = name?.let(::matrixName)
         val registrationName = layerName ?: spec.defaultName
-        val scopedConfig = config.copy(execution = spec.execution)
+        val scopedConfig = config.nested(spec.execution)
         val caseTestConfig = scopedConfig.testConfig.boundBy(spec.execution.caseLimiter())
         val register: TestSuiteScope.() -> Unit = {
             val progress = registrationProgress(registrationName, spec.registrationProgressTotal, registrationPath, registrationReporter)
@@ -203,7 +234,9 @@ data class MatrixSuiteScope internal constructor(
         planningScope.building { planningScope.body() }
         val nodes = planningScope.nodes.toList()
         target.apply {
-            test(name = matrixName(name), testConfig = this@MatrixSuiteScope.config.testConfig.disableByMatrixName(name)) {
+            // Compact executes its cases on real dispatchers (its own worker pool / per-layer concurrency), so it
+            // cannot run in a virtual-time TestScope — disable it here even when the surrounding session enabled it.
+            test(name = matrixName(name), testConfig = this@MatrixSuiteScope.config.invocationConfig.testScope(isEnabled = false).disableByMatrixName(name)) {
                 val run = CompactRun(name, compactConfig)
                 when (val progress = compactConfig.progressIndicator) {
                     is Indicator.Heartbeat -> withCompactProgressHeartbeatSuspending(
@@ -224,7 +257,7 @@ data class MatrixSuiteScope internal constructor(
 class MatrixConfiguredSuite internal constructor(
     internal val scope: MatrixSuiteScope,
     internal val name: String,
-    internal val testConfig: TestConfig,
+    internal val config: MatrixSuiteConfigBuilder,
 )
 
 /**
