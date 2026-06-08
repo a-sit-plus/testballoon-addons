@@ -17,7 +17,7 @@ val MatrixReplayTest by testSuite {
         val seed = 42L
         val full = propertyCases(Arb.int(), 50, EdgeConfig.default(), seed = seed, replays = null)
             .asSequence().toList()
-        val replayed = propertyCases(Arb.int(), 50, EdgeConfig.default(), seed = null, replays = listOf(ReplayInput(seed, 7L)))
+        val replayed = propertyCases(Arb.int(), 50, EdgeConfig.default(), seed = null, replays = listOf(Input(seed, 7L)))
             .asSequence().toList()
 
         replayed shouldHaveSize 1
@@ -30,7 +30,7 @@ val MatrixReplayTest by testSuite {
         val seed = 42L
         val full = propertyCases(Arb.int(), 50, EdgeConfig.default(), seed = seed, replays = null)
             .asSequence().toList()
-        val replayed = propertyCases(Arb.int(), 50, EdgeConfig.default(), seed = null, replays = listOf(ReplayInput(seed, listOf(3L, 7L))))
+        val replayed = propertyCases(Arb.int(), 50, EdgeConfig.default(), seed = null, replays = listOf(Input(seed, listOf(3L, 7L))))
             .asSequence().toList()
 
         replayed.map { it.index } shouldBe listOf(3L, 7L)
@@ -40,7 +40,7 @@ val MatrixReplayTest by testSuite {
     test("propertyCases can replay multiple seed+iteration pairs at once") {
         val replayed = propertyCases(
             Arb.int(), 50, EdgeConfig.default(), seed = null,
-            replays = listOf(ReplayInput(1L, listOf(2L)), ReplayInput(2L, listOf(5L))),
+            replays = listOf(Input(1L, listOf(2L)), Input(2L, listOf(5L))),
         ).asSequence().toList()
 
         replayed.map { it.index } shouldBe listOf(2L, 5L)
@@ -71,14 +71,14 @@ val MatrixReplayTest by testSuite {
     test("property config keeps the standalone seed and the replays independent") {
         val config = PropertyLayerConfigBuilder(MatrixSuiteConfigBuilder().build()).apply {
             seed = 1L
-        }.build(replays = listOf(ReplayInput(seed = 99L, iterations = listOf(3L, 7L))))
+        }.build(replays = listOf(Input(seed = 99L, iterations = listOf(3L, 7L))))
 
-        config.seed shouldBe 1L  // determinism seed, untouched by replay (each ReplayInput carries its own)
-        config.replays shouldBe listOf(ReplayInput(99L, listOf(3L, 7L)))
+        config.seed shouldBe 1L  // determinism seed, untouched by replay (each Input carries its own)
+        config.replays shouldBe listOf(Input(99L, listOf(3L, 7L)))
     }
 
-    test("ReplayInput keeps single iteration constructor for report copy-paste") {
-        ReplayInput(seed = 99L, iteration = 3L).iterations shouldBe listOf(3L)
+    test("Input keeps single iteration constructor for report copy-paste") {
+        Input(99L, 3L).iterations shouldBe listOf(3L)
     }
 
     test("error replay info records data indexes alongside property frames, independent of nameFn") {
@@ -90,8 +90,8 @@ val MatrixReplayTest by testSuite {
 
         val message = frames.message()
         message.contains("Error replay info: (property) prop: 3: x ↘ (data) data: no-index-here").shouldBeTrue()
-        message.contains("- (property) prop: replay = ReplayInput(seed=7L, iteration=3L)").shouldBeTrue()
-        message.contains("- (data) data: replayIndex = 5L").shouldBeTrue()
+        message.contains("- (property) prop: replay = Cases(seed = 7L, iter = 3L)").shouldBeTrue()
+        message.contains("- (data) data: replay = Indexes(5L)").shouldBeTrue()
     }
 }
 
@@ -104,7 +104,7 @@ private fun expectedAt(seed: Long, iteration: Int): Int =
 
 val replayReproductionReal by matrixSuite {
     val expected = expectedAt(seed = 123L, iteration = 4)
-    property("p", Arb.int(), iterations = 1000, replay = ReplayInput(seed = 123L, iteration = 4L)) test { v ->
+    property("p", Arb.int(), iterations = 1000, replay = Cases(seed = 123L, iter = 4L)) test { v ->
         v shouldBe expected
     }
 }
@@ -112,20 +112,20 @@ val replayReproductionReal by matrixSuite {
 val replayReproductionCompact by matrixSuite {
     val expected = expectedAt(seed = 123L, iteration = 4)
     compact("replayed") - {
-        property("p", Arb.int(), iterations = 1000, replay = ReplayInput(seed = 123L, iteration = 4L)) test { v ->
+        property("p", Arb.int(), iterations = 1000, replay = Cases(seed = 123L, iter = 4L)) test { v ->
             v shouldBe expected
         }
     }
 }
 
-// Multiple seed+iteration pairs in one property layer: exactly two cases run (one per ReplayInput).
-// A pass proves the DSL threads a List<ReplayInput> through to multi-seed reproduction.
+// Multiple seed+iteration pairs in one property layer: exactly two cases run (one per Input).
+// A pass proves the DSL threads several Inputs through to multi-seed reproduction.
 val replayReproductionMultiSeed by matrixSuite {
     val first = expectedAt(seed = 11L, iteration = 2)
     val second = expectedAt(seed = 22L, iteration = 5)
     property(
         "p", Arb.int(), iterations = 1000,
-        replays = listOf(ReplayInput(seed = 11L, iteration = 2L), ReplayInput(seed = 22L, iteration = 5L)),
+        replay = Cases(Input(11L, 2L), Input(22L, 5L)),
     ) test { v ->
         (v == first || v == second).shouldBeTrue()
     }

@@ -25,18 +25,20 @@ class MatrixFixtureGeneratorScope<T> internal constructor(
         testConfig: TestConfig = TestConfig,
         body: MatrixSuiteScope.(T) -> Unit,
     ) {
+        matrix.requireOpen(name)
         matrix.target.apply {
             testSuite(
                 name = matrixName(name),
                 testConfig = matrix.config.testConfig.chainedWith(testConfig).disableByMatrixName(name),
             ) {
+                val value = generator()
                 MatrixSuiteScope(
                     this,
                     matrix.config,
                     matrix.registrationPath,
                     matrix.registrationReporter,
                     matrix.replayPath + MatrixReplayFrame.Group(matrixName(name)),
-                ).body(generator())
+                ).apply { building { body(value) } }
             }
         }
     }
@@ -81,10 +83,10 @@ class MatrixCompactFixtureGeneratorScope<T> internal constructor(
     }
 
     fun testSuite(name: String, body: CompactScope.(T) -> Unit) {
-        compact.nodes += VirtualNode.DynamicSuite(matrixName(name), isMatrixDisabledName(name)) {
+        compact.addDynamicSuite(name) {
             val fixture = generator()
             val child = CompactScope(compact.matrixConfig, compact.config)
-            child.body(fixture)
+            child.building { child.body(fixture) }
             child.nodes.toList()
         }
     }

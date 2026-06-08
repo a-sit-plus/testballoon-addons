@@ -19,8 +19,10 @@ val MatrixCompactResultTest by testSuite {
         val scope = CompactScope(matrixConfig, compactConfig)
 
         shouldThrow<IllegalArgumentException> {
-            scope.testSuite("outer") {
-                property("invalid property", Arb.int(), iterations = -1) test {}
+            scope.building {
+                scope.testSuite("outer") {
+                    property("invalid property", Arb.int(), iterations = -1) test {}
+                }
             }
         }
     }
@@ -121,7 +123,7 @@ val MatrixCompactResultTest by testSuite {
         val message = error.message!!
         message.shouldContain("  error: AssertionError: boom\n")
         message.shouldContain("    Error replay info: (property) first: 1: alpha ↘ (property) second: 2: beta\n")
-        message.shouldContain("      - (property) first: replay = ReplayInput(seed=111L, iteration=1L)\n")
-        message.shouldContain("      - (property) second: replay = ReplayInput(seed=222L, iteration=2L)\n")
+        message.shouldContain("      - (property) first: replay = Cases(seed = 111L, iter = 1L)\n")
+        message.shouldContain("      - (property) second: replay = Cases(seed = 222L, iter = 2L)\n")
     }
 }

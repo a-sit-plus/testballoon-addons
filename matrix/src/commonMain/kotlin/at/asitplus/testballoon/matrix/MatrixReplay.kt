@@ -30,7 +30,7 @@ internal sealed interface MatrixReplayFrame {
         /** The layer kind, always available because frames are typed (rendered as a `(data)`/`(property)` marker). */
         val kind: String
 
-        /** The replay argument to paste back onto the layer, e.g. `replayIndex = 3L`. */
+        /** The replay argument to paste back onto the layer, e.g. `replay = Indexes(3L)`. */
         val replayArgument: String
 
         override val pathSegment: String
@@ -44,7 +44,7 @@ internal sealed interface MatrixReplayFrame {
         override val rowName: String,
     ) : Replayable {
         override val kind: String get() = "property"
-        override val replayArgument: String get() = "replay = ReplayInput(seed=${seed}L, iteration=${iteration}L)"
+        override val replayArgument: String get() = "replay = Cases(seed = ${seed}L, iter = ${iteration}L)"
     }
 
     data class Data(
@@ -53,7 +53,7 @@ internal sealed interface MatrixReplayFrame {
         override val rowName: String,
     ) : Replayable {
         override val kind: String get() = "data"
-        override val replayArgument: String get() = "replayIndex = ${index}L"
+        override val replayArgument: String get() = "replay = Indexes(${index}L)"
     }
 }
 

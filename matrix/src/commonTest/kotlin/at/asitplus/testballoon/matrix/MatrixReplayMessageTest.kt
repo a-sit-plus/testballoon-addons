@@ -20,8 +20,8 @@ val MatrixReplayMessageTest by testSuite {
         )
         val message = frames.message(prefix = "Repro:")
         message.shouldStartWith("Repro: (data) d: two ↘ (property) p: four")
-        message.shouldContain("- (data) d: replayIndex = 2L")
-        message.shouldContain("- (property) p: replay = ReplayInput(seed=9L, iteration=4L)")
+        message.shouldContain("- (data) d: replay = Indexes(2L)")
+        message.shouldContain("- (property) p: replay = Cases(seed = 9L, iter = 4L)")
     }
 
     test("a null layer name (nameless layer) keeps the type marker but drops the name") {
@@ -31,8 +31,8 @@ val MatrixReplayMessageTest by testSuite {
         )
         val message = frames.message(prefix = "Repro:")
         message.shouldStartWith("Repro: (data) two ↘ (property) four")
-        message.shouldContain("- (data): replayIndex = 2L")
-        message.shouldContain("- (property): replay = ReplayInput(seed=9L, iteration=4L)")
+        message.shouldContain("- (data): replay = Indexes(2L)")
+        message.shouldContain("- (property): replay = Cases(seed = 9L, iter = 4L)")
     }
 
     test("group frames appear in the path but produce no replay-argument line") {
@@ -45,7 +45,7 @@ val MatrixReplayMessageTest by testSuite {
         // full path includes the structural groups...
         message.shouldStartWith("Repro: outer group ↘ (data) d: two ↘ leaf")
         // ...but only the replayable layer contributes a detail line
-        message.shouldContain("- (data) d: replayIndex = 2L")
+        message.shouldContain("- (data) d: replay = Indexes(2L)")
         message.shouldNotContain("outer group:")
         message.shouldNotContain("- leaf")
     }
@@ -65,7 +65,7 @@ val MatrixReplayMessageTest by testSuite {
         val wrapped = original.withMatrixReplay(listOf(MatrixReplayFrame.Data("d", index = 0L, rowName = "0: x")))
         wrapped.cause shouldBe original
         wrapped.message!!.shouldContain("boom")
-        wrapped.message!!.shouldContain("- (data) d: replayIndex = 0L")
+        wrapped.message!!.shouldContain("- (data) d: replay = Indexes(0L)")
     }
 
     test("withMatrixReplay is idempotent on an already-wrapped assertion") {

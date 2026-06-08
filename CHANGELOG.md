@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.13.0
+* **Matrix testing:***
+    * Fail early nesting tests in tests instead of suites
+    * Deduplicate the `data` / `property` API across the real-tree and `compact` scopes. Both now share a single
+      sealed `MatrixScope` surface and one set of `data` / `property` overloads (returning `DataLayer` /
+      `PropertyLayer`), instead of two parallel copies. No behaviour change; the per-scope layer types
+      (`MatrixDataLayer` / `CompactDataLayer` / …) are gone.
+    * Internal: collapse the compact `VirtualNode` model from four layer variants (`Data` / `DataTest` /
+      `Property` / `PropertyTest`) to two (`Data` / `Property`) carrying a `LayerBody` (container vs. terminal),
+      halving the execution dispatch and removing duplicated child-scope building. No behaviour change.
+    * **Breaking — replay API.** Replace the scalar+list replay overloads with one `replay` parameter per layer,
+      typed as a small self-describing value class: data takes `replay = Indexes(0L, 2L)` (or `Indexes(0L..9L)`),
+      property takes `replay = Cases(seed = 1L, iteration = 2L)` (flat common case), `Cases(Input(...), Input(...))`
+      for several seeds, or `Cases(seed, 1L..5L)` for a range. `ReplayInput` is renamed `Input`. The copy-paste
+      failure-report lines now emit these forms. Net: the `data`/`property` overloads drop from 12 to 6, and range
+      selection is available via secondary constructors. Migrate `replayIndex(es) = …` → `replay = Indexes(…)`,
+      `replay(s) = ReplayInput(…)` → `replay = Cases(…)`.
+    * Internal: unify the parallel data/property machinery behind a single sealed `LayerSpec`. The four real-tree
+      `*Internal` registration methods collapse to one `registerLayer`, the two compact registration methods to one
+      `addLayer`, the two `VirtualNode` layer kinds to one `VirtualNode.Layer`, and the two execution branches /
+      four dispatch helpers each halve. ~190 fewer lines; public API (the `data` / `property` overloads,
+      `DataLayer` / `PropertyLayer`, config builders) and all output are unchanged.
+    * Annotate the named `data` / `property` and `compact` layer functions with `@TestRegistering`, so the IDE shows a
+      run-gutter on a top-level or statically-nested layer line (running the whole layer). Tests/suites nested inside a
+      `data` / `property` / `compact` layer still cannot be run from the gutter — their path contains a runtime-generated
+      per-case segment — so run the enclosing layer or use a `TESTBALLOON_INCLUDE_PATTERNS` filter. Nameless layers stay
+      unannotated. See the Matrix "Notes" in the README.
+
 ## 0.12.0
 * **Matrix testing: nameless `data` / `property` layers**
     * `data` and `property` now have overloads that omit the leading name (e.g. `data(listOf(...)) test { ... }`,

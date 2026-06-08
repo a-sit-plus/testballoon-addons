@@ -40,14 +40,14 @@ val MatrixLayerConfigTest by testSuite {
         CompactConcurrency.Shared(3).parallelism shouldBe 3
     }
 
-    // ----- ReplayInput -----
+    // ----- Input -----
 
-    test("ReplayInput single-iteration constructor wraps into a list") {
-        ReplayInput(5L, 3L) shouldBe ReplayInput(5L, listOf(3L))
+    test("Input single-iteration constructor wraps into a list") {
+        Input(5L, 3L) shouldBe Input(5L, listOf(3L))
     }
 
-    test("ReplayInput is a value type") {
-        ReplayInput(5L, listOf(1L, 2L)) shouldBe ReplayInput(5L, listOf(1L, 2L))
+    test("Input is a value type") {
+        Input(5L, listOf(1L, 2L)) shouldBe Input(5L, listOf(1L, 2L))
     }
 
     // ----- Data / Property layer config inheritance & overrides -----
@@ -108,7 +108,7 @@ val MatrixLayerConfigTest by testSuite {
     test("property caseCount sums the distinct replay iterations") {
         val parent = MatrixSuiteConfigBuilder().build()
         PropertyLayerConfigBuilder(parent)
-            .build(listOf(ReplayInput(1L, listOf(2L, 4L, 6L)), ReplayInput(2L, listOf(8L))))
+            .build(listOf(Input(1L, listOf(2L, 4L, 6L)), Input(2L, listOf(8L))))
             .caseCount(50) shouldBe 4L
     }
 
@@ -139,7 +139,7 @@ val MatrixLayerConfigTest by testSuite {
     }
 
     test("propertyCases replay dedups duplicate iterations") {
-        propertyCases(Arb.int(), 10, EdgeConfig.default(), seed = null, replays = listOf(ReplayInput(1L, listOf(3L, 3L))))
+        propertyCases(Arb.int(), 10, EdgeConfig.default(), seed = null, replays = listOf(Input(1L, listOf(3L, 3L))))
             .asSequence().toList().map { it.index } shouldBe listOf(3L)
     }
 
@@ -147,7 +147,7 @@ val MatrixLayerConfigTest by testSuite {
         val full = propertyCases(Arb.int(), 20, EdgeConfig.default(), seed = 9L, replays = null).asSequence().toList()
         val replayed = propertyCases(
             Arb.int(), 20, EdgeConfig.default(), seed = null,
-            replays = listOf(ReplayInput(9L, listOf(5L, 1L))),
+            replays = listOf(Input(9L, listOf(5L, 1L))),
         ).asSequence().toList()
         replayed.map { it.index } shouldBe listOf(1L, 5L)
         replayed.map { it.value } shouldBe listOf(full[1].value, full[5].value)
