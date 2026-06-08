@@ -6,6 +6,7 @@ import io.kotest.property.EdgeConfig
 import io.kotest.property.default
 import kotlinx.coroutines.Dispatchers
 import kotlin.coroutines.CoroutineContext
+import kotlin.jvm.JvmInline
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -145,12 +146,36 @@ data class DataLayerConfig internal constructor(
 )
 
 /**
- * Coordinates to reproduce recorded property cases, copied from a failure's replay report.
- * [seed] and [iterations] always travel together — iteration indexes only reproduce values relative
- * to the seed that generated them, so they cannot be set independently.
+ * One recorded property case to reproduce, copied from a failure's replay report. [seed] and [iterations]
+ * always travel together — iteration indexes only reproduce values relative to the seed that generated them,
+ * so they cannot be set independently.
  */
-data class ReplayInput(val seed: Long, val iterations: List<Long>) {
-    constructor(seed: Long, iteration: Long) : this(seed, listOf(iteration))
+data class Input(val seed: Long, val iterations: List<Long>) {
+    constructor(seed: Long, vararg iter: Long) : this(seed, iter.toList())
+    constructor(seed: Long, iter: LongRange) : this(seed, iter.toList())
+}
+
+/**
+ * Data-layer replay selector: the case indexes to re-run, pasted from a failure report as `replay = Indexes(3L)`.
+ * Construct from explicit indexes (`Indexes(0L, 2L)`) or a range (`Indexes(0L..9L)`).
+ */
+@JvmInline
+value class Indexes private constructor(val indexes: List<Long>) {
+    constructor(vararg index: Long) : this(index.toList())
+    constructor(indexes: LongRange) : this(indexes.toList())
+}
+
+/**
+ * Property-layer replay selector: the recorded cases to re-run, pasted as `replay = Cases(seed = 1L, iter = 2L)`.
+ * The flat `(seed, iteration)` form covers the common single-case paste; use `Cases(Input(...), Input(...))` for
+ * several seeds at once, or the `(seed, iterations)` vararg / range forms for several iterations of one seed.
+ */
+@JvmInline
+value class Cases private constructor(val inputs: List<Input>) {
+    constructor(vararg input: Input) : this(input.toList())
+    constructor(seed: Long, iter: Long) : this(listOf(Input(seed, iter)))
+    constructor(seed: Long, vararg iter: Long) : this(listOf(Input(seed, iter.toList())))
+    constructor(seed: Long, iter: LongRange) : this(listOf(Input(seed, iter.toList())))
 }
 
 @MatrixTestDsl
@@ -160,7 +185,7 @@ class PropertyLayerConfigBuilder internal constructor(private val parent: Matrix
     var edgeConfig: EdgeConfig? = null
     var nameMaxLength: Int? = null
 
-    internal fun build(replays: List<ReplayInput>? = null): PropertyLayerConfig = PropertyLayerConfig(
+    internal fun build(replays: List<Input>? = null): PropertyLayerConfig = PropertyLayerConfig(
         execution = execution ?: parent.execution,
         seed = seed,
         edgeConfig = edgeConfig ?: EdgeConfig.default(),
@@ -171,11 +196,11 @@ class PropertyLayerConfigBuilder internal constructor(private val parent: Matrix
 
 data class PropertyLayerConfig internal constructor(
     val execution: ExecutionMode,
-    // Seed for a deterministic *full* run (ignored while replaying — each ReplayInput carries its own seed).
+    // Seed for a deterministic *full* run (ignored while replaying — each Input carries its own seed).
     val seed: Long?,
     val edgeConfig: EdgeConfig,
     val nameMaxLength: Int,
-    val replays: List<ReplayInput>? = null,
+    val replays: List<Input>? = null,
 )
 
 @MatrixTestDsl

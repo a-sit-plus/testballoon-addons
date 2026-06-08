@@ -11,7 +11,9 @@
 [![Kotlin](https://img.shields.io/badge/kotlin-multiplatform-orange.svg?logo=kotlin)](http://kotlinlang.org)
 [![Kotlin](https://img.shields.io/badge/kotlin-2.3.0-blue.svg?logo=kotlin)](http://kotlinlang.org)
 [![Java](https://img.shields.io/badge/java-17-blue.svg?logo=OPENJDK)](https://www.oracle.com/java/technologies/downloads/#java17)
-[![Maven Central](https://img.shields.io/maven-central/v/at.asitplus.testballoon/datatest)](https://mvnrepository.com/artifact/at.asitplus.testballoon/datatest)
+
+[![Maven Central](https://img.shields.io/maven-central/v/at.asitplus.testballoon/datatest?label=maven-central%20%28Kotest%20migration%20helpers%29)](https://mvnrepository.com/artifact/at.asitplus.testballoon/datatest)
+[![Maven Central (matrix)](https://img.shields.io/maven-central/v/at.asitplus.testballoon/matrix?label=maven-central%20%28matrix%29)](https://mvnrepository.com/artifact/at.asitplus.testballoon/matrix)
 
 **This project provides addons for [TestBalloon](https://infix-de.github.io/testBalloon/), _the_ next generation KMP-first,
 coroutine-first testing framework.**
@@ -212,20 +214,20 @@ marker still pinpoints the right layer even for nameless layers (see below), whe
 ```
 at.asitplus.AssertionError: 360888 should be < 256000
     Error replay info: (property) first: 4: 2018089192 ↘ (property) second: 2: 2796 ↘ (data) third: 1: 2 ↘ (property) fourth: 3: 1
-      - (property) first:  replay = ReplayInput(seed=4779463605442148766L, iteration=4L)
-      - (property) second: replay = ReplayInput(seed=-1353176301820643450L, iteration=2L)
-      - (data)     third:  replayIndex = 1L
-      - (property) fourth: replay = ReplayInput(seed=5014696554795393980L, iteration=3L)
+      - (property) first:  replay = Cases(seed = 4779463605442148766L, iter = 4L)
+      - (property) second: replay = Cases(seed = -1353176301820643450L, iter = 2L)
+      - (data)     third:  replay = Indexes(1L)
+      - (property) fourth: replay = Cases(seed = 5014696554795393980L, iter = 3L)
 ```
 
 Paste the text after each layer name into that layer's call:
 
 ```kotlin
 val replay by matrixSuite {
-    property("first", Arb.int(), replay = ReplayInput(seed=4779463605442148766L, iteration=4L)) - { first ->
-        property("second", Arb.double(), replay = ReplayInput(seed=-1353176301820643450L, iteration=2L)) - { second ->
-            data("third", listOf(1, 2, 3, 4, 5), replayIndex = 1L) - { third ->
-                property("fourth", Arb.byte(), replay = ReplayInput(seed=5014696554795393980L, iteration=3L)) test { fourth ->
+    property("first", Arb.int(), replay = Cases(seed = 4779463605442148766L, iter = 4L)) - { first ->
+        property("second", Arb.double(), replay = Cases(seed = -1353176301820643450L, iter = 2L)) - { second ->
+            data("third", listOf(1, 2, 3, 4, 5), replay = Indexes(1L)) - { third ->
+                property("fourth", Arb.byte(), replay = Cases(seed = 5014696554795393980L, iter = 3L)) test { fourth ->
                     // now runs only the single failing combination
                 }
             }
@@ -236,12 +238,13 @@ val replay by matrixSuite {
 
 Each pinned layer collapses to just the recorded case, so the whole matrix narrows to the failing leaf.
 
-* **Property layers** take `replay = ReplayInput(seed, iteration)` for one case (what the report prints), or
-  `replays = listOf(ReplayInput(...), ...)` to reproduce several recorded cases — each with its own seed — at once.
-* **Data layers** take `replayIndex = n` (printed), or `replayIndexes = listOf(...)` for several. Data is
-  deterministic, so only the index is needed.
-* A layer's `replay` / `replayIndex` is independent of its `seed`: `seed` pins a deterministic *full* run, while
-  `replay` selects specific recorded cases (which carry their own seeds).
+* **Property layers** take `replay = Cases(seed = …, iter = …)` for one case (what the report prints).
+  Pass several `Cases(Input(...), Input(...))` to reproduce several recorded cases — each with its own seed — at once,
+  or `Cases(seed = …, iter = 1L..5L)` for several iterations of one seed.
+* **Data layers** take `replay = Indexes(n)` (printed), `Indexes(a, b, c)` for several, or `Indexes(0L..9L)` for a
+  range. Data is deterministic, so only the index is needed.
+* A layer's `replay` is independent of its `seed`: `seed` pins a deterministic *full* run, while `replay` selects
+  specific recorded cases (which carry their own seeds).
 
 The path on the first line mirrors the compact report path in full: it includes the enclosing grouping suites
 (`"name" - { ... }`) as plain segments, with the `(property)` / `(data)` layers carrying the markers. Only the
@@ -353,6 +356,26 @@ val configuredMatrix by matrixSuite(
 }
 ```
 
+Layers (`data` / `property`) don't take a `TestConfig` themselves — their config block only carries layer settings
+(`execution`, `nameMaxLength`, `seed`, replay, …). To apply a `TestConfig` such as `aroundAll`, `aroundEach`, or a
+`coroutineContext` to a layer's cases, wrap the layer in a suite that does. Pair it with a *nameless* layer so no extra
+node appears:
+
+```kotlin
+testSuite("with shared setup", testConfig = TestConfig.aroundAll { action ->
+    // one-time setup around every case of this layer
+    action()
+}) {
+    data(listOf("foo", "bar", "baz")) test { word ->
+        word.length shouldBeGreaterThan 0
+    }
+}
+```
+
+> [!NOTE]
+> `compact` virtual children are not real TestBalloon test elements, so this wrapping (and per-child `TestConfig` in
+> general) cannot be honored *inside* `compact`. Wrap real (non-compact) layers, or configure the `compact` block itself.
+
 Prefix any matrix name with `!` to disable it. This works for `test`, `testSuite`, bare FreeSpec-style strings, `data`,
 `property`, and `compact`. Generated row names from `nameFn` don't get disabled when they start with a bang.
 
@@ -362,8 +385,15 @@ Prefix any matrix name with `!` to disable it. This works for `test`, `testSuite
 * Forgetting `test { ... }` or `- { ... }` leaves a configured layer unopened, so no child tests are registered. The layer itself does nothing until its trailing lambda receives content; either tests or more rows.
 * `data` and `property` can each appear multiple times in the same suite.
 * Terminal row tests are named by the layer `nameFn`. Use `- { ... }` plus an explicit `"name" { ... }` leaf when the invariant itself needs a separate name.
-* Generated rows are registered at runtime. Running an individual generated row from the IDE gutter is nonsensical; run the
-  enclosing suite or use filters.
+* **IDE gutter actions.** `matrixSuite`, and a `data` / `property` / `compact` / `test` / `testSuite` placed at the top
+  level or under purely *static* nesting (only `test` / `testSuite` / named suites in between), get a working run-gutter:
+  clicking a `data("name", …)` / `property("name", …)` / `compact("name")` line runs the whole layer (all its cases).
+  A `test` / `testSuite` nested *inside* a `data` / `property` / `compact` layer does **not** get a usable gutter,
+  because that element's path includes a per-case segment (`nameFn(index, value)`, e.g. `0: x`) that is generated at
+  runtime and is invisible to the IDE's static analysis. To run such an inner element, click the enclosing layer's
+  gutter (runs all cases) or set a filter by hand, e.g. `TESTBALLOON_INCLUDE_PATTERNS='*name'` (patterns are anchored
+  full-match with `*` → `.*` across the `↘` path separator, so a leading `*` matches an arbitrarily deep element).
+  Nameless `data(…)` / `property(…)` layers carry no gutter (they have no name to select on).
 * Deep nesting can still create many real test elements. Use `compact` when the test tree itself becomes too large.
 
 ## <img src="https://kotest.io/img/logo.png" width="46" height="46" alt="Kotest Logo"> Coming from Kotest

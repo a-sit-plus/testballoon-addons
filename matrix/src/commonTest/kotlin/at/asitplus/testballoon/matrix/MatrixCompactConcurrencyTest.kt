@@ -89,43 +89,43 @@ val MatrixCompactSharedConcurrencyStressTest by testSuite(testConfig = TestConfi
         }
 
         val nodes = listOf(
-            VirtualNode.Data(
+            VirtualNode.Layer(
                 name = "outer",
                 disabled = false,
-                source = IterableDataSource(values),
+                spec = LayerSpec.Data(IterableDataSource(values), layerConfig),
                 nameFn = { index, value -> "$index: $value" },
-                layerConfig = layerConfig,
-            ) { outer ->
-                val outerInt = outer as Int
-                listOf(
-                    VirtualNode.Test("outer work", disabled = false) {
-                        doWork(outerInt)
-                    },
-                    VirtualNode.Data(
-                        name = "middle",
-                        disabled = false,
-                        source = IterableDataSource(values),
-                        nameFn = { index, value -> "$index: $value" },
-                        layerConfig = layerConfig,
-                    ) { middle ->
-                        val middleInt = middle as Int
-                        listOf(
-                            VirtualNode.Test("middle work", disabled = false) {
-                                doWork((outerInt * 100) + middleInt)
+                body = LayerBody.Container { outer ->
+                    val outerInt = outer as Int
+                    listOf(
+                        VirtualNode.Test("outer work", disabled = false) {
+                            doWork(outerInt)
+                        },
+                        VirtualNode.Layer(
+                            name = "middle",
+                            disabled = false,
+                            spec = LayerSpec.Data(IterableDataSource(values), layerConfig),
+                            nameFn = { index, value -> "$index: $value" },
+                            body = LayerBody.Container { middle ->
+                                val middleInt = middle as Int
+                                listOf(
+                                    VirtualNode.Test("middle work", disabled = false) {
+                                        doWork((outerInt * 100) + middleInt)
+                                    },
+                                    VirtualNode.Layer(
+                                        name = "inner",
+                                        disabled = false,
+                                        spec = LayerSpec.Data(IterableDataSource(values), layerConfig),
+                                        nameFn = { index, value -> "$index: $value" },
+                                        body = LayerBody.Terminal { inner ->
+                                            doWork((outerInt * 10_000) + (middleInt * 100) + (inner as Int))
+                                        },
+                                    ),
+                                )
                             },
-                            VirtualNode.DataTest(
-                                name = "inner",
-                                disabled = false,
-                                source = IterableDataSource(values),
-                                nameFn = { index, value -> "$index: $value" },
-                                layerConfig = layerConfig,
-                            ) { inner ->
-                                doWork((outerInt * 10_000) + (middleInt * 100) + (inner as Int))
-                            }
-                        )
-                    }
-                )
-            }
+                        ),
+                    )
+                },
+            )
         )
 
         val compactLimit=1

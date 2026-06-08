@@ -30,7 +30,7 @@ internal fun <T> MatrixDataSource<T>.cases(replayIndexes: List<Long>?): Iterator
 /**
  * Generates a property layer's cases. Normally generates [iterations] cases from a single random source
  * (seeded by [seed], or random when null). When [replays] is set, it instead reproduces exactly the
- * recorded cases: for each [ReplayInput] it seeds a fresh source and yields only its iterations — so a
+ * recorded cases: for each [Input] it seeds a fresh source and yields only its iterations — so a
  * group of failures can carry several seed/iteration pairs at once. Each [Case] is tagged with its seed.
  */
 internal fun <T> propertyCases(
@@ -38,7 +38,7 @@ internal fun <T> propertyCases(
     iterations: Int,
     edgeConfig: EdgeConfig,
     seed: Long?,
-    replays: List<ReplayInput>?,
+    replays: List<Input>?,
 ): Iterator<Case<T>> {
     if (replays == null) {
         val random = seed?.let { RandomSource.seeded(it) } ?: RandomSource.default()

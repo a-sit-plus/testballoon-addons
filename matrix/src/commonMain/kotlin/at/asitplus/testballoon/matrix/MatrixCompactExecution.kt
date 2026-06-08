@@ -259,42 +259,29 @@ private suspend fun traverseVirtualNodes(
             is VirtualNode.Test -> if (!node.disabled)
                 onTest(path + node.name, replayPath + MatrixReplayFrame.Group(node.name), node.body)
 
-            is VirtualNode.Data -> if (!node.disabled) traverseLayer(
-                run, node.layerConfig.caseCount(node.source.knownSize), node.source.cases(node.layerConfig.replayIndexes),
-                node.name, node.layerConfig.nameMaxLength, node.nameFn,
-                frameOf = { case, rawName -> MatrixReplayFrame.Data(node.name, case.index, rawName) },
-                layerExecution(node.layerConfig.execution), path, replayPath,
+            is VirtualNode.Layer -> if (!node.disabled) traverseLayer(
+                run, node.spec.executionTotal, node.spec.cases(),
+                node.name, node.spec.nameMaxLength, node.nameFn,
+                frameOf = { case, rawName -> node.spec.frame(node.name, case, rawName) },
+                layerExecution(node.spec.execution), path, replayPath,
             ) { childPath, childReplay, value ->
-                traverseVirtualNodes(node.body(value), run, childPath, childReplay, respectLayerConcurrency, onTest)
-            }
-            is VirtualNode.DataTest -> if (!node.disabled) traverseLayer(
-                run, node.layerConfig.caseCount(node.source.knownSize), node.source.cases(node.layerConfig.replayIndexes),
-                node.name, node.layerConfig.nameMaxLength, node.nameFn,
-                frameOf = { case, rawName -> MatrixReplayFrame.Data(node.name, case.index, rawName) },
-                layerExecution(node.layerConfig.execution), path, replayPath,
-            ) { childPath, childReplay, value ->
-                onTest(childPath, childReplay) { node.body(this, value) }
-            }
-            is VirtualNode.Property -> if (!node.disabled) traverseLayer(
-                run, node.layerConfig.caseCount(node.iterations),
-                propertyCases(node.gen, node.iterations, node.layerConfig.edgeConfig, node.layerConfig.seed, node.layerConfig.replays),
-                node.name, node.layerConfig.nameMaxLength, node.nameFn,
-                frameOf = { case, rawName -> MatrixReplayFrame.Property(node.name, case.seed!!, case.index, rawName) },
-                layerExecution(node.layerConfig.execution), path, replayPath,
-            ) { childPath, childReplay, value ->
-                traverseVirtualNodes(node.body(value), run, childPath, childReplay, respectLayerConcurrency, onTest)
-            }
-            is VirtualNode.PropertyTest -> if (!node.disabled) traverseLayer(
-                run, node.layerConfig.caseCount(node.iterations),
-                propertyCases(node.gen, node.iterations, node.layerConfig.edgeConfig, node.layerConfig.seed, node.layerConfig.replays),
-                node.name, node.layerConfig.nameMaxLength, node.nameFn,
-                frameOf = { case, rawName -> MatrixReplayFrame.Property(node.name, case.seed!!, case.index, rawName) },
-                layerExecution(node.layerConfig.execution), path, replayPath,
-            ) { childPath, childReplay, value ->
-                onTest(childPath, childReplay) { node.body(this, value) }
+                node.body.traverse(value, run, childPath, childReplay, respectLayerConcurrency, onTest)
             }
         }
     }
+}
+
+/** Drives one layer case's value through its body: recurse into child nodes (container) or emit a leaf (terminal). */
+private suspend fun LayerBody.traverse(
+    value: Any?,
+    run: CompactRun,
+    path: List<String>,
+    replayPath: List<MatrixReplayFrame>,
+    respectLayerConcurrency: Boolean,
+    onTest: OnTest,
+) = when (this) {
+    is LayerBody.Container -> traverseVirtualNodes(expand(value), run, path, replayPath, respectLayerConcurrency, onTest)
+    is LayerBody.Terminal -> onTest(path, replayPath) { leaf(value) }
 }
 
 /**
