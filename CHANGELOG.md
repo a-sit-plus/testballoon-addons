@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.14.0
+* **Matrix testing:**
+    * **Breaking:** `matrixSuite(...)` now takes its configuration as a single `matrixConfig { … }` argument instead of
+      many named parameters:
+      `val Suite by matrixSuite(matrixConfig { execution = ExecutionMode.Concurrent(8); defaultCompactReport = … }) { … }`
+      (or `val Suite by matrixSuite { … }` with no config). This matches the per-scope `test` / `testSuite` config form.
+      Migration: wrap the former named arguments in `matrixConfig { … }`, turning `name = value, …` into
+      `name = value` lines.
+    * Why: the TestBalloon compiler plugin (observed on `1.0.0-K2.4.0-Beta2`) silently fails to discover a top-level
+      `val x by matrixSuite(...)` when the call passes named arguments **out of declaration order** with non-constant
+      values — Kotlin 2.4 lowers such a call into a temporary-introducing block, and the plugin's
+      `visitPropertyNew` only recognizes a plain `IrCall`, so the suite is dropped from discovery ("did not discover any
+      tests") or its `qualifiedPropertyName` is never injected. Collapsing the parameters into one `matrixConfig`
+      argument keeps the call site a shape the plugin always discovers, regardless of how the config fields are ordered.
+      (A standalone reproduction for the upstream framework bug lives in `repro-consumer/`.)
+    * Fix `TestConfig` being re-applied at every nested matrix level. The base config (a session config captured via
+      `MatrixTestDefaults { }`, or a suite-level `testConfig`) is now applied once at the level it's set and inherited
+      to children by TestBalloon, instead of being re-chained at each nested data/property case, suite, and test. This
+      caused stateful wrappers to multiply — most visibly a session `testScope` combined with `execution = Concurrent`
+      deadlocking or aborting discovery ("did not discover any tests"), and a suite-level `aroundAll` running once per
+      case. Removed the internal `MatrixTestDefaults.testSessionConfig` capture (TestBalloon already propagates the
+      session config). Per-element `testConfig` on `test` / `testSuite` / `matrixSuite` (incl. FreeSpec forms) still
+      applies exactly once, so `aroundAll` / `aroundEach` behave as expected.
+    * `test` / `testSuite` and their FreeSpec `"name"(…)` forms now accept a full matrix config via a new
+      `matrixConfig { … }` value (e.g. `testSuite("g", matrixConfig { execution = ExecutionMode.Concurrent(8) }) { }`,
+      `"g"(matrixConfig { … }) - { }`). Unset fields inherit the enclosing scope; `testConfig` is one of the fields, so
+      the existing `testConfig =` forms are now thin wrappers around `matrixConfig { testConfig = … }`. Lets you set
+      per-subtree concurrency (and have it auto-disable the `TestScope`) without a separate `matrixSuite`. Also
+      available on the fixture-scope `test` / `testSuite` (and their FreeSpec forms). When a `matrixConfig` sets both
+      `execution = Concurrent(…)` and a `testConfig` that enables a `TestScope`, the concurrency disable wins.
+    * Matrix concurrency now auto-disables TestBalloon's virtual-time `TestScope`: any `ExecutionMode.Concurrent`
+      layer/suite and every `compact` block (both execute on real dispatchers) chain `testScope(isEnabled = false)`,
+      so concurrent/compact matrices run even under a session that enables `testScope` (the default) — no manual
+      `testScope(isEnabled = false)` needed. Sequential execution leaves the inherited `TestScope` intact.
+
 ## 0.13.0
 * **Matrix testing:***
     * Fail early nesting tests in tests instead of suites

@@ -13,7 +13,7 @@ import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 
 
-val matrixReport by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
+val matrixReport by matrixSuite(matrixConfig { execution = ExecutionMode.Concurrent(12) }) {
     data("outer", listOf(1, 6, Random.nextBytes(300))) - { num ->
         property("layer 1", Arb.boolean(), iterations = 50) - { bool ->
             compact("whatever") {
@@ -103,7 +103,7 @@ val matrix2Report by matrixSuite {
     }
 }
 
-val hugeMatrixReport by matrixSuite(execution = ExecutionMode.Concurrent()) {
+val hugeMatrixReport by matrixSuite(matrixConfig { execution = ExecutionMode.Concurrent() }) {
     property("property layer 2", Arb.uLong(), iterations = 100) - { uLong ->
         compact("compacted") {
             report = CompactReport.AllCases
@@ -117,7 +117,7 @@ val hugeMatrixReport by matrixSuite(execution = ExecutionMode.Concurrent()) {
     }
 }
 
-val fixtureMatrixReport by matrixSuite(execution = ExecutionMode.Concurrent()) {
+val fixtureMatrixReport by matrixSuite(matrixConfig { execution = ExecutionMode.Concurrent() }) {
     property("property layer 1", Arb.uLong(), iterations = 100) - { uLong ->
         fixture { Random.nextBytes(16) } - {
             "pinned randomness 1" - { num ->
@@ -159,7 +159,7 @@ val fixtureMatrixReport by matrixSuite(execution = ExecutionMode.Concurrent()) {
 }
 
 
-val combinedFeaturesReport by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
+val combinedFeaturesReport by matrixSuite(matrixConfig { execution = ExecutionMode.Concurrent(12) }) {
     fixture { Random.nextBytes(16) } - {
         "data, properties, fixtures, and compact reports" - { fixture ->
             data("multiplier", listOf(0, 1, 2, 3)) - { multiplier ->
@@ -178,7 +178,7 @@ val combinedFeaturesReport by matrixSuite(execution = ExecutionMode.Concurrent(1
 }
 
 
-val showcaseReport by matrixSuite(execution = ExecutionMode.Concurrent()) {
+val showcaseReport by matrixSuite(matrixConfig { execution = ExecutionMode.Concurrent() }) {
     property(
         "first",
         Arb.int(min = 1), iterations = 5, replay = Cases(seed = 5076239242101280184L, iter = 3L)

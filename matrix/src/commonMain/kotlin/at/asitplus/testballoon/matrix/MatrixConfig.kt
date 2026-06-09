@@ -2,6 +2,7 @@ package at.asitplus.testballoon.matrix
 
 import de.infix.testBalloon.framework.core.TestConfig
 import de.infix.testBalloon.framework.core.invocation
+import de.infix.testBalloon.framework.core.testScope
 import io.kotest.property.EdgeConfig
 import io.kotest.property.default
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +21,6 @@ internal object MatrixTestDefaults {
     var defaultProgressIndicator: Indicator = Indicator.Heartbeat(every = 1.seconds)
     var defaultCompactCoroutineContext: CoroutineContext = Dispatchers.Default
     var defaultTestNameMaxLength: Int = 256
-    var testSessionConfig: TestConfig = TestConfig
 }
 
 sealed interface ExecutionMode {
@@ -67,7 +67,6 @@ fun TestConfig.MatrixTestDefaults(config: MatrixSuiteConfigBuilder.() -> Unit) {
         MatrixTestDefaults.defaultTestNameMaxLength = suiteConfig.defaultTestNameMaxLength
         MatrixTestDefaults.defaultProgressIndicator = suiteConfig.defaultProgressIndicator
         MatrixTestDefaults.defaultCompactCoroutineContext = suiteConfig.defaultCompactCoroutineContext
-        MatrixTestDefaults.testSessionConfig = this
     }
 }
 
@@ -82,27 +81,55 @@ class MatrixSuiteConfigBuilder internal constructor() {
     var defaultProgressIndicator: Indicator? = null
     var defaultCompactCoroutineContext: CoroutineContext? = null
     var defaultTestNameMaxLength: Int? = null
-    internal var testConfig: TestConfig? = null
 
-    internal fun build(): MatrixSuiteConfig {
-        val executionMode = execution ?: MatrixTestDefaults.execution
-        return MatrixSuiteConfig(
-            execution = executionMode,
-            defaultPropertyIterations = defaultPropertyIterations ?: MatrixTestDefaults.defaultPropertyIterations,
-            defaultCompactConcurrency = defaultCompactConcurrency ?: MatrixTestDefaults.defaultCompactConcurrency,
-            defaultCompactReport = defaultCompactReport ?: MatrixTestDefaults.defaultCompactReport,
+    /**
+     * A `TestConfig` for `aroundAll` / `aroundEach` / context / timeout wrappers.
+     *
+     * Set concurrency via [execution], **never** `TestConfig.invocation(...)`: matrix derives invocation from
+     * [execution], and a conflicting one here can't be removed (TestBalloon configs are opaque) — it is overridden and
+     * can break test discovery. A virtual-time `testScope(...)` applies only to *sequential* execution (matrix
+     * auto-disables it under concurrent [execution]); prefer enabling `TestScope` on the `TestSession`, and for a
+     * timeout under concurrency use `aroundEach`/`aroundAll` + `withTimeout` rather than `testScope`'s timeout.
+     */
+    var testConfig: TestConfig? = null
+
+    // Unset fields fall back to [parent] (the enclosing matrix scope) when given, otherwise the global defaults.
+    internal fun build(parent: MatrixSuiteConfig? = null): MatrixSuiteConfig =
+        MatrixSuiteConfig(
+            execution = execution ?: parent?.execution ?: MatrixTestDefaults.execution,
+            defaultPropertyIterations = defaultPropertyIterations
+                ?: parent?.defaultPropertyIterations ?: MatrixTestDefaults.defaultPropertyIterations,
+            defaultCompactConcurrency = defaultCompactConcurrency
+                ?: parent?.defaultCompactConcurrency ?: MatrixTestDefaults.defaultCompactConcurrency,
+            defaultCompactReport = defaultCompactReport
+                ?: parent?.defaultCompactReport ?: MatrixTestDefaults.defaultCompactReport,
             defaultCompactAddSuppressedErrors = defaultCompactAddSuppressedErrors
-                ?: MatrixTestDefaults.defaultCompactAddSuppressedErrors,
-            defaultCompactReportRows = defaultCompactReportRows ?: MatrixTestDefaults.defaultCompactReportRows,
-            defaultProgressIndicator = defaultProgressIndicator ?: MatrixTestDefaults.defaultProgressIndicator,
+                ?: parent?.defaultCompactAddSuppressedErrors ?: MatrixTestDefaults.defaultCompactAddSuppressedErrors,
+            defaultCompactReportRows = defaultCompactReportRows
+                ?: parent?.defaultCompactReportRows ?: MatrixTestDefaults.defaultCompactReportRows,
+            defaultProgressIndicator = defaultProgressIndicator
+                ?: parent?.defaultProgressIndicator ?: MatrixTestDefaults.defaultProgressIndicator,
             defaultCompactCoroutineContext = defaultCompactCoroutineContext
-                ?: MatrixTestDefaults.defaultCompactCoroutineContext,
-            defaultTestNameMaxLength = defaultTestNameMaxLength ?: MatrixTestDefaults.defaultTestNameMaxLength,
-            config = (testConfig?.let { MatrixTestDefaults.testSessionConfig.chainedWith(it) }
-                ?: MatrixTestDefaults.testSessionConfig),
+                ?: parent?.defaultCompactCoroutineContext ?: MatrixTestDefaults.defaultCompactCoroutineContext,
+            defaultTestNameMaxLength = defaultTestNameMaxLength
+                ?: parent?.defaultTestNameMaxLength ?: MatrixTestDefaults.defaultTestNameMaxLength,
+            // Only this scope's own testConfig; the parent's is inherited structurally by TestBalloon, not re-applied.
+            config = testConfig ?: TestConfig,
         )
-    }
 }
+
+/**
+ * Builds a reusable matrix configuration value to pass to `test` / `testSuite` (and their FreeSpec `"name"(…)` forms),
+ * e.g. `testSuite("group", matrixConfig { execution = ExecutionMode.Concurrent(4) }) { … }`. Unset fields inherit the
+ * enclosing matrix scope. `testConfig` is one of the fields, so this also carries `aroundAll` / `aroundEach` / context.
+ *
+ * Set concurrency via `execution`, **not** `testConfig = TestConfig.invocation(...)` (matrix derives invocation from
+ * `execution`; a conflicting one is overridden and can break discovery). A `testScope(...)` (virtual time) applies only
+ * to sequential execution — matrix auto-disables it when concurrent — so prefer enabling `TestScope` on the
+ * `TestSession`, and use `aroundEach`/`aroundAll` + `withTimeout` for timeouts under concurrency.
+ */
+fun matrixConfig(block: MatrixSuiteConfigBuilder.() -> Unit): MatrixSuiteConfigBuilder =
+    MatrixSuiteConfigBuilder().apply(block)
 
 data class MatrixSuiteConfig internal constructor(
     val execution: ExecutionMode,
@@ -116,14 +143,28 @@ data class MatrixSuiteConfig internal constructor(
     val defaultTestNameMaxLength: Int,
     private var config: TestConfig,
 ) {
-    val testConfig: TestConfig by lazy {
-        config.chainedWith(
-            when (execution) {
-                is ExecutionMode.Concurrent -> TestConfig.invocation(TestConfig.Invocation.Concurrent)
-                ExecutionMode.Sequential -> TestConfig.invocation(TestConfig.Invocation.Sequential)
-            }
-        )
-    }
+    /**
+     * Just this scope's invocation (Sequential/Concurrent) — idempotent, so it is safe to apply at every level.
+     * Concurrent execution additionally disables TestBalloon's virtual-time `TestScope`: real concurrency cannot run
+     * in a `TestScope` (TestBalloon forbids the combination), so matrix turns the scope off wherever it parallelizes,
+     * even when the surrounding session enabled it. Sequential execution leaves the inherited scope untouched.
+     */
+    internal val invocationConfig: TestConfig
+        get() = when (execution) {
+            is ExecutionMode.Concurrent ->
+                TestConfig.invocation(TestConfig.Invocation.Concurrent).testScope(isEnabled = false)
+            ExecutionMode.Sequential -> TestConfig.invocation(TestConfig.Invocation.Sequential)
+        }
+
+    /** The base [config] plus invocation — applied ONCE, at the top level of a matrix suite. */
+    val testConfig: TestConfig by lazy { config.chainedWith(invocationConfig) }
+
+    /**
+     * Config for a NESTED matrix scope: drops the base [config]. TestBalloon already inherits a parent element's
+     * config to its children structurally, so re-applying the base at each nested matrix level would multiply
+     * stateful wrappers (`testScope`, `aroundAll`, …). Only the per-layer [execution] differs.
+     */
+    internal fun nested(execution: ExecutionMode): MatrixSuiteConfig = copy(execution = execution, config = TestConfig)
 }
 
 
