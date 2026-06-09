@@ -10,10 +10,10 @@ import io.kotest.matchers.shouldBe
 
 private var suiteAroundAllRuns = 0
 
-val matrixSuiteTestConfigAppliesOnce by matrixSuite(
-    execution = ExecutionMode.Sequential,
-    testConfig = TestConfig.aroundAll { suiteAroundAllRuns++; it() },
-) {
+val matrixSuiteTestConfigAppliesOnce by matrixSuite(matrixConfig {
+        execution = ExecutionMode.Sequential
+        testConfig = TestConfig.aroundAll { suiteAroundAllRuns++; it() }
+    }) {
     data(listOf(1, 2, 3)) test { }
     "a suite-level aroundAll wraps the suite once, not once per data case" {
         suiteAroundAllRuns shouldBe 1
@@ -22,7 +22,7 @@ val matrixSuiteTestConfigAppliesOnce by matrixSuite(
 
 private var nestedSuiteAroundAllRuns = 0
 
-val matrixNestedTestSuiteTestConfigAppliesOnce by matrixSuite(execution = ExecutionMode.Sequential) {
+val matrixNestedTestSuiteTestConfigAppliesOnce by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     testSuite("group", testConfig = TestConfig.aroundAll { nestedSuiteAroundAllRuns++; it() }) {
         data(listOf(1, 2, 3)) test { }
     }

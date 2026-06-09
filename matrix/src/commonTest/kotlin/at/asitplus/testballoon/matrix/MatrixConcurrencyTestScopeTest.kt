@@ -9,13 +9,13 @@ import kotlin.coroutines.coroutineContext
 // Matrix concurrency must disable it so real concurrent / compact execution works (TestScope + concurrency is
 // forbidden by TestBalloon and otherwise deadlocks). Sequential execution leaves the inherited scope intact.
 
-val concurrentMatrixDisablesTestScope by matrixSuite(execution = ExecutionMode.Concurrent(2)) {
+val concurrentMatrixDisablesTestScope by matrixSuite(matrixConfig { execution = ExecutionMode.Concurrent(2) }) {
     "concurrent execution disables the virtual-time TestScope" {
         coroutineContext[TestCoroutineScheduler].shouldBeNull()
     }
 }
 
-val sequentialMatrixKeepsTestScope by matrixSuite(execution = ExecutionMode.Sequential) {
+val sequentialMatrixKeepsTestScope by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     "sequential execution keeps the inherited TestScope" {
         coroutineContext[TestCoroutineScheduler].shouldNotBeNull()
     }

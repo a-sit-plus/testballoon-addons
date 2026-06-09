@@ -19,6 +19,10 @@ class MatrixFixtureGeneratorScope<T> internal constructor(
         matrix.test(name, config) { body(generator()) }
     }
 
+    /**
+     * [testConfig] is for `aroundAll` / `aroundEach` / context / timeouts only. Set concurrency via `execution` (the
+     * `matrixConfig` overload), not `TestConfig.invocation(...)`; `testScope(...)` is sequential-only.
+     */
     @TestRegistering
     fun test(
         name: String,
@@ -53,6 +57,10 @@ class MatrixFixtureGeneratorScope<T> internal constructor(
         }
     }
 
+    /**
+     * [testConfig] is for `aroundAll` / `aroundEach` / context / timeouts only. Set concurrency via `execution` (the
+     * `matrixConfig` overload), not `TestConfig.invocation(...)`; `testScope(...)` is sequential-only.
+     */
     @TestRegistering
     fun testSuite(
         name: String,
@@ -68,6 +76,10 @@ class MatrixFixtureGeneratorScope<T> internal constructor(
         test(this, config, body)
     }
 
+    /**
+     * [testConfig] is for `aroundAll` / `aroundEach` / context / timeouts only. Set concurrency via `execution` (the
+     * `matrixConfig` overload), not `TestConfig.invocation(...)`; `testScope(...)` is sequential-only.
+     */
     @TestRegistering
     operator fun String.invoke(
         testConfig: TestConfig = TestConfig,
@@ -81,6 +93,10 @@ class MatrixFixtureGeneratorScope<T> internal constructor(
         config: MatrixSuiteConfigBuilder,
     ): MatrixFixtureConfiguredSuite<T> = MatrixFixtureConfiguredSuite(this@MatrixFixtureGeneratorScope, this, config)
 
+    /**
+     * [testConfig] is for `aroundAll` / `aroundEach` / context / timeouts only. Set concurrency via `execution` (the
+     * `matrixConfig` overload), not `TestConfig.invocation(...)`; `testScope(...)` is sequential-only.
+     */
     @TestRegistering
     operator fun String.invoke(
         testConfig: TestConfig = TestConfig,

@@ -81,6 +81,16 @@ class MatrixSuiteConfigBuilder internal constructor() {
     var defaultProgressIndicator: Indicator? = null
     var defaultCompactCoroutineContext: CoroutineContext? = null
     var defaultTestNameMaxLength: Int? = null
+
+    /**
+     * A `TestConfig` for `aroundAll` / `aroundEach` / context / timeout wrappers.
+     *
+     * Set concurrency via [execution], **never** `TestConfig.invocation(...)`: matrix derives invocation from
+     * [execution], and a conflicting one here can't be removed (TestBalloon configs are opaque) — it is overridden and
+     * can break test discovery. A virtual-time `testScope(...)` applies only to *sequential* execution (matrix
+     * auto-disables it under concurrent [execution]); prefer enabling `TestScope` on the `TestSession`, and for a
+     * timeout under concurrency use `aroundEach`/`aroundAll` + `withTimeout` rather than `testScope`'s timeout.
+     */
     var testConfig: TestConfig? = null
 
     // Unset fields fall back to [parent] (the enclosing matrix scope) when given, otherwise the global defaults.
@@ -112,6 +122,11 @@ class MatrixSuiteConfigBuilder internal constructor() {
  * Builds a reusable matrix configuration value to pass to `test` / `testSuite` (and their FreeSpec `"name"(…)` forms),
  * e.g. `testSuite("group", matrixConfig { execution = ExecutionMode.Concurrent(4) }) { … }`. Unset fields inherit the
  * enclosing matrix scope. `testConfig` is one of the fields, so this also carries `aroundAll` / `aroundEach` / context.
+ *
+ * Set concurrency via `execution`, **not** `testConfig = TestConfig.invocation(...)` (matrix derives invocation from
+ * `execution`; a conflicting one is overridden and can break discovery). A `testScope(...)` (virtual time) applies only
+ * to sequential execution — matrix auto-disables it when concurrent — so prefer enabling `TestScope` on the
+ * `TestSession`, and use `aroundEach`/`aroundAll` + `withTimeout` for timeouts under concurrency.
  */
 fun matrixConfig(block: MatrixSuiteConfigBuilder.() -> Unit): MatrixSuiteConfigBuilder =
     MatrixSuiteConfigBuilder().apply(block)

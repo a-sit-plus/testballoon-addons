@@ -26,10 +26,10 @@ val MatrixCompactConcurrencyConfigTest by testSuite {
     }
 }
 
-val MatrixCompactSharedConcurrencyTest by matrixSuite(
-    execution = ExecutionMode.Sequential,
-    defaultProgressIndicator = Indicator.None,
-) {
+val MatrixCompactSharedConcurrencyTest by matrixSuite(matrixConfig {
+        execution = ExecutionMode.Sequential
+        defaultProgressIndicator = Indicator.None
+    }) {
     val mutex = Mutex()
     var active = 0
     var maxActive = 0

@@ -10,7 +10,7 @@ import io.kotest.matchers.shouldBe
 
 // ---- 1) Direct fixture: one fresh value per directly nested terminal test ----
 
-val fixtureDirectNoCompactTest by matrixSuite(execution = ExecutionMode.Sequential) {
+val fixtureDirectNoCompactTest by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     var calls = 0
     val seen = mutableListOf<Int>()
     fixture { ++calls } - {
@@ -24,7 +24,7 @@ val fixtureDirectNoCompactTest by matrixSuite(execution = ExecutionMode.Sequenti
     }
 }
 
-val fixtureDirectCompactTest by matrixSuite(execution = ExecutionMode.Sequential) {
+val fixtureDirectCompactTest by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     var calls = 0
     val seen = mutableListOf<Int>()
     compact("compacted") { report = CompactReport.SummaryOnly } - {
@@ -42,7 +42,7 @@ val fixtureDirectCompactTest by matrixSuite(execution = ExecutionMode.Sequential
 
 // ---- 2) Fixture as a suite: one value shared across its leaves ----
 
-val fixtureSuiteSharedNoCompactTest by matrixSuite(execution = ExecutionMode.Sequential) {
+val fixtureSuiteSharedNoCompactTest by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     var calls = 0
     val seen = mutableListOf<Int>()
     fixture { ++calls } - {
@@ -57,7 +57,7 @@ val fixtureSuiteSharedNoCompactTest by matrixSuite(execution = ExecutionMode.Seq
     }
 }
 
-val fixtureSuiteSharedCompactTest by matrixSuite(execution = ExecutionMode.Sequential) {
+val fixtureSuiteSharedCompactTest by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     var calls = 0
     val seen = mutableListOf<Int>()
     compact("compacted") { report = CompactReport.SummaryOnly } - {
@@ -76,7 +76,7 @@ val fixtureSuiteSharedCompactTest by matrixSuite(execution = ExecutionMode.Seque
 
 // ---- 3) Nested fixtures across a data layer: outer suite-fixture once, inner test-fixture per leaf ----
 
-val fixtureNestedNoCompactTest by matrixSuite(execution = ExecutionMode.Sequential) {
+val fixtureNestedNoCompactTest by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     var outer = 0
     var inner = 0
     val seen = mutableListOf<Pair<Int, Int>>()
@@ -96,7 +96,7 @@ val fixtureNestedNoCompactTest by matrixSuite(execution = ExecutionMode.Sequenti
     }
 }
 
-val fixtureNestedCompactTest by matrixSuite(execution = ExecutionMode.Sequential) {
+val fixtureNestedCompactTest by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     var outer = 0
     var inner = 0
     val seen = mutableListOf<Pair<Int, Int>>()
@@ -119,7 +119,7 @@ val fixtureNestedCompactTest by matrixSuite(execution = ExecutionMode.Sequential
 }
 
 
-val fixtureNestedCompactTestDifferentNesting by matrixSuite(execution = ExecutionMode.Sequential) {
+val fixtureNestedCompactTestDifferentNesting by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     var outer = 0
     var inner = 0
     val seen = mutableListOf<Pair<Int, Int>>()
@@ -142,7 +142,7 @@ val fixtureNestedCompactTestDifferentNesting by matrixSuite(execution = Executio
 }
 
 
-val fixtureNestedCompactTestInnermostNesting by matrixSuite(execution = ExecutionMode.Sequential) {
+val fixtureNestedCompactTestInnermostNesting by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     var outer = 0
     var inner = 0
     val seen = mutableListOf<Pair<Int, Int>>()

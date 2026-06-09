@@ -28,7 +28,7 @@ The answer is a single DSL that keeps Kotest's excellent assertion and generator
 control over registration, execution, concurrency, compaction, reporting and replaying.
 
 ```kotlin
-val combinedFeaturesSuite by matrixSuite(execution = ExecutionMode.Concurrent(12)) {
+val combinedFeaturesSuite by matrixSuite(matrixConfig { execution = ExecutionMode.Concurrent(12) }) {
     fixture { Random.nextBytes(16) } - {
         "data, properties, fixtures, and compact reports" - { freshBytes ->
             data("multiplier", listOf(1, 2, 3)) - { multiplier ->
@@ -84,12 +84,12 @@ through those layers. When that would create too many framework test elements, `
 test while still executing and reporting the full virtual matrix. This way, you still get full insights including clickable
 stacktraces taking you to the failing assertion(s)!
 
-The top-level `matrixSuite(...) { ... }` is a regular TestBalloon suite so IDE gutter actions can discover and run it.
+The top-level `matrixSuite(matrixConfig { ... }) { ... }` is a regular TestBalloon suite so IDE gutter actions can discover and run it.
 Inside the suite, every nested layer is configured first, then either opened with `- { ... }` for more nesting or finished
 with `test { ... }` to create row test elements.
 
 ```kotlin
-val quickstart by matrixSuite(execution = ExecutionMode.Sequential) {
+val quickstart by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     data("input", listOf("foo", "bar")) - { input ->
         property("offset", Arb.int(0..100), iterations = 25) test { offset ->
             val result = "$input-$offset"
@@ -122,7 +122,7 @@ nameless overload.
 `- { ... }` when each row is a dimension that contains more layers or explicit tests.
 
 ```kotlin
-val dataDrivenMatrix by matrixSuite(execution = ExecutionMode.Sequential) {
+val dataDrivenMatrix by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     data("numbers", listOf(1, 2, 3), nameFn = { index, value -> "$index: n=$value" }) test { number ->
         number shouldBeGreaterThan 0
     }
@@ -151,10 +151,18 @@ For large compacted matrices, prefer `CompactConcurrency.Shared(n)` to use one c
 > parallelizes — any `ExecutionMode.Concurrent` layer/suite, and every `compact` block (which executes on real
 > dispatchers) — matrix automatically **disables the `TestScope`** for that scope, even if the surrounding
 > `TestSession` enabled it (the default). You therefore do **not** need `testScope(isEnabled = false)` to combine
-> matrix concurrency with the default session. This wins even over a `testConfig` you pass yourself: if your
-> `matrixConfig { … }` sets both `execution = Concurrent(…)` and a `testConfig` that enables a `TestScope`, the
-> concurrency disable takes precedence. Sequential matrix execution leaves the inherited `TestScope` untouched, so
-> virtual-time tests keep working there.
+> matrix concurrency with the default session — in fact, **leave `TestScope` enabled** (the default) and let matrix turn
+> it off only where it parallelizes. Sequential matrix execution leaves the inherited `TestScope` untouched, so a mix
+> works: sequential suites get virtual time (and its timeout), concurrent suites/compact run for real. The disable also
+> wins over a `testConfig` you pass yourself, so a `testScope(true)` on a concurrent scope is overridden.
+>
+> **Timeouts:** for a virtual-time (sequential) test, use `testScope(isEnabled = true, timeout = …)` (or the 60s
+> default). The `TestScope` timeout is **per test element**, not per suite — a large matrix is *many* tests, each with
+> its own budget, so the case *count* never drains one shared timeout; raise it only if a single case is genuinely
+> slow. **Compact and concurrent tests run with `TestScope` disabled**, so its timeout doesn't apply to them at all —
+> for a wall-clock cap there, use a real-time timeout via `aroundEachTest { action -> withTimeout(…) { action() } }`
+> (per leaf) or `aroundAll { action -> withTimeout(…) { action() } }` (per block). That's a plain `testConfig` wrapper,
+> not `invocation`/`testScope`, so it doesn't conflict with `execution`.
 
 ### Property Matrix Layers
 
@@ -162,7 +170,7 @@ For large compacted matrices, prefer `CompactConcurrency.Shared(n)` to use one c
 models, and concise generator composition, while TestBalloon owns the test tree.
 
 ```kotlin
-val propertyMatrix by matrixSuite(defaultPropertyIterations = 100) {
+val propertyMatrix by matrixSuite(matrixConfig { defaultPropertyIterations = 100 }) {
     property("bytes", Arb.byteArray(Arb.int(1, 64), Arb.byte())) {
         seed = 0xC0FFEE
         nameFn = { index, bytes -> "$index: ${bytes.size} bytes" }
@@ -181,7 +189,7 @@ Deep data/property nesting can generate very large test trees. `compact` collaps
 TestBalloon test and reports the virtual rows itself.
 
 ```kotlin
-val compactMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
+val compactMatrix by matrixSuite(matrixConfig { execution = ExecutionMode.Concurrent() }) {
     compact("all generated checks") {
         concurrency = CompactConcurrency.Shared(16)
         report = CompactReport.FailuresOnly
@@ -300,7 +308,7 @@ closes over that suite's `value`. Nesting composes the other direction too: a `f
 once per row, and a `fixture` inside another fixture's suite threads both values down to the leaves.
 
 ```kotlin
-val fixtureMatrix by matrixSuite(execution = ExecutionMode.Concurrent()) {
+val fixtureMatrix by matrixSuite(matrixConfig { execution = ExecutionMode.Concurrent() }) {
     fixture { Random.nextBytes(16) } - {
         "regular test with fresh bytes" { bytes ->        // fresh value, this test only
             bytes.size shouldBe 16
@@ -351,8 +359,15 @@ value to set concurrency (and any other matrix setting) for that subtree. Unset 
 forms shown above are just a shorthand wrapping `matrixConfig { testConfig = … }`. The fixture-scope `test` / `testSuite`
 (and their FreeSpec forms, inside `fixture { … } - { … }`) accept `matrixConfig { … }` the same way.
 
+> ⚠️ **Set concurrency with `execution`, not a `testConfig`.** A `testConfig` is for `aroundAll` / `aroundEach` /
+> context / timeout wrappers. **Never** put `TestConfig.invocation(...)` in a matrix `testConfig` — matrix derives
+> invocation from `execution`, can't strip a conflicting one out of an (opaque) `TestConfig`, and the clash can break
+> test discovery ("did not discover any tests"). Likewise, a virtual-time `testScope(...)` only applies to *sequential*
+> execution (matrix disables it when concurrent), so enable `TestScope` on the `TestSession`, not per matrix scope.
+> Wrong: `matrixSuite(matrixConfig { testConfig = TestConfig.invocation(Sequential) })`. Right: `matrixSuite(matrixConfig { execution = ExecutionMode.Sequential })`.
+
 ```kotlin
-val perScopeConfig by matrixSuite(execution = ExecutionMode.Sequential) {
+val perScopeConfig by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     // run just this group's children concurrently (also auto-disables the TestScope — see the concurrency note above)
     testSuite("heavy group", matrixConfig { execution = ExecutionMode.Concurrent(8) }) {
         data(1..1000) test { /* … */ }
@@ -365,10 +380,10 @@ val perScopeConfig by matrixSuite(execution = ExecutionMode.Sequential) {
 ```
 
 ```kotlin
-val configuredMatrix by matrixSuite(
-    execution = ExecutionMode.Concurrent(parallelism = 4),
-    defaultPropertyIterations = 50,
-) {
+val configuredMatrix by matrixSuite(matrixConfig {
+    execution = ExecutionMode.Concurrent(parallelism = 4)
+    defaultPropertyIterations = 50
+}) {
     test("explicit test", testConfig = TestConfig) {
         // green code
     }

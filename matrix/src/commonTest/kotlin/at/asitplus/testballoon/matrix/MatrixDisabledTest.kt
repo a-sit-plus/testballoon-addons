@@ -9,7 +9,7 @@ import kotlin.random.Random
 
 private fun explode(): Nothing = throw AssertionError("disabled matrix node executed")
 
-val disabledMatrix by matrixSuite(execution = ExecutionMode.Sequential) {
+val disabledMatrix by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     test("!disabled explicit test") { explode() }
 
     "!disabled bare test" { explode() }

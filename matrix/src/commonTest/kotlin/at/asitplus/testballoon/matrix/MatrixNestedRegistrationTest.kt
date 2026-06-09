@@ -8,7 +8,7 @@ import io.kotest.matchers.string.shouldContain
 // build window already closed) must throw loudly instead of being silently dropped. These suites capture
 // the scope and register after its build window, asserting the throw — so they pass.
 
-val nestedRegistrationRealTreeTest by matrixSuite(execution = ExecutionMode.Sequential) {
+val nestedRegistrationRealTreeTest by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     val scope = this // the root MatrixSuiteScope; open only during this build body
     "registering on a matrix scope while a test runs throws" {
         // we are now executing a test body — scope's build window is closed
@@ -17,7 +17,7 @@ val nestedRegistrationRealTreeTest by matrixSuite(execution = ExecutionMode.Sequ
     }
 }
 
-val nestedRegistrationRealTreeHappyPathTest by matrixSuite(execution = ExecutionMode.Sequential) {
+val nestedRegistrationRealTreeHappyPathTest by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     var innerRan = false
     "outer" - {
         "inner" { innerRan = true }
@@ -27,7 +27,7 @@ val nestedRegistrationRealTreeHappyPathTest by matrixSuite(execution = Execution
     }
 }
 
-val nestedRegistrationCompactTest by matrixSuite(execution = ExecutionMode.Sequential) {
+val nestedRegistrationCompactTest by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
     var planningScope: CompactScope? = null
     compact("c") { report = CompactReport.SummaryOnly } - {
         planningScope = this // the compact planning scope; open only during planning

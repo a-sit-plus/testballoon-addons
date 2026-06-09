@@ -18,32 +18,29 @@ annotation class MatrixTestDsl
 
 typealias NameFn<T> = (index: Long, value: T) -> String
 
+/**
+ * Declares a top-level matrix test suite.
+ *
+ * Pass per-suite configuration with [matrixConfig], e.g.
+ * `val Suite by matrixSuite(matrixConfig { execution = ExecutionMode.Concurrent(8) }) { … }`. Unset fields fall back
+ * to the global [MatrixTestDefaults]. With no configuration, write `val Suite by matrixSuite { … }`.
+ *
+ * The config's `testConfig` is for `aroundAll` / `aroundEach` / context / timeout wrappers only. Set concurrency via
+ * its `execution`, **never** `TestConfig.invocation(...)` — matrix derives invocation from `execution`, and a
+ * conflicting one is overridden (it cannot be removed; TestBalloon configs are opaque). A virtual-time `testScope(...)`
+ * applies only to *sequential* execution (matrix auto-disables it when concurrent); prefer enabling `TestScope` on the
+ * `TestSession`, and use `aroundEach`/`aroundAll` + `withTimeout` for timeouts under concurrency.
+ *
+ * Note: configuration is taken as a single [MatrixSuiteConfigBuilder] argument rather than many named parameters, so
+ * the call site stays a shape the TestBalloon compiler plugin reliably discovers (a plain call, not a reordered-named-
+ * argument call that the plugin can drop from discovery).
+ */
 @TestRegistering
 fun matrixSuite(
+    config: MatrixSuiteConfigBuilder = matrixConfig {},
     @TestSuitePropertyName propertyName: String = "",
-    execution: ExecutionMode? = null,
-    defaultPropertyIterations: Int? = null,
-    defaultCompactConcurrency: CompactConcurrency? = null,
-    defaultCompactReport: CompactReport? = null,
-    defaultCompactAddSuppressedErrors: Boolean? = null,
-    defaultCompactReportRows: Int? = null,
-    defaultProgressIndicator: Indicator? = null,
-    defaultCompactCoroutineContext: CoroutineContext? = null,
-    defaultTestNameMaxLength: Int? = null,
-    testConfig: TestConfig? = null,
     body: MatrixSuiteScope.() -> Unit,
-) = MatrixSuiteConfigBuilder().apply {
-    this.execution = execution
-    this.defaultPropertyIterations = defaultPropertyIterations
-    this.defaultCompactConcurrency = defaultCompactConcurrency
-    this.defaultCompactReport = defaultCompactReport
-    this.defaultCompactAddSuppressedErrors = defaultCompactAddSuppressedErrors
-    this.defaultCompactReportRows = defaultCompactReportRows
-    this.defaultProgressIndicator = defaultProgressIndicator
-    this.defaultCompactCoroutineContext = defaultCompactCoroutineContext
-    this.defaultTestNameMaxLength = defaultTestNameMaxLength
-    this.testConfig = testConfig
-}.build().let { resolved ->
+) = config.build().let { resolved ->
     testSuite(
         qualifiedPropertyName = propertyName,
         testConfig = resolved.testConfig,
@@ -101,7 +98,11 @@ data class MatrixSuiteScope internal constructor(
         }
     }
 
-    /** Shorthand for the most common case — wraps [matrixConfig] with only a [testConfig] (e.g. for `aroundAll`). */
+    /**
+     * Shorthand wrapping [matrixConfig] with only a [testConfig] (`aroundAll` / `aroundEach` / context / timeouts).
+     * Set concurrency via `execution` (see [matrixConfig]), not `TestConfig.invocation(...)`; `testScope(...)` is
+     * sequential-only (matrix disables it when concurrent).
+     */
     @TestRegistering
     fun testSuite(
         name: String,
@@ -126,6 +127,10 @@ data class MatrixSuiteScope internal constructor(
         }
     }
 
+    /**
+     * Shorthand; [testConfig] is for `aroundAll` / `aroundEach` / context / timeouts only. Set concurrency via
+     * `execution` (see [matrixConfig]), not `TestConfig.invocation(...)`; `testScope(...)` is sequential-only.
+     */
     @TestRegistering
     fun test(
         name: String,
@@ -141,6 +146,11 @@ data class MatrixSuiteScope internal constructor(
         test(this, config, body)
     }
 
+    /**
+     * FreeSpec test. [testConfig] is for `aroundAll` / `aroundEach` / context / timeouts only — set concurrency via
+     * `execution` (use the `matrixConfig` overload), not `TestConfig.invocation(...)`; `testScope(...)` is
+     * sequential-only.
+     */
     @TestRegistering
     operator fun String.invoke(
         testConfig: TestConfig = TestConfig,
@@ -154,6 +164,11 @@ data class MatrixSuiteScope internal constructor(
         config: MatrixSuiteConfigBuilder,
     ): MatrixConfiguredSuite = MatrixConfiguredSuite(this@MatrixSuiteScope, this, config)
 
+    /**
+     * FreeSpec suite (`"name"(testConfig) - { … }`). [testConfig] is for `aroundAll` / `aroundEach` / context /
+     * timeouts only — set concurrency via `execution` (use the `matrixConfig` overload), not
+     * `TestConfig.invocation(...)`; `testScope(...)` is sequential-only.
+     */
     @TestRegistering
     operator fun String.invoke(
         testConfig: TestConfig = TestConfig,

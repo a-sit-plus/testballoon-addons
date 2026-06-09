@@ -5,10 +5,10 @@ import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.of
 
-val terminalLayerMatrix by matrixSuite(
-    execution = ExecutionMode.Sequential,
-    defaultPropertyIterations = 2,
-) {
+val terminalLayerMatrix by matrixSuite(matrixConfig {
+        execution = ExecutionMode.Sequential
+        defaultPropertyIterations = 2
+    }) {
     data("terminal iterable data", listOf(1, 2)) test { row ->
         row shouldBeGreaterThan 0
     }
