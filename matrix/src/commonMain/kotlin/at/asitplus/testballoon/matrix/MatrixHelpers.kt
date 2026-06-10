@@ -11,6 +11,10 @@ import kotlinx.coroutines.sync.Semaphore
 internal fun defaultLayerName(index: Long, value: Any?): String =
     "${index}: ${value.toPrettyString()}"
 
+/** Default name for a map-backed data layer case: the entry rendered as `($key: $value)`. */
+internal fun <K, V> defaultMapEntryName(index: Long, entry: Pair<K, V>): String =
+    "${index}: (${entry.first.toPrettyString()}: ${entry.second.toPrettyString()})"
+
 /**
  * One generated/enumerated case of a matrix layer, carrying its original (authoritative) index and,
  * for property layers, the [seed] of the random source that produced it (`null` for data layers).

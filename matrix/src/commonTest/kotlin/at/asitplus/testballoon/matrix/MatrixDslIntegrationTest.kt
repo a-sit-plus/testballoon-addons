@@ -134,3 +134,128 @@ val matrixNamelessCompactTest by matrixSuite(matrixConfig { execution = Executio
         }
     }
 }
+
+// Map data layers expose each entry as a destructurable `Pair<K, V>`, in iteration order.
+
+val matrixMapDataTest by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
+    var leaves = 0
+    var keySum = ""
+    var valueSum = 0
+    data("m", linkedMapOf("a" to 1, "b" to 2, "c" to 3)) test { (k, v) ->
+        leaves++
+        keySum += k
+        valueSum += v
+    }
+    "a map data layer runs one case per entry, exposing key and value" {
+        leaves shouldBe 3
+        keySum shouldBe "abc"
+        valueSum shouldBe 6
+    }
+}
+
+val matrixNamelessMapDataTest by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
+    var leaves = 0
+    data(linkedMapOf("x" to 10, "y" to 20)) - { (k, _) ->
+        data(listOf("p", "q")) test { leaves++ }
+    }
+    "a nameless map nested over data still multiplies cases" {
+        leaves shouldBe 4
+    }
+}
+
+val matrixMapReplayTest by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
+    val ran = mutableListOf<String>()
+    data("m", linkedMapOf("a" to 1, "b" to 2, "c" to 3, "d" to 4), replay = Indexes(3L, 0L)) test { (k, _) ->
+        ran += k
+    }
+    "replay indexes pin map entries by position, in source order" {
+        ran shouldBe listOf("a", "d")
+    }
+}
+
+// `.asData(...)`: fluent receiver form with full knob parity (name, limit, replay, config).
+
+val matrixAsDataTest by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
+    var iterableLeaves = 0
+    listOf(1, 2, 3).asData(name = "iterable") test { iterableLeaves++ }
+    "Iterable.asData runs one case per element" {
+        iterableLeaves shouldBe 3
+    }
+
+    var sequenceLeaves = 0
+    sequenceOf(1, 2, 3, 4, 5).asData(name = "sequence", limit = 2) test { sequenceLeaves++ }
+    "Sequence.asData honours limit" {
+        sequenceLeaves shouldBe 2
+    }
+
+    var mapLeaves = 0
+    linkedMapOf("a" to 1, "b" to 2).asData() test { (_, v) -> mapLeaves += v }
+    "Map.asData runs one case per entry, exposing the value" {
+        mapLeaves shouldBe 3
+    }
+
+    val replayed = mutableListOf<Int>()
+    listOf(10, 20, 30, 40).asData(replay = Indexes(0L, 2L)) test { replayed += it }
+    "Iterable.asData threads replay through" {
+        replayed shouldBe listOf(10, 30)
+    }
+}
+
+val matrixCompactMapAndAsDataTest by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
+    // Same shapes via the CompactScope (`addLayer`) path.
+    compact("compact map / asData") { report = CompactReport.AllCases } - {
+        data(linkedMapOf("a" to 1, "b" to 2)) test { (_, v) -> v shouldBeGreaterThan 0 }
+        listOf(1, 2, 3).asData() test { it shouldBeGreaterThan 0 }
+        linkedMapOf("x" to 5).asData(name = "single") test { (_, v) -> v shouldBeGreaterThan 0 }
+    }
+}
+
+// `nameFn` resolves by lambda arity: a single-param namer names by value (no index); a two-param
+// namer keeps the index; omitting it uses the indexed default. The namer is the observable — matrix
+// computes each case name eagerly at registration, so a recording namer captures what it received.
+
+val matrixSingleParamNameFnTest by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
+    val dataNames = mutableListOf<String>()
+    data("d", listOf(10, 20), nameFn = { v -> "v=$v".also { dataNames += it } }) test { }
+    "a single-param data namer omits the index" {
+        dataNames shouldBe listOf("v=10", "v=20")
+    }
+
+    val implicitItNames = mutableListOf<String>()
+    data("ii", listOf(1, 2), nameFn = { "n$it".also { s -> implicitItNames += s } }) test { }
+    "an implicit-it namer resolves to the single-param form" {
+        implicitItNames shouldBe listOf("n1", "n2")
+    }
+
+    val mapNames = mutableListOf<String>()
+    data("m", linkedMapOf("a" to 1, "b" to 2), nameFn = { (k, v) -> "$k=$v".also { mapNames += it } }) test { }
+    "a destructured single-param map namer binds to the value-only Map overload" {
+        mapNames shouldBe listOf("a=1", "b=2")
+    }
+
+    val asDataNames = mutableListOf<String>()
+    listOf("x", "y").asData(nameFn = { "id:$it".also { s -> asDataNames += s } }) test { }
+    "a single-param asData namer omits the index" {
+        asDataNames shouldBe listOf("id:x", "id:y")
+    }
+
+    val propNames = mutableListOf<String>()
+    property("p", Arb.of(7), iterations = 2, nameFn = { v -> "p$v".also { propNames += it } }) test { }
+    "a single-param property namer omits the index" {
+        propNames shouldBe listOf("p7", "p7")
+    }
+
+    val indexedNames = mutableListOf<String>()
+    data("two", listOf(10, 20), nameFn = { i, v -> "$i:$v".also { indexedNames += it } }) test { }
+    "a two-param namer still receives the index" {
+        indexedNames shouldBe listOf("0:10", "1:20")
+    }
+}
+
+val matrixCompactSingleParamNameFnTest by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
+    // Value-only namers must thread through the CompactScope (`addLayer`) path too.
+    compact("compact single-param namer") { report = CompactReport.AllCases } - {
+        data("d", listOf(1, 2), nameFn = { "v$it" }) test { it shouldBeGreaterThan 0 }
+        linkedMapOf("a" to 1).asData(nameFn = { (k, _) -> k }) test { (_, v) -> v shouldBeGreaterThan 0 }
+    }
+}

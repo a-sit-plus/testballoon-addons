@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.15.0
+* **Matrix testing:**
+    * `data` now accepts a `Map<K, V>` directly, exposing each entry as a destructurable `Pair<K, V>`
+      (`data("envs", mapOf("dev" to 8080)) - { (name, port) -> … }`). Default name is `"<index>: (key: value)"`.
+      Entries iterate in map order, so use an ordered map (the `mapOf`/`linkedMapOf` default) for reproducible
+      `replay`.
+    * Fluent receiver form `.asData(…)` on `Iterable`, `Sequence`, and `Map`, mirroring `data` one-to-one:
+      `listOf(1, 2, 3).asData() - { … }`, `myMap.asData(nameFn = { (k, _) -> k }) test { … }`.
+    * `nameFn` now resolves by lambda arity: a single-parameter namer (`{ v -> … }`, `{ it }`, or destructured
+      `{ (k, v) -> … }`) names cases by value alone; the two-parameter `{ index, value -> … }` form keeps the index;
+      omitting it uses the indexed default. Applies to `data`, `.asData`, and `property`.
+
 ## 0.14.0
 * **Matrix testing:**
     * **Breaking:** `matrixSuite(...)` now takes its configuration as a single `matrixConfig { … }` argument instead of
