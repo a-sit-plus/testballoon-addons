@@ -118,8 +118,19 @@ nameless overload.
 
 ### Data-Driven Matrix Layers
 
-`data` layers accept `Iterable` values and lazy `Sequence` values. Use `test { ... }` when each row is the test, and
-`- { ... }` when each row is a dimension that contains more layers or explicit tests.
+`data` layers accept `Iterable` values, lazy `Sequence` values, and a `Map` (each entry comes through as a
+destructurable `Pair<K, V>`, named `"<index>: (key: value)"` by default). Use `test { ... }` when each row is the test,
+and `- { ... }` when each row is a dimension that contains more layers or explicit tests.
+
+Every collection also reads fluently as a receiver via `.asData(…)`, with the exact same options as `data`:
+
+```kotlin
+listOf(1, 2, 3).asData() test { it shouldBeGreaterThan 0 }
+mapOf("dev" to 8080, "prod" to 443).asData(nameFn = { (env, _) -> env }) - { (env, port) -> /* … */ }
+```
+
+`nameFn` resolves by lambda arity: a single-parameter namer (`{ v -> … }`, `{ it }`, or destructured `{ (k, v) -> … }`)
+names by value alone, while the two-parameter `{ index, value -> … }` form keeps the index.
 
 ```kotlin
 val dataDrivenMatrix by matrixSuite(matrixConfig { execution = ExecutionMode.Sequential }) {
