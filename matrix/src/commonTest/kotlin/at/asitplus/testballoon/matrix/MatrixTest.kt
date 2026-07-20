@@ -44,6 +44,13 @@ val matrixReport by matrixSuite(matrixConfig { execution = ExecutionMode.Concurr
 }
 
 
+val matrixCompactReport by matrixSuite {
+    compact("foo") - {
+        data(List(100) { it }, nameFn = { _, v -> v.toString() }) test {
+        }
+    }
+}
+
 val matrix2Report by matrixSuite {
     data("first", listOf(1, 2, 3, 4, 6), nameFn = { i, v -> "$i: ${v.toHexString()}" }) {
         execution = ExecutionMode.Concurrent(12)

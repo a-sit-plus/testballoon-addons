@@ -57,7 +57,9 @@ class GeneratingFixtureScope<T> @PublishedApi internal constructor(
 class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
     val testSuite: TestSuiteScope,
     val generator: () -> T
-) {
+) : TestSuiteScope {
+    override val testSuiteInScope get() = testSuite.testSuiteInScope
+
     /**
      * Registers a test that uses a fresh fixture instance as a child of the current [testSuite].
      *
@@ -96,7 +98,7 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
         @TestElementName name: String,
         maxLength: Int = TestBalloonAddons.defaultTestNameMaxLength,
         testConfig: TestConfig = TestConfig,
-        content: TestSuiteScope.(T) -> Unit
+        content: NonSuspendingGeneratingFixtureScope<T>.(T) -> Unit
     ) {
         with(testSuite) {
             val truncatedName = name.truncated(maxLength)
@@ -104,7 +106,7 @@ class NonSuspendingGeneratingFixtureScope<T> @PublishedApi internal constructor(
             testSuite(
                 truncatedName,
                 testConfig = testConfig
-            ) { content(generator()) }
+            ) { NonSuspendingGeneratingFixtureScope(this, generator).content(generator()) }
         }
     }
 }

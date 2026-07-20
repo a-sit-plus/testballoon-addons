@@ -12,3 +12,13 @@ internal actual fun compactProgressPrint(message: String) {
         compactProgressStderr.flush()
     }
 }
+
+internal actual fun compactSummaryPrint(message: String) {
+    // Raw FD: always visible on the real console even when the runner captures System.out/err.
+    catchingUnwrapped {
+        compactProgressStderr.write((message + System.lineSeparator()).encodeToByteArray())
+        compactProgressStderr.flush()
+    }
+    // Captured stream: Gradle/IDE attach System.err to the test as <system-err>, so the count shows in reports.
+    catchingUnwrapped { System.err.println(message) }
+}

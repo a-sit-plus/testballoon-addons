@@ -15,9 +15,10 @@ val firstGeneratingReport by testSuite {
     withFixtureGenerator(random::nextFloat) - {
 
         testSuite("Suite With Fixture") {
-            testSuite("Suite without") {
-                test("Test without") {
-                    it shouldBe 4
+            val fixed = it
+            testSuite("Suite without") { suiteFloat ->
+                test("Test without") { float ->
+                    it shouldBe fixed
                 }
             }
             withFixtureGenerator(random::nextBoolean) - {

@@ -17,6 +17,16 @@ expect var totalMaxLen: Int
 
 internal expect fun compactProgressPrint(message: String)
 
+/**
+ * Emits a compact run's final summary to BOTH the raw console (the same always-observable channel as
+ * [compactProgressPrint], which bypasses test-output capture) AND the captured `stderr` stream, so the count
+ * also lands in IDE / Gradle / JUnit-XML test output. Platform actuals write the line on both channels.
+ */
+internal expect fun compactSummaryPrint(message: String)
+
+/** Public entry point for [compactSummaryPrint] so consumer modules (e.g. matrix) can emit a compact summary. */
+fun emitCompactSummary(message: String) = compactSummaryPrint(message)
+
 private const val PRETTY_BYTE_ARRAY_BYTE_LIMIT = 512
 
 internal var compactProgressHeartbeatInterval = 1.seconds

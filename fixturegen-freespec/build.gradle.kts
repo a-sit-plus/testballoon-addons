@@ -83,10 +83,16 @@ kotlin {
     }
 }
 
-val javadocJar = setupDokka(
+setupDokka(
     baseUrl = "https://github.com/a-sit-plus/testballoon-addons/tree/main/",
     multiModuleDoc = true
 )
+
+val javadocJar = tasks.register<Jar>("javadocRedirectJar") {
+    archiveClassifier.set("javadoc")
+    from(rootProject.rootDir.absolutePath+"/docs/javadoc")
+}
+
 
 publishing {
     publications {

@@ -73,6 +73,18 @@ internal class CompactRun(
         }
     }
 
+    /** One-line outcome summary (counts), emitted at the end of every compact run — pass or fail. */
+    suspend fun summaryLine(): String = mutex.withLock {
+        buildString {
+            append("$name: $successCount succeeded, $failureCount failed")
+            if (sourceCaseCount > 0) append(" ($sourceCaseCount source cases)")
+            if (omittedFailures > 0 || omittedSuccesses > 0) {
+                append(", omitted ")
+                appendOmittedCounts(omittedFailures, omittedSuccesses)
+            }
+        }
+    }
+
     suspend fun progressMessage(): String = mutex.withLock {
         buildString {
             append("$name: compact progress: $completed of $started queued completed")

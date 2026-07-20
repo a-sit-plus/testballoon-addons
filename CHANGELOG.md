@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.16.0
+* Kotlin 2.4.0
+* **Fixture generation:**
+    * **Fix nested suite registration:** Fixture-backed suites now bind their scope to the suite currently being configured, allowing sibling and nested
+      suites to register under the correct parent.
+* **Matrix testing:**
+    * **Unify layer separator to TestBalloon's `↘`:** All matrix output now separates layers with TestBalloon's `↘` arrow instead of `/` (which IDEA highlighted as a
+      clickable link) or `›`: the compact `Failure:` / `OK` report paths, the `Error replay info` path, and the
+      registration-progress breadcrumb.
+    * **Replay info shows the full path:** The `Error replay info` path now mirrors the compact report path in full — enclosing grouping suites
+      (`"name" - { ... }`) and plain `test` leaves appear as path segments, not just the replayable `data` / `property`
+      layers. Only replayable layers still emit a `- ...` argument line; group-only chains produce no replay block.
+
 ## 0.15.0
 * **Matrix testing:**
     * `data` now accepts a `Map<K, V>` directly, exposing each entry as a destructurable `Pair<K, V>`
@@ -86,11 +99,6 @@
     * `Error replay info` frames are now tagged with their layer kind — `(property)` or `(data)` — for named and
       nameless layers alike (e.g. `(property) seed: ...`). Nameless layers print the marker without a name; the
       general failure/report path still shows no synthesized segment.
-* **Matrix testing: replace layer separator slash with TestBalloon separator arrow**
-* **Matrix testing: replay info shows the full path**
-    * The `Error replay info` path now mirrors the compact report path in full — enclosing grouping suites
-      (`"name" - { ... }`) and plain `test` leaves appear as path segments, not just the replayable `data`/`property`
-      layers. Only replayable layers still emit a `- ...` argument line; group-only chains produce no replay block.
 
 ## 0.11.0
 * **Matrix testing: bounded compact concurrency**
