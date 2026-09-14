@@ -337,3 +337,18 @@ fun Any?.toPrettyString(maxLength: Int, reservedPrefixLength: Int = 0): String {
         else -> toPrettyString.truncated(budget)
     }
 }
+
+
+internal fun String.teamCityEscape(): String = buildString {
+    for (c in this@teamCityEscape) {
+        when (c) {
+            '|' -> append("||")
+            '\'' -> append("|'")
+            '\n' -> append("|n")
+            '\r' -> append("|r")
+            '[' -> append("|[")
+            ']' -> append("|]")
+            else -> append(c)
+        }
+    }
+}.let { "##teamcity[message text='$it' status='NORMAL']" }

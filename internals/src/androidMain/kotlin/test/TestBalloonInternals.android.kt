@@ -7,6 +7,7 @@ actual var totalMaxLen: Int = -1
 
 internal actual fun compactProgressPrint(message: String) {
    Log.i("TestRunner", message)
+   System.err.println(message)         // captured stream for local/Robolectric unit tests
 }
 
 internal actual fun compactSummaryPrint(message: String) {

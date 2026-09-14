@@ -10,8 +10,8 @@ import platform.posix.stdout
 @OptIn(ExperimentalForeignApi::class)
 internal actual fun compactProgressPrint(message: String) {
     catchingUnwrapped {
-        fprintf(stdout, "%s\n", message)
-        fflush(stdout)
+        fprintf(stderr, "%s\n", message)
+        fflush(stderr)
     }
 }
 

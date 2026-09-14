@@ -1,7 +1,6 @@
 package at.asitplus.testballoon.matrix
 
 import at.asitplus.testballoon.truncated
-import at.asitplus.testballoon.emitCompactSummary
 import at.asitplus.testballoon.withCompactProgressHeartbeatSuspending
 import de.infix.testBalloon.framework.core.Test
 import de.infix.testBalloon.framework.core.TestConfig
@@ -264,7 +263,6 @@ data class MatrixSuiteScope internal constructor(
 
                     Indicator.None -> runCompactNodes(nodes, this@test, run, replayPath)
                 }
-                emitCompactSummary(run.summaryLine())
                 run.throwIfAny()
             }
         }

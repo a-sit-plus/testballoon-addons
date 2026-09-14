@@ -11,6 +11,8 @@ internal actual fun compactProgressPrint(message: String) {
         compactProgressStderr.write((message + System.lineSeparator()).encodeToByteArray())
         compactProgressStderr.flush()
     }
+    // Captured stream: Gradle/IDE attach System.err to the test as <system-err>, so the count shows in reports.
+    catchingUnwrapped { System.err.println(message) }
 }
 
 internal actual fun compactSummaryPrint(message: String) {
