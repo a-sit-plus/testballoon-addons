@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.16.2
+* Work around TC protocol interference on JS
+
 ## 0.16.0
 * Kotlin 2.4.0
 * **Fixture generation:**

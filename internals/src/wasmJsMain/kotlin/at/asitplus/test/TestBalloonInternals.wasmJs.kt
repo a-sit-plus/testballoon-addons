@@ -1,12 +1,12 @@
 package at.asitplus.testballoon
 
 internal actual fun compactProgressPrint(message: String) {
-    printErrMessage(message.teamCityEscape())
+    printMessage(message)
 }
 
 
 internal actual fun compactSummaryPrint(message: String) {
-    printErrMessage(message.teamCityEscape())
+    printMessage(message)
 
 }
 

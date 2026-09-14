@@ -348,7 +348,8 @@ internal fun String.teamCityEscape(): String = buildString {
             '\r' -> append("|r")
             '[' -> append("|[")
             ']' -> append("|]")
+            ' ' -> append("_")
             else -> append(c)
         }
     }
-}.let { "##teamcity[message text='$it' status='NORMAL']" }
+}
