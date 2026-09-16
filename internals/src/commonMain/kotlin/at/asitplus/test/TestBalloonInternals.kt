@@ -15,14 +15,37 @@ import kotlin.time.TimeSource
 
 expect var totalMaxLen: Int
 
-internal expect fun compactProgressPrint(message: String)
+/** Console fallback for [compactProgressPrint]. Always observable, but shares a stream with the report. */
+internal expect fun compactProgressConsolePrint(message: String)
 
 /**
- * Emits a compact run's final summary to BOTH the raw console (the same always-observable channel as
- * [compactProgressPrint], which bypasses test-output capture) AND the captured `stderr` stream, so the count
- * also lands in IDE / Gradle / JUnit-XML test output. Platform actuals write the line on both channels.
+ * Console fallback for [compactSummaryPrint]. Writes to BOTH the raw console (which bypasses test-output
+ * capture) AND the captured `stderr` stream, so the count also lands in IDE / Gradle / JUnit-XML test output.
  */
-internal expect fun compactSummaryPrint(message: String)
+internal expect fun compactSummaryConsolePrint(message: String)
+
+/**
+ * Emits a progress line, preferring the build's out-of-band [StatusChannel].
+ *
+ * The console is not a free channel during a test run: on native the TeamCity service messages go to `stdout`,
+ * the JS/Wasm mocha reporter writes there too, and progress emitted while no test is open -- registration
+ * progress does exactly that -- cannot be expressed as a legal service message at all. Where the build opened
+ * a listener the line therefore leaves the report streams untouched; everywhere else nothing changes.
+ */
+internal fun compactProgressPrint(message: String) {
+    if (!StatusChannel.send(message)) compactProgressConsolePrint(message)
+}
+
+/**
+ * Emits a compact run's final summary, preferring the build's out-of-band [StatusChannel].
+ *
+ * NOTE: while the channel is live the summary no longer reaches the captured test output, so it will not show
+ * up in JUnit XML or the IDE's per-test output -- it goes to the build log instead. Targets without a channel
+ * keep writing both streams as before.
+ */
+internal fun compactSummaryPrint(message: String) {
+    if (!StatusChannel.send(message)) compactSummaryConsolePrint(message)
+}
 
 /** Public entry point for [compactSummaryPrint] so consumer modules (e.g. matrix) can emit a compact summary. */
 fun emitCompactSummary(message: String) = compactSummaryPrint(message)

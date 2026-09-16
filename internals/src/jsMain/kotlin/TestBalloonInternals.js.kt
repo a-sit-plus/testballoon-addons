@@ -1,9 +1,9 @@
 package at.asitplus.testballoon
 
-internal actual fun compactProgressPrint(message: String) {
+internal actual fun compactProgressConsolePrint(message: String) {
     console.log(message)
 }
 
-internal actual fun compactSummaryPrint(message: String) {
+internal actual fun compactSummaryConsolePrint(message: String) {
     console.log(message)
 }
