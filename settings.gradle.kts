@@ -18,6 +18,7 @@ pluginManagement {
     }
 }
 
+include("gradle-plugin")
 include("commons")
 include("internals")
 include("freespec")

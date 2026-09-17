@@ -85,6 +85,14 @@ kotlin {
             .filter { it.name.endsWith("Main") }.forEach { srcSet ->
                 srcSet.kotlin.srcDir("$projectDir/src/nonAndroidMain/kotlin")
             }
+
+        // Status-channel transports: one shared file per socket API flavour.
+        // `androidJvmMain` is already part of the source-set hierarchy, so its default layout is picked up.
+        // Every native target except mingw, whose Winsock bindings use different types.
+        listOf("appleMain", "linuxMain", "androidNativeMain").forEach { name ->
+            findByName(name)?.kotlin?.srcDir("$projectDir/src/posixSocketMain/kotlin")
+        }
+
     }
 }
 

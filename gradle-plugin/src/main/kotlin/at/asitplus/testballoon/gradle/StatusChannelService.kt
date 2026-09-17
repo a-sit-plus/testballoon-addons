@@ -1,5 +1,6 @@
 package at.asitplus.testballoon.gradle
 
+import org.gradle.api.logging.Logging
 import org.gradle.api.provider.Property
 import org.gradle.api.services.BuildService
 import org.gradle.api.services.BuildServiceParameters
@@ -8,6 +9,7 @@ import java.io.InputStream
 import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.concurrent.thread
 
 /**
@@ -40,14 +42,27 @@ abstract class StatusChannelService : BuildService<StatusChannelService.Paramete
     /** The port test processes should post to, or null when nothing could be bound. */
     val port: Int? = listener?.localPort
 
+    private val cleanups = ConcurrentLinkedQueue<() -> Unit>()
+
+    /**
+     * Registers work to undo when the build ends, whichever way it ends.
+     *
+     * `doLast` is not good enough for undoing state outside the build: Gradle skips it when the task action
+     * fails, which is how a failed instrumented test run leaves an `adb reverse` mapping behind on a device.
+     * Build services are closed regardless of task outcome, so this runs either way.
+     */
+    fun onBuildFinished(action: () -> Unit) {
+        cleanups.add(action)
+    }
+
     init {
         val announce = parameters.renderStatus.getOrElse(true)
         val bound = listener
         if (bound != null) {
             thread(isDaemon = true, name = "testballoon-status-channel") { accept(bound) }
-            if (announce) println("TestBalloon status channel listening on $HOST:${bound.localPort}")
+            if (announce) LOGGER.lifecycle("TestBalloon status channel listening on $HOST:${bound.localPort}")
         } else if (announce) {
-            println(
+            LOGGER.lifecycle(
                 "TestBalloon status channel: no free port available; test progress stays on the console."
             )
         }
@@ -81,17 +96,22 @@ abstract class StatusChannelService : BuildService<StatusChannelService.Paramete
     }
 
     /**
-     * Written straight to the process output rather than through a Gradle [org.gradle.api.logging.Logger]:
-     * these lines arrive from a background thread while a test task is executing, and going through the
-     * process stream is what keeps them attributed to that task instead of drifting to the end of the build.
+     * Logged at lifecycle level rather than written to `System.out`. Gradle captures background-thread output
+     * at INFO, so a `println` here is invisible at the default log level: the whole point of the channel is
+     * that progress shows up while tests run, without `--info`.
      */
-    private fun render(message: String) = println("  ⟨status⟩ $message")
+    private fun render(message: String) = LOGGER.lifecycle("  ⟨status⟩ $message")
 
     override fun close() {
+        while (true) {
+            val cleanup = cleanups.poll() ?: break
+            runCatching { cleanup() }
+        }
         runCatching { listener?.close() }
     }
 
     private companion object {
+        val LOGGER = Logging.getLogger(StatusChannelService::class.java)
         const val HOST = "127.0.0.1"
         const val BACKLOG = 64
         const val DEFAULT_SEARCH_WIDTH = 64

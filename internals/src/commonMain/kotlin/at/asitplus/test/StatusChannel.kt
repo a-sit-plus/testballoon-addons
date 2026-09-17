@@ -18,8 +18,16 @@ object StatusChannel {
     private const val HOST_VARIABLE = "TESTBALLOON_ADDONS_STATUS_HOST"
     private const val PORT_VARIABLE = "TESTBALLOON_ADDONS_STATUS_PORT"
 
+    /**
+     * How many sends in a row may fail before the channel gives up. A single hiccup must not silence a whole
+     * run: over an `adb reverse` tunnel in particular, one refused connection is not evidence that nobody is
+     * listening. Messages that fail are not lost -- callers fall back to the console for those.
+     */
+    private const val CONSECUTIVE_FAILURE_LIMIT = 5
+
     private var endpoint: Pair<String, Int>? = null
     private var resolved = false
+    private var consecutiveFailures = 0
     private var dead = false
 
     /** Overrides the endpoint the build advertised. Mainly useful for testing the channel itself. */
@@ -47,21 +55,28 @@ object StatusChannel {
         return endpoint
     }
 
-    /** True once an endpoint is known and no send has failed yet. */
+    /** True once an endpoint is known and the channel has not given up. */
     val isLive: Boolean get() = !dead && endpoint() != null
 
     /**
-     * Posts [message], returning true if it went out. The first failure retires the channel permanently -- a
-     * test run must never stall or fail because nobody is listening.
+     * Posts [message], returning true if it went out.
+     *
+     * Failures are tolerated up to [CONSECUTIVE_FAILURE_LIMIT] in a row, after which the channel retires for
+     * the rest of the run; a test must never stall or fail because nobody is listening, but nor should one
+     * transient error cost every later message.
      */
     fun send(message: String): Boolean {
         if (dead) return false
         val (host, port) = endpoint() ?: return false
-        if (!statusPost(host, port, "HTTPMSG $message")) {
-            dead = true
-            return false
+
+        if (statusPost(host, port, message)) {
+            consecutiveFailures = 0
+            return true
         }
-        return true
+
+        consecutiveFailures++
+        if (consecutiveFailures >= CONSECUTIVE_FAILURE_LIMIT) dead = true
+        return false
     }
 }
 

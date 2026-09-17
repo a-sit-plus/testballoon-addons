@@ -19,6 +19,13 @@ abstract class StatusChannelExtension {
 
     /** Set to false to collect status lines without printing them. Defaults to true. */
     abstract val renderStatus: Property<Boolean>
+
+    /**
+     * How long an Android instrumented test task keeps watching for a device to appear before giving up on
+     * forwarding the port to it. Covers Gradle Managed Devices, whose emulator only boots once the task is
+     * already running. Defaults to 300 seconds.
+     */
+    abstract val androidDeviceWaitSeconds: Property<Int>
 }
 
 /**
@@ -51,6 +58,18 @@ class StatusChannelPlugin : Plugin<Project> {
         }
 
         target.allprojects { project ->
+            if (settings.enabled.getOrElse(true)) {
+                service.get().port?.let { port ->
+                    AndroidInstrumentedSupport.configure(
+                        project,
+                        endpoint = mapOf(HOST_VARIABLE to STATUS_CHANNEL_HOST, PORT_VARIABLE to port.toString()),
+                        port = port,
+                        waitSeconds = settings.androidDeviceWaitSeconds.getOrElse(300),
+                        service = service
+                    )
+                }
+            }
+
             project.tasks.withType(AbstractTestTask::class.java).configureEach { task ->
                 // Binds the listener at execution time too, so the channel still exists on a configuration
                 // cache hit, where none of the configuration code above runs again.
