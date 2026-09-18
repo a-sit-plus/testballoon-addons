@@ -1,5 +1,9 @@
 # Changelog
 
+
+## 0.17.0
+* Socket-based status reporting with custom Gradle plugin
+
 ## 0.16.2
 * Work around TC protocol interference on JS
 

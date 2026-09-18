@@ -7,5 +7,5 @@ internal actual fun statusPost(host: String, port: Int, body: String): Boolean =
 
 @OptIn(ExperimentalWasmJsInterop::class)
 private fun postStatus(url: String, body: String) {
-    js("fetch(url, { method: 'POST', mode: 'no-cors', keepalive: true, body: body }).catch(function () {})")
+    js("fetch(url, { method: 'POST', mode: 'no-cors', body: body }).catch(function () {})")
 }

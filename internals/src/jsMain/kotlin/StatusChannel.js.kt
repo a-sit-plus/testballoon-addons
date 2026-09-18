@@ -12,5 +12,5 @@ internal actual fun statusPost(host: String, port: Int, body: String): Boolean =
 
 @Suppress("unused", "UNUSED_PARAMETER")
 private fun postStatus(url: String, body: String) {
-    js("fetch(url, { method: 'POST', mode: 'no-cors', keepalive: true, body: body }).catch(function () {})")
+    js("fetch(url, { method: 'POST', mode: 'no-cors', body: body }).catch(function () {})")
 }

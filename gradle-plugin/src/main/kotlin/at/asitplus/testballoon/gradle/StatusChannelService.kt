@@ -77,11 +77,19 @@ abstract class StatusChannelService : BuildService<StatusChannelService.Paramete
     }
 
     private fun handle(connection: Socket) = connection.use { socket ->
+        // Connections are handled inline to keep messages ordered, which means a client that opens one and
+        // sends nothing would otherwise block every later message for the rest of the build. HTTP clients do
+        // hold idle pooled connections, so this is a real case, not a hypothetical one.
+        socket.soTimeout = READ_TIMEOUT_MILLIS
         val input = socket.getInputStream()
         val head = input.readHead() ?: return
         val length = head.lineSequence()
             .firstOrNull { it.startsWith("Content-Length:", ignoreCase = true) }
             ?.substringAfter(':')?.trim()?.toIntOrNull() ?: 0
+
+        // A declared length is attacker-or-bug-controlled input, and the buffer is allocated from it, so an
+        // absurd Content-Length would otherwise be an out-of-memory in the build's own daemon.
+        if (length !in 0..MAX_BODY_BYTES) return
 
         // Decode only after reading exactly Content-Length *bytes*: progress lines carry non-ASCII (↘, Σ, …),
         // so counting characters would truncate them.
@@ -100,7 +108,7 @@ abstract class StatusChannelService : BuildService<StatusChannelService.Paramete
      * at INFO, so a `println` here is invisible at the default log level: the whole point of the channel is
      * that progress shows up while tests run, without `--info`.
      */
-    private fun render(message: String) = LOGGER.lifecycle("  ⟨status⟩ $message")
+    private fun render(message: String) = LOGGER.lifecycle("  ⟨tests⟩ $message")
 
     override fun close() {
         while (true) {
@@ -114,6 +122,8 @@ abstract class StatusChannelService : BuildService<StatusChannelService.Paramete
         val LOGGER = Logging.getLogger(StatusChannelService::class.java)
         const val HOST = "127.0.0.1"
         const val BACKLOG = 64
+        const val READ_TIMEOUT_MILLIS = 2_000
+        const val MAX_BODY_BYTES = 64 * 1024
         const val DEFAULT_SEARCH_WIDTH = 64
         val RESPONSE = (
             "HTTP/1.1 204 No Content\r\n" +

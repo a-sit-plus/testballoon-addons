@@ -5,7 +5,7 @@ on:
       modules:
         description: 'Comma-separated list of module names to publish'
         required: false
-        default: 'internals,commons,matrix,freespec,property,datatest,fixturegen,fixturegen-freespec'
+        default: 'internals,commons,matrix,freespec,property,datatest,fixturegen,fixturegen-freespec,gradle-plugin'
 permissions:
   contents: read
   pages: write
