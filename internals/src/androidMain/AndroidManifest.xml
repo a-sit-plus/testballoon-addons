@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The status channel posts progress to a loopback HTTP endpoint the Gradle build opens. On Android the
+    INTERNET permission gates socket creation itself: without it the app's UID is not in the `inet` group and
+    `Socket()` fails with EPERM before the destination matters, loopback included. An instrumented test APK
+    that does not declare it can therefore never reach the listener, and silently falls back to the console.
+
+    Declaring it here means it merges into any APK depending on this library, which in practice is the test
+    APK. Note that it would equally merge into a production app if an addon were ever placed on a main source
+    set rather than a test one.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+</manifest>

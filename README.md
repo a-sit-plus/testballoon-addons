@@ -67,6 +67,61 @@ val combinedFeaturesSuite by matrixSuite(matrixConfig { execution = ExecutionMod
 | `0.1.0`            | `0.7.0` (Kotlin `2.2.21`)   |
 
 
+## Real-Time Progress Reporting
+
+Starting with **0.17.0**, TestBalloon Addons publishes an _experimental_ companion Gradle plugin to **Maven Central**:
+
+```kotlin
+// build.gradle.kts of the **ROOT** project
+plugins {
+    id("at.asitplus.testballoon.addons") version "0.17.0"
+}
+```
+
+The plugin is **entirely optional**. Without it everything behaves exactly as before, with progress going to the
+console. With it, long-running or very large test series report their progress in real time, on every target.
+
+### Why a Gradle plugin?
+
+On every non-JVM target the console *is* the reporting channel: Kotlin/Native writes its TeamCity service messages
+to the console, and so does the JS/Wasm test reporter. Progress printed there shares a stream with the test report.
+Worse, progress emitted while no test is open, which is exactly what happens while a large matrix is being
+*registered*, cannot be expressed as a legal service message at all. So it is either not real-time or may interfere with reporting.
+
+The plugin therefore opens a single loopback listener for the whole build and hands its address to each test
+process. Progress travels out of band and surfaces in the Gradle log, leaving the report streams untouched:
+
+```
+TestBalloon status channel listening on 127.0.0.1:54366
+  ⟨status⟩ Automated: compact progress: 946970 of 946970 queued completed (961000 source cases), 0 failed
+```
+
+Reporting is strictly best-effort and can never fail or stall a test run: where no listener can be reached, the
+addons silently fall back to printing on the console.
+
+### Configuration
+
+Defaults are chosen so that nothing needs configuring. Everything below is optional:
+
+```kotlin
+testBalloonStatusChannel {
+    enabled.set(true)                  // false leaves every target on the console fallback
+    basePort.set(49152)                // default: derived from the root directory, stable across builds
+    portSearchWidth.set(64)            // how far to search upwards when the port is taken
+    renderStatus.set(true)             // false collects progress without printing it
+    androidDeviceWaitSeconds.set(300)  // how long to wait for a Gradle Managed Device to boot
+}
+```
+
+> [!NOTE]
+> The port is derived from the project's root directory rather than chosen at random, and is deliberately stable
+> across builds: a test task's environment is one of its inputs, so a port that changed every build would re-run
+> every test task every build.
+
+Android instrumented tests need no setup either: the plugin passes the endpoint as an instrumentation runner
+argument and issues the required `adb reverse`, for connected devices and Gradle Managed Devices alike.
+
+
 ## <picture><source media="(prefers-color-scheme: dark)" srcset="docs/matrix-dark.png"><source media="(prefers-color-scheme: light)" srcset="docs/matrix.png"><img src="docs/matrix.png" alt="Matrix Testing" width="61" height="46"></picture>&nbsp;&nbsp;Matrix Testing 
 
 

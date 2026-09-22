@@ -8,7 +8,7 @@ import platform.posix.stderr
 import platform.posix.stdout
 
 @OptIn(ExperimentalForeignApi::class)
-internal actual fun compactProgressPrint(message: String) {
+internal actual fun compactProgressConsolePrint(message: String) {
     catchingUnwrapped {
         fprintf(stderr, "%s\n", message)
         fflush(stderr)
@@ -16,7 +16,7 @@ internal actual fun compactProgressPrint(message: String) {
 }
 
 @OptIn(ExperimentalForeignApi::class)
-internal actual fun compactSummaryPrint(message: String) {
+internal actual fun compactSummaryConsolePrint(message: String) {
     // stdout is the native TeamCity service-message channel; writing there corrupts the report parser.
     // stderr is always observable and stays off the protocol.
     catchingUnwrapped {
